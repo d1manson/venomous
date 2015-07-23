@@ -12,7 +12,7 @@ The benefit of using Venomous is that it modularises each stage of the analysis 
  ![example1](/example1.png)  
 
 **Example 2:** *An application showing separate summary plots for each of the many clusters within a dataset, where the user can modify the cluster assignment, with full redo-undo capabilities.*
- ![example1](/example1.png)  
+ ![example2](/example2.png)  
  This is the usage case that motivated the development of Venomous.  See the [waveform project](http://www.github.com/d1manson/waveform).
 
 
