@@ -1,18 +1,20 @@
- ![venomous logo](/logo.png)    
+ ![venomous logo](/img/logo.png)    
 data analytics and simulation engine
 
 **This project is still in very early development.**
 
-### What is Venomous?    
+### What is Venomous?   [wishful thinking...]
 Venomous is a C++ framework that lets you build highly interactive applications focused around a complex, but essentially static, data analysis pipeline.  The programmer defines a set of input and compute nodes using C++ embedded in an XML tree. Then, using Venomous, this XML document is compiled into a data analysis engine in pure C++.  Once converted to standard C++, the custom-designed analysis engine can be integrated into a regular application, or turned into a library for Matlab/Python users. You could also transpile to JavaScript for use in modern browsers.    
 
-The benefit of using Venomous is that it modularises each stage of the analysis pipeline, making it easy to develop and maintain large pipelines.   Venomous is also built with optimisation and non-blocking interactivity at its core: wherever you see an opportunity to optimize something in your pipeline Venomous has syntax to let you specify it.   Behind the scenes Venomous deals with streaming/batching, canceling, memoisation, and ordering of tasks to maximise use of cpu/memory/disk/gpu.  Venomous can also help you test for correctness of hand-written optimisations.   
+The benefit of using Venomous is that it modularises each stage of the analysis pipeline, making it easy to develop and maintain large pipelines.   More than that though, Venomous is built with optimisation and non-blocking interactivity at its core: wherever you see an opportunity to optimize something in your pipeline Venomous has syntax to let you request that optimisation, and whatever hardware resources you have availabe, Venomous has syntax that lets you properly utilize them.   Behind the scenes Venomous deals with streaming/batching, canceling, memoisation, and ordering of tasks to maximise use of cpu/memory/disk/gpu/network.   In addition to the Venomous compiler, there are a number of extra tools to aid with design, debugging, optimising, and testing.  
+
+In summary, by declaring your analysis pipeline using the Venomous XML/C++ syntax you will find that a range of benefits naturally arrise, at least in principle. And since Venomous is open source, you can help contribute any features that you feel are missing.
 
 **Example 1:** *An application simulating the temporal evolution of a system of differential equations.*    
- ![example1](/example1.png)  
+ ![example1](/img/example1.png)  
 
 **Example 2:** *An application showing separate summary plots for each of the many clusters within a dataset, where the user can modify the cluster assignment, with full redo-undo capabilities.*
- ![example2](/example2.png)  
+ ![example2](/img/example2.png)  
  This is the usage case that motivated the development of Venomous.  See the [waveform project](http://www.github.com/d1manson/waveform).
 
 
