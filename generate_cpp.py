@@ -54,7 +54,7 @@ class Input(object):
         type_ = re.sub(ltgt_re, r"<\1>",  type_)
         self.type_ = type_
         d_type[self.name] = "struct {name}_t{{\n{type_} 0_;\n}}".format(name=name,type_=type_)
-        node_list.append(dict(id=len(node_list), name=name,directBefore=[]))
+        node_list.append(dict(id=len(node_list), name=name,directBefore=[],class_="input"))
     def translated_type(self):
         return self.type_
      
@@ -83,8 +83,9 @@ class Compute(object):
         self.returns = {x.get('name',name): x for x in returns}        
         self.hints = {k: v for k, v in re.findall(hint_re,hints)} if hints else {}
         self.node_list_id = len(node_list) 
-        node_list.append(dict(id=self.node_list_id,name=name,
-                              directBefore=[lookup_node_id(x['name']) for x in args]))
+        node_list.append(dict(id=self.node_list_id,name=name,class_="compute",
+                              directBefore=[lookup_node_id(x['name']) for x in args],
+                            code=self.stripped_code()))
 
     def stripped_code(self):
         s = self.code
@@ -226,10 +227,10 @@ using sink_t = boost::coroutines::asymmetric_coroutine<yield_signal>::push_type;
     f.write(func_str)
     
     
-with open(r"explorer\index.html","w") as f:
+with open(r"explorer\sample.html","w") as f:
     f.write("""
 <!DOCTYPE html>
-<html>
+<html style="height:100%;">
   <head>
     <script src="bower_components/webcomponentsjs/webcomponents-lite.js">
     </script>
@@ -237,8 +238,8 @@ with open(r"explorer\index.html","w") as f:
     <link rel="import" href="venomous_explorer.html">
     <title>sample [Venomous Explorer]</title>
   </head>
-  <body>
-  <venomous-explorer id="the_graph"></venomous-explorer>
+  <body style="height:100%;margin:0;">
+  <venomous-explorer  id="the_graph" style="height:100%;"></venomous-explorer>
   <script>
   window.addEventListener('WebComponentsReady', function(e) {
       var el = document.getElementById("the_graph");

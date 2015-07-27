@@ -15,35 +15,24 @@ nodeList must be an array of objects that have the following properties:
     .directBefore - array of node ids which are to be shown as the parents of the current node
 	
 	The rendering is super messy...but it shows what we need for now.
-
+	This whole thing is a pretty nasty, but it's getting towards a sensible encapsulation.
 -->
 
 <dom-module id="venomous-explorer">
+   <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 
   <style>
-	text {
-      font-weight: 300;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-      font-size: 14px;
-    }
-   	.node rect {
-      stroke: #999;
-    }
-    .edgePath path {
-      stroke: #333;
-      stroke-width: 1.5px;
-      fill: none;
-    }
+
 	#info{
-		margin: 5px;
-		min-height: 100px;
-		background: #ccc;
-		border: 1px solid #000;
+	background: #eee;
+	border-top: 1px solid #000;
+	padding: 8px;
+	overflow-y: scroll;
 	}
 	#svg_wrapper{
-		max-width: 1200px;
-		overflow-x: scroll;
-		cursor: default;
+	overflow-x: scroll;
+	cursor: default;
+    padding: 8px
 	}
 	::-webkit-scrollbar {
 	width: 10px;
@@ -61,25 +50,61 @@ nodeList must be an array of objects that have the following properties:
   </style>
   
   <template>
-    <div id='svg_wrapper' nodrag>
-    <svg width=650 height=300 id="thesvg"></svg>
+   <style>
+	text {
+      font-weight: 300;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+      font-size: 14px;
+    }
+    .edgePath path {
+      stroke: #333;
+      stroke-width: 1.5px;
+      fill: none;
+    }
+    g > rect {
+    	fill:none;
+    	border-radius: 3px;
+    	stroke-width: 3px;
+    }
+	g.input > rect {
+	  stroke: #000000;
+	}
+	g.compute > rect{
+	  stroke: #9999ff;
+	}
+	</style>
+  	<div id="container" class="layout vertical" style="height:100%;">
+	    <div id='svg_wrapper' nodrag><svg id="thesvg"></svg></div>
+		<div id='info' class="flex"></div>
 	</div>
-	<div id='info'></div>
   </template>
 
 
-  <script src="d3.js"></script>
-  <script src="dagre-d3.js"></script>
+  <script src="bower_components/lodash/lodash.min.js"></script>
+  <script src="bower_components/graphlib/dist/graphlib.core.js"></script>
+  <script src="bower_components/d3/d3.min.js"></script>
+  <script src="bower_components/dagre/dist/dagre.core.js"></script>
+  <script src="bower_components/dagre-d3/dist/dagre-d3.core.js"></script>
 
 
   <script>
+
+  	function escapeHtml(html){
+	    var text = document.createTextNode(html);
+	    var div = document.createElement('div');
+	    div.appendChild(text);
+	    return div.innerHTML;
+	}
+
     // element registration
     Polymer({
       is: "venomous-explorer",
 
       Render: function(nodeList){
             // Create the input graph
-            var g = new dagreD3.Digraph();
+			var g = new dagreD3.graphlib.Graph()
+						  .setGraph({})
+						  .setDefaultEdgeLabel(function() { return {}; });
             
             for(var i=0;i<nodeList.length;i++)
             	nodeList[i]['directAfter'] = [];
@@ -94,11 +119,9 @@ nodeList must be an array of objects that have the following properties:
             }
 
 			
-            for(var i=0; i<nodeList.length;i++){
-				var x= {}; //clone;
-				x.label = nodeList[i].name;
-                g.addNode(i,x);
-            }
+            for(var i=0; i<nodeList.length;i++)
+                g.setNode(i, {label: nodeList[i].name, class: nodeList[i].class_});
+            
 			var edgeStyles = [];
 			
 			
@@ -108,32 +131,19 @@ nodeList must be an array of objects that have the following properties:
                 	if(!before)
                 		continue;
 					edgeStyles.push(before.directAfter.length > 4 ? 'opacity: 0.3;' : '');//if there are loads of things after the jth item then weaken the arrow opacity.
-			        g.addEdge(null,before.id,i,{});
+			        g.setEdge(before.id,i);
 				}
             
             // Create the renderer
-            var renderer = new dagreD3.Renderer();
+            var renderer = new dagreD3.render();
 			
-            
-      
-            
-			//override drawedgepaths to weaken the opacity of the most prolific edge-spawning nodes
-			var oldDrawEdgePaths = renderer.drawEdgePaths();
-			renderer.drawEdgePaths(function (graph, root) {
-				var svgEdges = oldDrawEdgePaths(graph, root);
-				svgEdges.each(function(s,u){
-					this.setAttribute('style',edgeStyles[u]);
-						
-				});	
-				return svgEdges;
-			});
 
             // Disable pan and zoom
-            renderer.zoom(false);            
+            //renderer.zoom(false);            
             
             svg = this.getElementsByTagName("svg")[0];
             // Run the renderer. This is what draws the final graph.
-            var layout = renderer.run(g, d3.select(svg));
+            var layout = renderer(d3.select(svg), g);
 
             // Center the graph
             var b = svg.getBBox();
@@ -142,13 +152,14 @@ nodeList must be an array of objects that have the following properties:
 			var elInfo = this.$.info;
 			d3.select(svg).selectAll("rect").on("mouseover", function(){
 				var id = d3.select(this).data()[0];
-				if(id)
+				if(id){
 					elInfo.innerHTML = "<b>" + nodeList[id].name + "</b><br>" +
 										"directly before: " + nodeList[id].directBefore.map(function(x){return x.name}).join(", ") + "<br>" +
 										"directly after: " + nodeList[id].directAfter.map(function(x){return x.name}).join(", ") + "<br>" +
-										(nodeList[id].infoHTML ? nodeList[id].infoHTML : "");
-				else
+										('code' in nodeList[id] ? "<pre>" + escapeHtml(nodeList[id].code)  + "</pre>" : "");
+				}else{
 					elInfo.innerHTML = "move cursor over map for info";
+				}
 			});		  
             
 			

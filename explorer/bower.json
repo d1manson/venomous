@@ -6,8 +6,8 @@
     "Daniel Manson <d.manson.11@ucl.ac.uk>"
   ],
   "description": "view venomous documents",
-  "main": "index.html",
-  "license": "MIT",
+  "main": "sample.html",
+  "license": "",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -16,6 +16,8 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#1.0.0"
+    "polymer": "Polymer/polymer#1.0.0",
+    "dagre-d3": "~0.4.10",
+    "iron-flex-layout": "PolymerElements/iron-flex-layout#~1.0.2"
   }
 }
