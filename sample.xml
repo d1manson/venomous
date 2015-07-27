@@ -122,7 +122,7 @@
 	<compute name="dir">
 		<arg name="both_xy" required=".used_both"></arg>
 		<arg name="xy"></arg>
-		<arg name="set_file">
+		<arg name="set_file"></arg>
 		<return name="used_both" type="bool"></return>
 		<return name="dir_disp" type="float[]" chunking="10000"></return>
 		<return name="dir" type="float[]" chunking="10000"></return>
@@ -161,7 +161,7 @@
 	<compute name="speed">
 		<arg name="xy"></arg>
 		<arg name="pos_file" request=".header"></arg>
-		<return type="int16[]" chunking="10000">
+		<return type="int16[]" chunking="10000"></return>
 
 		<hints>CPU=1 CACHE=1</hints>
 		<code><![CDATA[	
@@ -366,14 +366,14 @@
 
 	<compute name="speed_dwell">
 		<return type="int32[]"></return>
-		<arg name="xy"></arg>
+		<arg name="speed"></arg>
 		<arg name="pos_mask"></arg>
 		<arg name="speed_bin_size"></arg>
 		<code><![CDATA[
 		if(pos_mask.summary == all)
-			speed_dwell = hist(xy, speed_bin_size);
+			speed_dwell = hist(speed, speed_bin_size);
 		else
-			speed_dwell = hist_masked(xy, pos_mask, speed_bin_size);
+			speed_dwell = hist_masked(speed, pos_mask, speed_bin_size);
 		]]></code>
 	</compute>
 
@@ -453,7 +453,7 @@
 			<arg name="cut_file" required="first_iteration"></arg>
 			<arg name="waves" required="maybe"></arg>
 			<arg name="amps" required="maybe"></arg>
-			<return name="group_nums" type="uint8[]"></returns>
+			<return name="group_nums" type="uint8[]"></return>
 			<return name="inds_by_group" type="uint8[]" chunking="manual explicit"></return>
 			<description>
 				On the first iteration of cut_changes_loop it reads from cut_file, on subsequent iterations
@@ -485,7 +485,7 @@
 						break;
 				}  
 				cut_inds = inds;
-			]]><code>
+			]]></code>
 		</compute>
 
 		<compute name="group_mask">
@@ -529,22 +529,75 @@
 			<arg name="group_num"></arg>
 			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
 			<arg name="spike_pos_inds"></arg>
+			<return type="uint32[]"></return>
 			<code><![CDATA[
 				group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			]]></code>
+		</compute>
+
+		<compute name="group_pos_inds">
+			<arg name="group_pos_inds_unmasked"></arg>
+			<arg name="group_mask"></arg>
+			<return type="uint32[]"></return>
+			<code><![CDATA[
+				if(group_mask.all)
+					group_pos_inds.equals(group_pos_inds_unmasked);
+				if(group_mask.none)
+					group_pos_inds = [];
+
+				group_pos_inds = group_pos_inds_unmaksed[group_mask]; // TODO: implement logical take
 			]]></code>
 		</compute>
 
 		<compute name="tac">
 			<arg name="group_times"></arg>
 			<arg name="tac_window_secs"></arg>
-			<return type="float[]"></return>
+			<return name="tac" type="float[]"></return>
+			<return name="max" type="uint32"></return>
 			<code><![CDATA[
 				N_BINS = 100;
 				uint32[] hist(N_BINS);
-				float f = 
+				float f = tac_window_secs * group_times.timebase /N_BINS;
+				auto max_diff = tac_window_secs * group_times.timebase;
+				auto later_time = group_times.times; //iterator
+				for(auto earlier_time : group_times.times){
+					// move the later time until it is one element beyond the end of the window
+					for(;later_time < earlier_time + max_diff && later_time != group_times.times.end(); ++later_time) ;
+					// accumulate a "1" in the histogram for each time in the window, relative to the earlier time.
+					for( auto mid_time = earlier_time; mid_time != later_time; ++mid_time)
+						hist[(mid_time-earlier_time)*f]++;
+				}
+				max = maximum(hist);
+				float[] hist_normed(N_BINS);
+				for(int i=0;i<N_BINS;i++)
+					hist_normed[i] = hist[i] / max;
+				tac = hist_normed;
 			]]></code>
 		</compute>
 
+		<compute name="group_speed_hist">
+			<arg name="group_pos_inds"></arg>
+			<arg name="speed_bin_size"></arg>
+			<arg name="speed_dwell"></arg>
+			<arg name="speed"></arg>
+			<return type="float[]"></return>
+			<return name="max" type="float"></return>
+			<description>
+				Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
+			</description>
+			<code><![CDATA[
+				uint32[] spike;
+				for(auto s : speed.iter_sorted(group_pos_inds))
+					spike[speed/speed_bin_size]++;
+				float[] rate = array(spike.length);
+				for(int i=0; i< spike.length; i++)
+					rate[i] = spike[i] / speed_dwell[i];
+				max = maximum(rate);
+				for(int i=0;i<rate.length;i++)
+					rate[i] /= max;
+				group_speed_hist = rate;
+			]]></code>
+		</compute>
 	</loop>
 
 

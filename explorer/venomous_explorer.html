@@ -1,0 +1,167 @@
+<!--
+CUSTOM ELEMENT: venomous-explorer
+BY: DM, but all the hard work is from [github.com/cpettitt/dagre-d3]
+
+
+USEAGE:
+    <venomous-explorer id="my_graph"></venomous-explorer>
+    <script>
+        document.getElementById('my_graph').Render(nodeList);
+	</script>
+    
+nodeList must be an array of objects that have the following properties:
+    .id - the index of the node in the nodeList array
+    .name - string giving the display name of the node
+    .directBefore - array of node ids which are to be shown as the parents of the current node
+	
+	The rendering is super messy...but it shows what we need for now.
+
+-->
+
+<dom-module id="venomous-explorer">
+
+  <style>
+	text {
+      font-weight: 300;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+      font-size: 14px;
+    }
+   	.node rect {
+      stroke: #999;
+    }
+    .edgePath path {
+      stroke: #333;
+      stroke-width: 1.5px;
+      fill: none;
+    }
+	#info{
+		margin: 5px;
+		min-height: 100px;
+		background: #ccc;
+		border: 1px solid #000;
+	}
+	#svg_wrapper{
+		max-width: 1200px;
+		overflow-x: scroll;
+		cursor: default;
+	}
+	::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+	}
+	::-webkit-scrollbar-button {
+	width: 0;
+	height: 0;
+	display: none;
+	}
+	::-webkit-scrollbar-thumb {
+	background-color: rgba(0,0,0,0.2);
+	-webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
+	}
+  </style>
+  
+  <template>
+    <div id='svg_wrapper' nodrag>
+    <svg width=650 height=300 id="thesvg"></svg>
+	</div>
+	<div id='info'></div>
+  </template>
+
+
+  <script src="d3.js"></script>
+  <script src="dagre-d3.js"></script>
+
+
+  <script>
+    // element registration
+    Polymer({
+      is: "venomous-explorer",
+
+      Render: function(nodeList){
+            // Create the input graph
+            var g = new dagreD3.Digraph();
+            
+            for(var i=0;i<nodeList.length;i++)
+            	nodeList[i]['directAfter'] = [];
+
+            for(var i=0;i<nodeList.length;i++){
+            	for(var j=0;j<nodeList[i].directBefore.length;j++){
+            		var before = nodeList[nodeList[i].directBefore[j]];
+            		nodeList[i].directBefore[j] = before;
+            		if(before)
+	            		before.directAfter.push(nodeList[i]);
+            	}
+            }
+
+			
+            for(var i=0; i<nodeList.length;i++){
+				var x= {}; //clone;
+				x.label = nodeList[i].name;
+                g.addNode(i,x);
+            }
+			var edgeStyles = [];
+			
+			
+            for(var i=0; i<nodeList.length;i++)
+                for(var j=0; j<nodeList[i].directBefore.length;j++){
+                	var before = nodeList[i].directBefore[j];
+                	if(!before)
+                		continue;
+					edgeStyles.push(before.directAfter.length > 4 ? 'opacity: 0.3;' : '');//if there are loads of things after the jth item then weaken the arrow opacity.
+			        g.addEdge(null,before.id,i,{});
+				}
+            
+            // Create the renderer
+            var renderer = new dagreD3.Renderer();
+			
+            
+      
+            
+			//override drawedgepaths to weaken the opacity of the most prolific edge-spawning nodes
+			var oldDrawEdgePaths = renderer.drawEdgePaths();
+			renderer.drawEdgePaths(function (graph, root) {
+				var svgEdges = oldDrawEdgePaths(graph, root);
+				svgEdges.each(function(s,u){
+					this.setAttribute('style',edgeStyles[u]);
+						
+				});	
+				return svgEdges;
+			});
+
+            // Disable pan and zoom
+            renderer.zoom(false);            
+            
+            svg = this.getElementsByTagName("svg")[0];
+            // Run the renderer. This is what draws the final graph.
+            var layout = renderer.run(g, d3.select(svg));
+
+            // Center the graph
+            var b = svg.getBBox();
+            svg.setAttribute('width', b.width);
+            svg.setAttribute('height', b.height);
+			var elInfo = this.$.info;
+			d3.select(svg).selectAll("rect").on("mouseover", function(){
+				var id = d3.select(this).data()[0];
+				if(id)
+					elInfo.innerHTML = "<b>" + nodeList[id].name + "</b><br>" +
+										"directly before: " + nodeList[id].directBefore.map(function(x){return x.name}).join(", ") + "<br>" +
+										"directly after: " + nodeList[id].directAfter.map(function(x){return x.name}).join(", ") + "<br>" +
+										(nodeList[id].infoHTML ? nodeList[id].infoHTML : "");
+				else
+					elInfo.innerHTML = "move cursor over map for info";
+			});		  
+            
+			
+			
+      },
+
+      properties: {
+        // declare properties for the element's public API
+      }
+    });
+  </script>
+
+</dom-module>
+
+
+

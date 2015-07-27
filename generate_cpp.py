@@ -8,9 +8,9 @@ from lxml import etree as ET
 from collections import OrderedDict
 import re
 import warnings
+import json
 tree = ET.parse(fn)
 indent = "    "
-
 
 def strip_common_indent(s):
     s = s.split('\n')
@@ -30,6 +30,8 @@ d_input = OrderedDict()
 d_compute = OrderedDict()
 d_alias = OrderedDict()
 d_type = OrderedDict()
+node_list = []
+
 raw_strs = []
 
 def get_x(name):
@@ -52,9 +54,16 @@ class Input(object):
         type_ = re.sub(ltgt_re, r"<\1>",  type_)
         self.type_ = type_
         d_type[self.name] = "struct {name}_t{{\n{type_} 0_;\n}}".format(name=name,type_=type_)
+        node_list.append(dict(id=len(node_list), name=name,directBefore=[]))
     def translated_type(self):
         return self.type_
-        
+     
+def lookup_node_id(name):
+    try:
+       return next(ii for ii, el in enumerate(node_list) if el['name'] == name)
+    except StopIteration:
+        return -1
+    
 class Compute(object):
     """
     There are 3 vriation on output:
@@ -65,35 +74,18 @@ class Compute(object):
     hints are stored as a dict with the obvious name,values, note that values
     are strings though.
     """
-    def __init__(self,name, code, type_, takes, description="", hints=""):
+    def __init__(self, name="", code="", returns=[], args=[], description="", hints=""):
         self.name = name        
         self.description = strip_common_indent(description) if description else ""
         self.code = strip_common_indent(code) if code else ""
-        self.takes = tuple(x for x in takes.replace(","," ").split(" ") if x)
-        self.is_nullable, self.takes = zip(*((x.endswith('?'), x.rstrip('?'))
-                                              for x in self.takes))
-        
-        type_ = re.sub(ltgt_re, r"<\1>", type_.replace(","," "))
-        self.varout = False
-        if ' ' not in type_:
-            self.multiout = False
-            self.type_ = type_
-            d_type[self.name] = "struct %s{\n%s 0_;\n}" % (self.name + "_t", self.type_)
-        else:
-            self.multiout = True
-            self.type_ = tuple(x for x in type_.split(" ") if x)
-            if self.type_[-1] == "...":
-                self.varout = self.type_[-2]
-                self.type_ = self.type_[:-2]
-            d_type[self.name] = '\n'.join(t + " _" + str(i) + ";" for i,t in enumerate(self.type_))
-            if self.varout:
-                d_type[self.name] += "\nvector<" + self.varout + "> vararg;"
-            d_type[self.name] = "struct %s{\n%s\n}" % (self.name + "_t", d_type[self.name])
-            
-        if hints:
-            self.hints = {k: v for k, v in re.findall(hint_re,hints)}
-        else:
-            self.hints = {}  
+        self.args = tuple(x["name"] for x in args)
+        self.arg_extra = {x['name']: x for x in args}        
+        self.returns = {x.get('name',name): x for x in returns}        
+        self.hints = {k: v for k, v in re.findall(hint_re,hints)} if hints else {}
+        self.node_list_id = len(node_list) 
+        node_list.append(dict(id=self.node_list_id,name=name,
+                              directBefore=[lookup_node_id(x['name']) for x in args]))
+
     def stripped_code(self):
         s = self.code
         if not s:
@@ -103,8 +95,8 @@ class Compute(object):
         
     def translated_code(self):
         s = self.stripped_code()
-        for t in self.takes:
-            s = s.replace(t, t+"()")
+        for a in self.args:
+            s = s.replace(a, a+"()")
         s = re.sub(return_re, r'sink(x_return(\1, \2))', s)
         s = re.sub(return_computed_re,  r'x_is_computed_self(\1)', s)
         s = re.sub(return_read_re, r'X_READ_SELF(\1)', s)
@@ -138,7 +130,7 @@ class Compute(object):
                                     "\n*************************************\n*/", n=2),
                  code= add_indent(self.translated_code(),n=2),
                  takes= '\n'.join(indent + "{name}_t {name}(){{\n{indent}{indent}return something;//TODO: this\n{indent}}}".format(name=t,indent=indent) 
-                                  for t in self.takes))
+                                  for t in self.args))
         
     
         
@@ -155,12 +147,12 @@ def do_alias(node):
     
     if isinstance(node_parsed, Compute):
         mapping = {k: v for k, v in re.findall(alias_re, node.text)}
-        takes = [mapping.get(k,k) for k in list(node_parsed.takes)]
+        args = [mapping.get(k,k) for k in list(node_parsed.args)]
     else:
-        takes = [node_src]        
+        args = [node_src]        
     node_type = node_alias + suffix + "t"
     d_type[node_alias] = "struct %s{\n%s\n}" % (node_type, '\n'.join(
-                            '%s _%d;' %(v + "_t",i) for i,v in enumerate(takes)))
+                            '%s _%d;' %(v + "_t",i) for i,v in enumerate(args)))
     return node_alias
     
     
@@ -174,23 +166,34 @@ for child in parent:
         d_input[name] = Input(name,child.attrib['type'])
     elif tag == "compute":
         hints = description = code = None
+        args = []
+        returns = []
         for sub_node in child:
-            if sub_node.tag.lower() == "description":
+            sub_tag = sub_node.tag.lower()
+            if sub_tag == "description":
                 description = sub_node.text
-            elif sub_node.tag.lower() in ("hints", "hint"):
+            elif sub_tag in ("hints", "hint"):
                 hints = sub_node.text
-            elif sub_node.tag.lower() == "code":
+            elif sub_tag == "code":
                 code = sub_node.text
+            elif sub_tag == "arg":
+                args.append(dict(sub_node.attrib))
+            elif sub_tag in ("return","returns"):
+                returns.append(dict(sub_node.attrib))
+            else:
+                warnings.warn("[Compute:" + name + "] ignoring node: " + sub_tag)
         if child.text.strip():
             warnings.warn("[Compute:" + name + "] ignoring text: " + child.text.strip() )
-        d_compute[name] = Compute(name, sub_node.text, child.attrib['type'],
-                                  child.attrib['takes'], description, hints)
+        d_compute[name] = Compute(name, code, returns, args, description, hints)
+        
     elif tag == "alias":
         d_alias[name] = get_x(child.attrib['src'])
         do_alias(child)
         #d_type[name] = "struct %s {\n%s value;\n}" %(name, child.attrib['src']);
     elif tag == "raw":
         raw_strs.append(strip_common_indent(child.text))
+    elif tag == "loop":
+        pass
     else:
         raise Exception("what is this '{}' node?".format(tag))
 
@@ -222,3 +225,27 @@ using sink_t = boost::coroutines::asymmetric_coroutine<yield_signal>::push_type;
     f.write("\n\n")
     f.write(func_str)
     
+    
+with open(r"explorer\index.html","w") as f:
+    f.write("""
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="bower_components/webcomponentsjs/webcomponents-lite.js">
+    </script>
+    <link rel="import" href="bower_components/polymer/polymer.html">
+    <link rel="import" href="venomous_explorer.html">
+    <title>sample [Venomous Explorer]</title>
+  </head>
+  <body>
+  <venomous-explorer id="the_graph"></venomous-explorer>
+  <script>
+  window.addEventListener('WebComponentsReady', function(e) {
+      var el = document.getElementById("the_graph");
+      el.Render(""")
+    f.write(json.dumps(node_list))
+    f.write(""");    
+    });
+  </script>
+  </body>
+</html>""")

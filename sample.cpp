@@ -20,6 +20,13 @@ int16 y;
 }
 
 
+float angle_ab(point a, point b){
+	auto dx = b.x - a.x;
+	auto dy = b.y - a.y;
+	return abs(dx) > 0.001 && abs(dy) > 0.001 ? atan2(dy,dx) : nan;
+}
+
+
 template<typename T>
 struct spatial{
 float bin_size;
@@ -70,6 +77,15 @@ none;
 mixture;
 }
 
+logical_summary make_logical_summary(bool[] X){
+  		if(all(X))
+  			return all;
+  		else if(none(X))
+  			return none;
+  		else
+  			return mixture;
+}
+
 
 
 vector<int32> hist(vals, bin_size){
@@ -88,11 +104,6 @@ vector<int32> hist_masked(vals, mask, bin_size){
 }
 struct axona_file_name_t{
 string 0_;
-}
-
-struct axona_file_t{
-map _0;
-vector<byte[]> vararg;
 }
 
 struct pos_file_name_t{
@@ -127,26 +138,6 @@ struct eeg_file_t{
 eeg_file_name_t _0;
 }
 
-struct both_xy_t{
-bool _0;
-point[] _1;
-point[] _2;
-}
-
-struct xy_t{
-point[] 0_;
-}
-
-struct dir_t{
-bool _0;
-float[] _1;
-float[] _2;
-}
-
-struct speed_t{
-int16[] 0_;
-}
-
 struct group_num_t{
 uint8 0_;
 }
@@ -171,21 +162,20 @@ struct boundary_shape_t{
 shape 0_;
 }
 
-struct dist_to_boundary_t{
-float[] 0_;
-}
-
-struct pos_mask_t{
-logical_summary _0;
-bool[] _1;
-}
-
 struct speed_bin_size_t{
 float 0_;
 }
 
-struct speed_dwell_t{
-int32[] 0_;
+struct spa_bin_size_t{
+float 0_;
+}
+
+struct cut_file_name_t{
+axona_file_name_t _0;
+}
+
+struct tac_window_secs_t{
+float 0_;
 }
 
 
@@ -219,30 +209,30 @@ public:
         const int BLOCK_SIZE = 2*1024*104; //2MB
         FileStreamer f(axona_file_name); //this is C++ RAII in action, we are using axona_file_name from its definition as an "input".
         int n_blocks = ceil(f.length()/BLOCK_SIZE); 
-        if ( !computed(return[0]) ){
+        if ( !computed(header) ){
         	// we may already have this cached.
-        	map header;
+        	map header_tmp;
         	// parse f into header, storing the n_block, and data_start pointer as well
-        	return[0] = header; // this 0th block is of type "map", which is what we meant by "map,byte[],..."
+        	header = header_tmp; 
         }
         
         for (block_ii in requested_blocks){
-        	return[block_ii] = f.read(block_ii*BLOCK_SIZE, BLOCK_SIZE); // blocks 1,2,3... are of type "byte[]", which is what we mean by "byte[],..."
+        	buffer[block_ii] = f.read(block_ii*BLOCK_SIZE, BLOCK_SIZE);
         }
         *************************************
         */
         const int BLOCK_SIZE = 2*1024*104; //2MB
         FileStreamer f(axona_file_name()); //this is C++ RAII in action, we are using axona_file_name() from its definition as an "input".
         int n_blocks = ceil(f.length()/BLOCK_SIZE); 
-        if ( !x_is_computed_self(0) ){
+        if ( !computed(header) ){
         	// we may already have this cached.
-        	map header;
+        	map header_tmp;
         	// parse f into header, storing the n_block, and data_start pointer as well
-        	sink(x_return(0, header)); // this 0th block is of type "map", which is what we meant by "map,byte[],..."
+        	header = header_tmp; 
         }
         
         for (block_ii in requested_blocks){
-        	sink(x_return(block_ii, f.read(block_ii*BLOCK_SIZE, BLOCK_SIZE))); // blocks 1,2,3... are of type "byte[]", which is what we mean by "byte[],..."
+        	buffer[block_ii] = f.read(block_ii*BLOCK_SIZE, BLOCK_SIZE);
         }
     }
 }
@@ -251,6 +241,9 @@ public:
 class both_xy_func {
 private:
     pos_file_t pos_file(){
+        return something;//TODO: this
+    }
+    set_file_t set_file(){
         return something;//TODO: this
     }
     
@@ -271,42 +264,42 @@ public:
         arrays of points (only 1 if 1 LED was used).
         
         *************************************
-        return[0] = pos_file[0]['num_LEDs'] == 2;
+        used_both = set_file.header['colactive_2']; 
         
-        tmp_1 = array(pos_file[0]['num_samps']);
-        if return[0]:
-        	tmp_2 = array(pos_file[0]['num_samps']);
-        
-        for(int i=1, p=0; i < pos_file.length; i++){
-        	byte[] block = pos_file[i];
-        	for(int j=0;j < block/W;j++,p++){
-        		tmp_1[p] = block[whaterver];
-        		tmp_2[p] = block[whaterver];
-        	}
+        int num_samps = parseInt(pos_file.header['num_samps']);
+        if (use_both){
+        	xy1.allocate(num_samps);
+        	xy2.allocate(num_samps);
+        	for(auto c pos_file.buffer.iter_blocks(16)){
+        		xy1.write(block[3]); // TODO: actual post processing..this is complicated for a number of reasons.
+        		xy2.write(block[4]);
+        	}	
+        }else{
+        	xy_1.allocate(num_samps);
+        	for(auto c pos_file.buffer.iter_blocks(16))
+        		xy1.write(block[3]);
         }
-        
-        return[1] = tmp_1;
-        if return[0]:
-        	return[2] = tmp_2;
+        w1 = sum(!nan(xy1));
+        w2 = sum(!nan(xy2));
         *************************************
         */
-        sink(x_return(0, pos_file()[0]['num_LEDs'] == 2));
+        used_both = set_file().header['colactive_2']; 
         
-        tmp_1 = array(pos_file()[0]['num_samps']);
-        if X_READ_SELF(0):
-        	tmp_2 = array(pos_file()[0]['num_samps']);
-        
-        for(int i=1, p=0; i < pos_file().length; i++){
-        	byte[] block = pos_file()[i];
-        	for(int j=0;j < block/W;j++,p++){
-        		tmp_1[p] = block[whaterver];
-        		tmp_2[p] = block[whaterver];
-        	}
+        int num_samps = parseInt(pos_file().header['num_samps']);
+        if (use_both){
+        	xy1.allocate(num_samps);
+        	xy2.allocate(num_samps);
+        	for(auto c pos_file().buffer.iter_blocks(16)){
+        		xy1.write(block[3]); // TODO: actual post processing..this is complicated for a number of reasons.
+        		xy2.write(block[4]);
+        	}	
+        }else{
+        	xy_1.allocate(num_samps);
+        	for(auto c pos_file().buffer.iter_blocks(16))
+        		xy1.write(block[3]);
         }
-        
-        sink(x_return(1, tmp_1));
-        if X_READ_SELF(0):
-        	sink(x_return(2, tmp_2));
+        w1 = sum(!nan(xy1));
+        w2 = sum(!nan(xy2));
     }
 }
 
@@ -334,24 +327,22 @@ public:
         each moment in time.  with 1 LED, this simply uses that 1 array of XY data.
         
         *************************************
-        tmp = array(both_xy[1].length);
-        if !both_xy[0]:
-        	return both_xy[1]; // BTS-TODO: how do we handle this case, where the same underlying data is re-used at multiple points?
-        						// explanation here is that if there is only 1 LED then no weighting is needed, so pass through the 1LED's data
-        						// simplest thing would be to copy it, but that's a shame.
-        for(ii=0;ii<tmp.length;ii+1)
-        	tmp[ii] = both_xy[1][ii] *w_1 + both_xy[2][ii] *w_2;
-        return tmp;
+        if(!both_xy.used_both){
+        	xy = both_xy.xy1;
+        }else{
+        	xy.allocate(both_xy.xy1.length);
+        	for(auto p1, p2 : both_xy.xy1, both_xy.xy2)
+        		xy.write(p1*both_xy.w1 + p2*both_xy.w2);
+        }
         *************************************
         */
-        tmp = array(both_xy()[1].length);
-        if !both_xy()[0]:
-        	return both_xy()[1]; // BTS-TODO: how do we handle this case, where the same underlying data is re-used at multiple points?
-        						// explanation here is that if there is only 1 LED then no weighting is needed, so pass through the 1LED's data
-        						// simplest thing would be to copy it, but that's a shame.
-        for(ii=0;ii<tmp.length;ii+1)
-        	tmp[ii] = both_xy()[1][ii] *w_1 + both_xy()[2][ii] *w_2;
-        return tmp;
+        if(!both_xy().used_both){
+        	xy = both_xy().xy1;
+        }else{
+        	xy.allocate(both_xy().xy1.length);
+        	for(auto p1, p2 : both_xy().xy1, both_xy().xy2)
+        		xy.write(p1*both_xy().w1 + p2*both_xy().w2);
+        }
     }
 }
 
@@ -364,7 +355,7 @@ private:
     xy_t xy(){
         return something;//TODO: this
     }
-    pos_file_t pos_file(){
+    set_file_t set_file(){
         return something;//TODO: this
     }
     
@@ -381,46 +372,51 @@ private:
 public:
     void operator()(sink_t& sink){
         /*
-        The first element is a flag, inidicating whether two LEDs were used.
-        The second element is always dir displacement, and the third value
-        is the "true" direction if 2 LEDs are avaialble.
+        The used_both is copied across from both_xy for convenience.
+        If both LEDs are used then dir!= dir_disp, otherwise dir is dir_disp.
         
         *************************************
-        return[0] = both_xy[0]; // copying the bool across is just for convenience really
-        
-        if (1 in requested_blocks){
-        	// compute dir_disp form xy
-        	tmp = array(both_xy[1].length);
-        	for(ii=0;ii<tmp.length;ii+1)
-        		tmp[ii] = atan2(xy[ii].x-xy[ii-1].x, xy[ii].y-xy[ii-1].y);
-        	return[1] = tmp;
-        }
-        
-        if (both_xy[0] && 2 in requested_blocks){
-        	int adjustment = pos_file[0]['LED_alignment']
-        	tmp = array(both_xy[1].length);
-        	for(ii=0;ii<tmp.length;ii+1)
-        		tmp[ii] = atan2(both_xy[2][ii].x-both_xy[1][ii].x, both_xy[2][ii].y-both_xy[1][ii].y) + adjustment;
-        	return[2] = tmp;
+        used_both = both_xy.used_both;
+        dir_disp.allocate(xy.length);
+        if(used_both){ 
+        	// TODO: could check which of the two dirs is requested and do different loop based on that. requested(dir_disp)
+        	dir.allocate(xy.length);
+        	point pw_old(nan,nan); 
+        	for(auto p1, p2, pw : both_xy.xy1, both_xy.xy2, xy){
+        		dir.write(angle_ab(p1,p2));
+        		dir_disp.write(angle_ab(pw,pw_old));
+        		pw_old = pw;	
+        	}
+        }else{
+        	dir_disp.allocate(xy.length);
+        	dir.equals(dir_disp);
+        	point pw_old(nan,nan); 
+        	for(auto pw : xy){
+        		dir_disp.write(angle_ab(pw,pw_old));
+        		pw_old = pw;	
+        	}
         }
         *************************************
         */
-        sink(x_return(0, both_xy()()[0])); // copying the bool across is just for convenience really
-        
-        if (1 in requested_blocks){
-        	// compute dir_disp form xy()
-        	tmp = array(both_xy()()[1].length);
-        	for(ii=0;ii<tmp.length;ii+1)
-        		tmp[ii] = atan2(xy()[ii].x-xy()[ii-1].x, xy()[ii].y-xy()[ii-1].y);
-        	sink(x_return(1, tmp));
-        }
-        
-        if (both_xy()()[0] && 2 in requested_blocks){
-        	int adjustment = pos_file()[0]['LED_alignment']
-        	tmp = array(both_xy()()[1].length);
-        	for(ii=0;ii<tmp.length;ii+1)
-        		tmp[ii] = atan2(both_xy()()[2][ii].x-both_xy()()[1][ii].x, both_xy()()[2][ii].y-both_xy()()[1][ii].y) + adjustment;
-        	sink(x_return(2, tmp));
+        used_both = both_xy()().used_both;
+        dir_disp.allocate(xy().length);
+        if(used_both){ 
+        	// TODO: could check which of the two dirs is requested and do different loop based on that. requested(dir_disp)
+        	dir.allocate(xy().length);
+        	point pw_old(nan,nan); 
+        	for(auto p1, p2, pw : both_xy()().xy()1, both_xy()().xy()2, xy()){
+        		dir.write(angle_ab(p1,p2));
+        		dir_disp.write(angle_ab(pw,pw_old));
+        		pw_old = pw;	
+        	}
+        }else{
+        	dir_disp.allocate(xy().length);
+        	dir.equals(dir_disp);
+        	point pw_old(nan,nan); 
+        	for(auto pw : xy()){
+        		dir_disp.write(angle_ab(pw,pw_old));
+        		pw_old = pw;	
+        	}
         }
     }
 }
@@ -451,18 +447,22 @@ public:
         
         
         *************************************
-        f = pos_file[0]['timebase'];
-        tmp = array(xy.length);
-        for(ii=0;ii<tmp.length;ii++)
-        	tmp[ii] = hypot(xy[ii].x-xy[ii-1].x, xy[ii].y-xy[ii-1].y) * f;
-        return tmp;
+        int f = parseInt(pos_file.header['timebase']);
+        speed.allocate(xy.length);
+        point p_old (nan,nan);
+        for(auto p : xy){
+        	speed.write(hypot(p_old.x - p.x, p_old.y - p.y) * f);
+        	p_old = p;
+        }
         *************************************
         */
-        f = pos_file()[0]['timebase'];
-        tmp = array(xy().length);
-        for(ii=0;ii<tmp.length;ii++)
-        	tmp[ii] = hypot(xy()[ii].x-xy()[ii-1].x, xy()[ii].y-xy()[ii-1].y) * f;
-        return tmp;
+        int f = parseInt(pos_file().header['timebase']);
+        speed.allocate(xy().length);
+        point p_old (nan,nan);
+        for(auto p : xy()){
+        	speed.write(hypot(p_old.x - p.x, p_old.y - p.y) * f);
+        	p_old = p;
+        }
     }
 }
 
@@ -494,30 +494,26 @@ public:
         *************************************
         // might want to implement it as dist_to_boundary squared..although that only makes sense for circle not square 
         // so the details are a bit more complicated.
-        float[] tmp = array(xy.length);
+        dist_to_boundary.allocate(xy.length);
         if(boundary_shape.kind == circle){
-        	for(int i=0;i<tmp.length;i++)
-        		tmp[i] = hypot(xy[i].x-boundary_shape.shape.centre.x, xy[i].y-boundary_shape.shape.centre.y);
+        	for(auto p : xy)
+        		dist_to_boundary.write( hypot(p.x-boundary_shape.shape.centre.x, p.y-boundary_shape.shape.centre.y));
         }else{ // boundary_shape.kind == rect
-        	for(int i=0;i<tmp.length; i++){
-        		tmp[i] = boundary_dist_rect(xy[i], boundary_shape.shape.topleft, boundary_shape.shape.W, boundary_shape.shape.H);
-        	}
+        	for(auto p : xy)
+        		dist_to_boundary.write( boundary_dist_rect(p, boundary_shape.shape.topleft, boundary_shape.shape.W, boundary_shape.shape.H));
         }
-        return tmp;
         *************************************
         */
         // might want to implement it as dist_to_boundary squared..although that only makes sense for circle not square 
         // so the details are a bit more complicated.
-        float[] tmp = array(xy().length);
+        dist_to_boundary.allocate(xy().length);
         if(boundary_shape().kind == circle){
-        	for(int i=0;i<tmp.length;i++)
-        		tmp[i] = hypot(xy()[i].x-boundary_shape().shape.centre.x, xy()[i].y-boundary_shape().shape.centre.y);
+        	for(auto p : xy())
+        		dist_to_boundary.write( hypot(p.x-boundary_shape().shape.centre.x, p.y-boundary_shape().shape.centre.y));
         }else{ // boundary_shape().kind == rect
-        	for(int i=0;i<tmp.length; i++){
-        		tmp[i] = boundary_dist_rect(xy()[i], boundary_shape().shape.topleft, boundary_shape().shape.W, boundary_shape().shape.H);
-        	}
+        	for(auto p : xy())
+        		dist_to_boundary.write( boundary_dist_rect(p, boundary_shape().shape.topleft, boundary_shape().shape.W, boundary_shape().shape.H));
         }
-        return tmp;
     }
 }
 
@@ -531,9 +527,6 @@ private:
         return something;//TODO: this
     }
     directional_slice_t directional_slice(){
-        return something;//TODO: this
-    }
-    dir_t dir(){
         return something;//TODO: this
     }
     spatial_mask_t spatial_mask(){
@@ -561,7 +554,7 @@ public:
         /*
         True means use pos, False means don't use it.
         Computes a mask using zero or more of four differnt possible speicifications.
-        Check [0] to see if the mask is all-False, or all-True.  
+        Check summary to see if the mask is all-False, or all-True.  
         Note that you might want to have something even more complciated in terms of adding, subtracting and multiple slices.
         Not sure how easy that would be to implement in any framework, psoup or otherwise...well it might be ok in python actually.
         
@@ -572,10 +565,10 @@ public:
            !isnull(boundary_dist_slice)){
         
            	   // some kind of masking has been requested
-           	   if(!computed(return[1])){
-        		   // we may already have computed 1, (in which case we are supposed to compute the logical_summary 0)
+           	   if(!computed(mask)){
+        		   // we may already have computed mask, (in which case we are supposed to compute summary)
         		   	   	   
-        		   vector<bool> tmp = array(pos_file[0]["num_samps"]);
+        		   vector<bool> tmp = array(pos_file.header["num_samps"]);
         		   
         		   if(!isnull(trial_time_slice)){
         		   		tmp[:trial_time_slice.start = False;
@@ -592,41 +585,35 @@ public:
         
         		   //TODO: implement spatial mask
         
-        		   return[1] = tmp;
+        		   mask = tmp;
         
         	   }
-        	   if(0 in requested_blocks){
-        	   		if(all(return[1]))
-        	   			return[0] = all;
-        	   		else if(none(return([1])))
-        	   			return[0] = none;
-        	   		else
-        	   			return[0] = mixture;
-        	   }
+        	   if(requested(summary))
+        	   		summary = make_logical_summary(mask);
         
            }else{
-        	   return[0] = all; //mask is all-true, so don't actually need to make it
+        	   summary = all; //mask is all-true, so don't actually need to make it
            }
         *************************************
         */
         if(!isnull(trial_time_slice())  ||
-           !isnull(dir()ectional_slice()) ||
+           !isnull(directional_slice()) ||
            !isnull(spatial_mask())	  ||
            !isnull(boundary_dist_slice())){
         
            	   // some kind of masking has been requested
-           	   if(!x_is_computed_self(1)){
-        		   // we may already have computed 1, (in which case we are supposed to compute the logical_summary 0)
+           	   if(!computed(mask)){
+        		   // we may already have computed mask, (in which case we are supposed to compute summary)
         		   	   	   
-        		   vector<bool> tmp = array(pos_file()[0]["num_samps"]);
+        		   vector<bool> tmp = array(pos_file().header["num_samps"]);
         		   
         		   if(!isnull(trial_time_slice())){
         		   		tmp[:trial_time_slice().start = False;
         		   		tmp[trial_time_slice().end:] = False;
         		   }
         
-        		   if(!isnull(dir()ectional_slice())){
-        				tmp[!(dir()ectional_slice().start < dir()[1] < dir()ectional_slice().end)] = False;
+        		   if(!isnull(directional_slice())){
+        				tmp[!(directional_slice().start < dir[1] < directional_slice().end)] = False;
         		   }
         
         		   if(!isnull(boundary_dist_slice())){
@@ -635,28 +622,88 @@ public:
         
         		   //TODO: implement spatial mask
         
-        		   sink(x_return(1, tmp));
+        		   mask = tmp;
         
         	   }
-        	   if(0 in requested_blocks){
-        	   		if(all(X_READ_SELF(1)))
-        	   			sink(x_return(0, all));
-        	   		else if(none(return([1])))
-        	   			sink(x_return(0, none));
-        	   		else
-        	   			sink(x_return(0, mixture));
-        	   }
+        	   if(requested(summary))
+        	   		summary = make_logical_summary(mask);
         
            }else{
-        	   sink(x_return(0, all)); //mask is all-true, so don't actually need to make it
+        	   summary = all; //mask is all-true, so don't actually need to make it
            }
+    }
+}
+
+
+class spike_pos_inds_func {
+private:
+    pos_file_t pos_file(){
+        return something;//TODO: this
+    }
+    spike_times_t spike_times(){
+        return something;//TODO: this
+    }
+    
+    template <typename T>
+    yield_signal x_return(int n, T val){
+        // TODO: store val
+        return yield_signal(WRITTEN, n);
+    }
+    
+    bool x_is_computed_self(int n){
+        return true;// TODO: this        
+    }
+
+public:
+    void operator()(sink_t& sink){
+        /*
+        
+        
+        *************************************
+        // read timebases to get factor and apply to spike times
+        *************************************
+        */
+        // read timebases to get factor and apply to spike times
+    }
+}
+
+
+class spike_mask_func {
+private:
+    pos_mask_t pos_mask(){
+        return something;//TODO: this
+    }
+    spike_pos_inds_t spike_pos_inds(){
+        return something;//TODO: this
+    }
+    
+    template <typename T>
+    yield_signal x_return(int n, T val){
+        // TODO: store val
+        return yield_signal(WRITTEN, n);
+    }
+    
+    bool x_is_computed_self(int n){
+        return true;// TODO: this        
+    }
+
+public:
+    void operator()(sink_t& sink){
+        /*
+        
+        
+        *************************************
+        //lookup spike pos inds in pos mask..use sorted_access_iterator
+        *************************************
+        */
+        //lookup spike pos inds in pos mask..use sorted_access_iterator
     }
 }
 
 
 class speed_dwell_func {
 private:
-    xy_t xy(){
+    speed_t speed(){
         return something;//TODO: this
     }
     pos_mask_t pos_mask(){
@@ -682,15 +729,136 @@ public:
         
         
         *************************************
-        if(pos_mask[0] == all)
-        	return hist(xy, speed_bin_size);
+        if(pos_mask.summary == all)
+        	speed_dwell = hist(speed, speed_bin_size);
         else
-        	return hist_masked(xy, pos_mask, speed_bin_size);
+        	speed_dwell = hist_masked(speed, pos_mask, speed_bin_size);
         *************************************
         */
-        if(pos_mask()[0] == all)
-        	return hist(xy(), speed_bin_size());
+        if(pos_mask().summary == all)
+        	speed()_dwell = hist(speed(), speed()_bin_size);
         else
-        	return hist_masked(xy(), pos_mask(), speed_bin_size());
+        	speed()_dwell = hist_masked(speed(), pos_mask(), speed()_bin_size);
+    }
+}
+
+
+class pos_bin_ind_func {
+private:
+    spa_bin_size_t spa_bin_size(){
+        return something;//TODO: this
+    }
+    xy_t xy(){
+        return something;//TODO: this
+    }
+    
+    template <typename T>
+    yield_signal x_return(int n, T val){
+        // TODO: store val
+        return yield_signal(WRITTEN, n);
+    }
+    
+    bool x_is_computed_self(int n){
+        return true;// TODO: this        
+    }
+
+public:
+    void operator()(sink_t& sink){
+        /*
+        
+        
+        *************************************
+        pos_bin_ind.allocate(xy.length);
+        for(auto p : xy)
+        	pos_bin_ind.write({p.x/spa_bin_size, p.y/spa_bin_size});
+        *************************************
+        */
+        pos_bin_ind.allocate(xy().length);
+        for(auto p : xy())
+        	pos_bin_ind.write({p.x/spa_bin_size(), p.y/spa_bin_size()});
+    }
+}
+
+
+class spike_times_func {
+private:
+    tet_file_t tet_file(){
+        return something;//TODO: this
+    }
+    
+    template <typename T>
+    yield_signal x_return(int n, T val){
+        // TODO: store val
+        return yield_signal(WRITTEN, n);
+    }
+    
+    bool x_is_computed_self(int n){
+        return true;// TODO: this        
+    }
+
+public:
+    void operator()(sink_t& sink){
+        /*
+        returns spike times in same units as tet_file stored them
+        
+        *************************************
+        timebase = parseInt(tet_file.header["timeabase"]);
+        int n_spikes = parseInt(tet_file.header["nump_spikes"]);
+        times.allocate(n_spikes);
+        for(auto c : tet_file.buffer.iter_blocks(216));
+        	times.write(c[0:4]);
+        *************************************
+        */
+        timebase = parseInt(tet_file().header["timeabase"]);
+        int n_spikes = parseInt(tet_file().header["nump_spikes"]);
+        times.allocate(n_spikes);
+        for(auto c : tet_file().buffer.iter_blocks(216));
+        	times.write(c[0:4]);
+    }
+}
+
+
+class cut_file_func {
+private:
+    cut_file_name_t cut_file_name(){
+        return something;//TODO: this
+    }
+    
+    template <typename T>
+    yield_signal x_return(int n, T val){
+        // TODO: store val
+        return yield_signal(WRITTEN, n);
+    }
+    
+    bool x_is_computed_self(int n){
+        return true;// TODO: this        
+    }
+
+public:
+    void operator()(sink_t& sink){
+        /*
+        
+        
+        *************************************
+        FileStreamer f(cut_file_name);
+        // read cut header, which gets discarded
+        int n_spikes = ??? header val;
+        cut_file.allocate(n_spikes);
+        
+        while(auto buffer = f.read(BLOCK_SIZE){ 
+        	for(auto val in buffer.split('\n'))
+        		cut_file.write(parseInt(val));
+        }
+        *************************************
+        */
+        FileStreamer f(cut_file_name());
+        // read cut header, which gets discarded
+        int n_spikes = ??? header val;
+        cut_file.allocate(n_spikes);
+        
+        while(auto buffer = f.read(BLOCK_SIZE){ 
+        	for(auto val in buffer.split('\n'))
+        		cut_file.write(parseInt(val));
+        }
     }
 }

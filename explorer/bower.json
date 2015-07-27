@@ -1,0 +1,21 @@
+{
+  "name": "venomous_explorer",
+  "version": "0.0.1",
+  "homepage": "https://github.com/d1manson/venomous",
+  "authors": [
+    "Daniel Manson <d.manson.11@ucl.ac.uk>"
+  ],
+  "description": "view venomous documents",
+  "main": "index.html",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#1.0.0"
+  }
+}
