@@ -8,19 +8,25 @@ USEAGE:
     <script>
         document.getElementById('my_graph').Render(nodeList);
 	</script>
-    
-nodeList must be an array of objects that have the following properties:
-    .id - the index of the node in the nodeList array
-    .name - string giving the display name of the node
-    .directBefore - array of node ids which are to be shown as the parents of the current node
-	
-	The rendering is super messy...but it shows what we need for now.
-	This whole thing is a pretty nasty, but it's getting towards a sensible encapsulation.
+
+
+	Some things I had to consult for various not-so-obvious bits and bobs...
+
+	repating template details..
+	https://github.com/Polymer/polymer/issues/1758 
+
+	css binding...
+	http://stackoverflow.com/a/30541458/2399799
+
+	svg/template...
+	http://stackoverflow.com/a/30821159/2399799
 -->
 
 <dom-module id="venomous-explorer">
    <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
-
+   <link rel="import" href="bower_components/paper-card/paper-card.html">
+   <link rel="import" href="bower_components/iron-icons/iron-icons.html">
+   <link rel="import" href="bower_components/iron-icons/hardware-icons.html">
   <style>
 
 	#info{
@@ -29,10 +35,12 @@ nodeList must be an array of objects that have the following properties:
 	padding: 8px;
 	overflow-y: scroll;
 	}
-	#svg_wrapper{
+	#main_zone{
 	overflow-x: scroll;
 	cursor: default;
-    padding: 8px
+    padding: 8px;
+    height: 500px;
+    background-color: #fafafa;
 	}
 	::-webkit-scrollbar {
 	width: 10px;
@@ -47,127 +55,91 @@ nodeList must be an array of objects that have the following properties:
 	background-color: rgba(0,0,0,0.2);
 	-webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
 	}
+	.node{
+		position: absolute;
+		min-width: 80px;
+		max-width: 160px;
+		padding: 4px;
+		text-align: center;
+		font-family: 'Roboto', 'Noto', sans-serif;
+		background-color: #fff;
+	}
+	.node_name{	
+		vertical-align: bottom;
+    	font-weight: bold;
+	}
+	.edge{
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		width: 100%;
+		height: 100%;
+	}
   </style>
   
   <template>
-   <style>
-	text {
-      font-weight: 300;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-      font-size: 14px;
-    }
-    .edgePath path {
-      stroke: #333;
-      stroke-width: 1.5px;
-      fill: none;
-    }
-    g > rect {
-    	fill:none;
-    	border-radius: 3px;
-    	stroke-width: 3px;
-    }
-	g.input > rect {
-	  stroke: #000000;
-	}
-	g.compute > rect{
-	  stroke: #9999ff;
-	}
-	</style>
   	<div id="container" class="layout vertical" style="height:100%;">
-	    <div id='svg_wrapper' nodrag><svg id="thesvg"></svg></div>
-		<div id='info' class="flex"></div>
+	    <div id='main_zone' nodrag>	
+	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
+	    	<template is="dom-repeat" items="{{edges}}">
+	    	<svg class="edge"> <line x1$="{{item.start_left}}" x2$="{{item.end_left}}" y1$="{{item.start_top}}" y2$="{{item.end_top}}"
+	    	style="stroke:rgb(0,0,0);stroke-width:1"/></svg>
+	    	</template>
+	    	
+	    	<template is="dom-repeat" items="{{nodes}}">
+			<paper-material class="node" style$="{{build_position_css(item.left,item.top)}}">
+			<iron-icon style$="{{node_type_to_css(item.node_type)}}" icon="{{node_type_to_icon(item.node_type)}}"></iron-icon>
+			<span class="node_name" style$="{{node_type_to_css(item.node_type)}}">{{item.name}}</span>
+	    	</paper-material>
+	    	</template>
+
+	    </div>
+		<div id='info' class="flex">
+			This is the info
+		</div>
 	</div>
   </template>
 
 
-  <script src="bower_components/lodash/lodash.min.js"></script>
-  <script src="bower_components/graphlib/dist/graphlib.core.js"></script>
-  <script src="bower_components/d3/d3.min.js"></script>
-  <script src="bower_components/dagre/dist/dagre.core.js"></script>
-  <script src="bower_components/dagre-d3/dist/dagre-d3.core.js"></script>
 
 
   <script>
-
-  	function escapeHtml(html){
-	    var text = document.createTextNode(html);
-	    var div = document.createElement('div');
-	    div.appendChild(text);
-	    return div.innerHTML;
-	}
-
+  var node_type_to_icon_mapping = {
+  	input: 'icons:system-update-alt',
+  	compute: 'hardware:laptop'
+  }
+  var node_type_to_css_mapping = {
+  	input: 'color:#99f',
+  	compute: 'color:#cc7'
+  }
     // element registration
     Polymer({
       is: "venomous-explorer",
+      ready: function() {
+      	this.push('nodes',{name: 'dummy_a', left: 100, top: 40, node_type: 'compute'});
+      	this.push('nodes',{name: 'dummy_b', left: 190, top: 80, node_type: 'input'});
 
-      Render: function(nodeList){
-            // Create the input graph
-			var g = new dagreD3.graphlib.Graph()
-						  .setGraph({})
-						  .setDefaultEdgeLabel(function() { return {}; });
-            
-            for(var i=0;i<nodeList.length;i++)
-            	nodeList[i]['directAfter'] = [];
+        this.push('edges',{start_left: 100, start_top: 200, end_left: 170, end_top: 240});
+        this.push('edges',{start_left: 300, start_top: 400, end_left: 470, end_top: 440});
 
-            for(var i=0;i<nodeList.length;i++){
-            	for(var j=0;j<nodeList[i].directBefore.length;j++){
-            		var before = nodeList[nodeList[i].directBefore[j]];
-            		nodeList[i].directBefore[j] = before;
-            		if(before)
-	            		before.directAfter.push(nodeList[i]);
-            	}
-            }
-
-			
-            for(var i=0; i<nodeList.length;i++)
-                g.setNode(i, {label: nodeList[i].name, class: nodeList[i].class_});
-            
-			var edgeStyles = [];
-			
-			
-            for(var i=0; i<nodeList.length;i++)
-                for(var j=0; j<nodeList[i].directBefore.length;j++){
-                	var before = nodeList[i].directBefore[j];
-                	if(!before)
-                		continue;
-					edgeStyles.push(before.directAfter.length > 4 ? 'opacity: 0.3;' : '');//if there are loads of things after the jth item then weaken the arrow opacity.
-			        g.setEdge(before.id,i);
-				}
-            
-            // Create the renderer
-            var renderer = new dagreD3.render();
-			
-
-            // Disable pan and zoom
-            //renderer.zoom(false);            
-            
-            svg = this.getElementsByTagName("svg")[0];
-            // Run the renderer. This is what draws the final graph.
-            var layout = renderer(d3.select(svg), g);
-
-            // Center the graph
-            var b = svg.getBBox();
-            svg.setAttribute('width', b.width);
-            svg.setAttribute('height', b.height);
-			var elInfo = this.$.info;
-			d3.select(svg).selectAll("rect").on("mouseover", function(){
-				var id = d3.select(this).data()[0];
-				if(id){
-					elInfo.innerHTML = "<b>" + nodeList[id].name + "</b><br>" +
-										"directly before: " + nodeList[id].directBefore.map(function(x){return x.name}).join(", ") + "<br>" +
-										"directly after: " + nodeList[id].directAfter.map(function(x){return x.name}).join(", ") + "<br>" +
-										('code' in nodeList[id] ? "<pre>" + escapeHtml(nodeList[id].code)  + "</pre>" : "");
-				}else{
-					elInfo.innerHTML = "move cursor over map for info";
-				}
-			});		  
-            
-			
-			
       },
-
+      build_position_css(left,top){
+      	return "left:" + left + "px;top:" + top + "px;";
+      },
+      node_type_to_icon(node_type){
+      	return node_type_to_icon_mapping[node_type];
+      },
+      node_type_to_css(node_type){
+		return node_type_to_css_mapping[node_type];
+      },
       properties: {
-        // declare properties for the element's public API
+      		nodes: {type: Array,
+      		        value: function() {return [];},
+      		        notify: true},
+      		edges: {type: Array,
+      		        value: function() {return [];},
+      		        notify: true}
+
       }
     });
   </script>
