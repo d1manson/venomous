@@ -37,6 +37,7 @@ USEAGE:
 	}
 	#main_zone{
 	overflow-x: scroll;
+	overflow-y: scroll;
 	cursor: default;
     padding: 8px;
     height: 500px;
@@ -64,6 +65,9 @@ USEAGE:
 		font-family: 'Roboto', 'Noto', sans-serif;
 		background-color: #fff;
 	}
+	.node[is_moving=true]{
+		cursor: move;
+	}
 	.node_name{	
 		vertical-align: bottom;
     	font-weight: bold;
@@ -75,19 +79,28 @@ USEAGE:
 		width: 100%;
 		height: 100%;
 	}
+	.noselect {
+	  -webkit-touch-callout: none;
+	  -webkit-user-select: none;
+	  -khtml-user-select: none;
+	  -moz-user-select: none;
+	  -ms-user-select: none;
+	  user-select: none;
+	}
   </style>
   
   <template>
   	<div id="container" class="layout vertical" style="height:100%;">
-	    <div id='main_zone' nodrag>	
+	    <div id='main_zone' class="noselect" nodrag>	
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
-	    	<template is="dom-repeat" items="{{edges}}">
+	    	<template is="dom-repeat" items="{{vedges}}">
 	    	<svg class="edge"> <line x1$="{{item.start_left}}" x2$="{{item.end_left}}" y1$="{{item.start_top}}" y2$="{{item.end_top}}"
 	    	style="stroke:rgb(0,0,0);stroke-width:1"/></svg>
 	    	</template>
 	    	
-	    	<template is="dom-repeat" items="{{nodes}}">
-			<paper-material class="node" style$="{{build_position_css(item.left,item.top)}}">
+	    	<template is="dom-repeat" items="{{vnodes}}">
+			<paper-material class="node" style$="{{build_position_css(item.left,item.top)}}" index$="{{index}}" on-track="node_on_track"
+			is_moving$="{{item.is_moving}}">
 			<iron-icon style$="{{node_type_to_css(item.node_type)}}" icon="{{node_type_to_icon(item.node_type)}}"></iron-icon>
 			<span class="node_name" style$="{{node_type_to_css(item.node_type)}}">{{item.name}}</span>
 	    	</paper-material>
@@ -116,12 +129,11 @@ USEAGE:
     Polymer({
       is: "venomous-explorer",
       ready: function() {
-      	this.push('nodes',{name: 'dummy_a', left: 100, top: 40, node_type: 'compute'});
-      	this.push('nodes',{name: 'dummy_b', left: 190, top: 80, node_type: 'input'});
+      	this.push('vnodes',{name: 'dummy_a', left: 100, top: 40, node_type: 'compute'});
+      	this.push('vnodes',{name: 'dummy_b', left: 290, top: 80, node_type: 'input'});
 
-        this.push('edges',{start_left: 100, start_top: 200, end_left: 170, end_top: 240});
-        this.push('edges',{start_left: 300, start_top: 400, end_left: 470, end_top: 440});
-
+        this.push('vedges',{start_left: 210, start_top: 50, end_left: 290, end_top: 90});
+     
       },
       build_position_css(left,top){
       	return "left:" + left + "px;top:" + top + "px;";
@@ -132,11 +144,29 @@ USEAGE:
       node_type_to_css(node_type){
 		return node_type_to_css_mapping[node_type];
       },
+      node_on_track: function(e){
+      	var idx = e.currentTarget.index;
+
+        switch(e.detail.state) {
+          case 'start':
+            console.log('Tracking started on ' + idx);
+            this.set('vnodes.' + idx + ".is_moving",'true')
+            break;
+          case 'track':
+            this.set('vnodes.'+ idx + '.left',this.vnodes[idx].left + e.detail.ddx);
+            this.set('vnodes.'+ idx + '.top',this.vnodes[idx].top + e.detail.ddy);
+            break;
+          case 'end':
+            console.log('Tracking ended on ' + idx);
+            this.set('vnodes.' + idx + ".is_moving",'')
+            break;
+        }
+      },
       properties: {
-      		nodes: {type: Array,
+      		vnodes: {type: Array,
       		        value: function() {return [];},
       		        notify: true},
-      		edges: {type: Array,
+      		vedges: {type: Array,
       		        value: function() {return [];},
       		        notify: true}
 
