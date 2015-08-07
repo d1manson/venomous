@@ -8,9 +8,14 @@
     <link rel="import" href="bower_components/polymer/polymer.html">
     <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
     <link rel="import" href="bower_components/paper-toast/paper-toast.html">
-    <link rel="import" href="venomous_explorer.html">
+    <link rel="import" href="bower_components/paper-button/paper-button.html">
     <link rel="import" href="bower_components/iron-icons/iron-icons.html">    
     <link rel="import" href="bower_components/paper-fab/paper-fab.html">
+    <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+    <link rel="import" href="bower_components/mat-editor/mat-editor.html">
+    <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+    <link rel="import" href="bower_components/iron-icons/hardware-icons.html">
+    <link rel="import" href="venomous_explorer.html">
     <title>sample [Venomous Explorer]</title>
   
   <style type="text/css">
@@ -20,6 +25,24 @@
     position: absolute;
     right: 10px;
     bottom: 10px;
+  }
+  #xml_source_editor{
+    width: 100%;
+    height: 80%; /*TODO: this is suppsoed to be flex*/;
+    padding: 0px;
+  }
+  #show_source_button{
+    position: absolute;
+    right: 10px;
+    bottom: 80px;
+    /* TODO: put fabs in a single container */
+  }
+  #dialog_xml_source {
+      position: fixed;
+      top: 40px;
+      bottom: 40px;
+      right: 40px;
+      left: 40px;
   }
   </style>
   </head>
@@ -40,17 +63,33 @@
   
   <paper-toast id="the_toast" duration="10000"> </paper-toast>
   <paper-fab icon="save" id="save_button"></paper-fab>
+  <paper-fab icon="device:developer-mode" id="show_source_button"></paper-fab>
+  
+  <paper-dialog id="dialog_xml_source" modal="true" layout vertical>
+  <h2>XML source</h2>
+  <mat-editor id="xml_source_editor" mode="xml" line-numbers="true" flex></mat-editor>
+  <div class="buttons">
+    <paper-button dialog-dismiss>Close</paper-button>
+    <paper-button dialog-confirm>Apply Changes</paper-button>
+  </div>
+  </paper-dialog>
+
   <script>
   "use strict";
  
   document.addEventListener('WebComponentsReady', function() { 
 
+    // TODO: should just make a list and loop to auto set id as var on window
     window.ajax_load = document.getElementById("ajax_load");
     window.ajax_save = document.getElementById("ajax_save");
     window.the_graph = document.getElementById("the_graph");
     window.the_toast = document.getElementById("the_toast");
     window.save_button = document.getElementById("save_button");
-    
+    window.show_source_button = document.getElementById("show_source_button");
+    window.dialog_xml_source = document.getElementById("dialog_xml_source");
+    window.xml_source_editor = document.getElementById("xml_source_editor");
+
+
     save_button.addEventListener("click",function(e){
         var xml = the_graph.write_to_xml();
         var formData = new FormData();
@@ -74,6 +113,12 @@
       else
         the_toast.text = "ERROR: failed to save";
       the_toast.show();
+    })
+    show_source_button.addEventListener("click", function(){
+      xml_source_editor.value = the_graph.write_to_xml();
+      dialog_xml_source.open();
+      xml_source_editor._refresh();     
+      xml_source_editor.focus();
     })
   });
 
