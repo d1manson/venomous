@@ -42,6 +42,7 @@ USEAGE:
     padding: 8px;
     height: 500px;
     background-color: #fafafa;
+    position: relative;
 	}
 	::-webkit-scrollbar {
 	width: 10px;
@@ -59,7 +60,6 @@ USEAGE:
 	.node{
 		position: absolute;
 		min-width: 80px;
-		max-width: 160px;
 		padding: 4px;
 		text-align: center;
 		font-family: 'Roboto', 'Noto', sans-serif;
@@ -125,6 +125,11 @@ USEAGE:
   	input: 'color:#99f',
   	compute: 'color:#cc7'
   }
+  var push_objs_vals_onto_array = function(arr, obj){
+	for(var k in obj)if(obj.hasOwnProperty(k))
+	    arr.push(obj[k]);
+  }
+
     // element registration
     Polymer({
       is: "venomous-explorer",
@@ -161,6 +166,37 @@ USEAGE:
             this.set('vnodes.' + idx + ".is_moving",'')
             break;
         }
+      },
+      load_from_xml: function(root){
+      		if(root.length > 1)
+      			this.fire('error',{type: 'parse-error', msg: 'root should have only 1 child noed, the engine.'});
+      		if(root[0].nodeName.toLowerCase() != "engine")
+      			this.fire('error',{type: 'parse-error', msg: 'the top-level node should be an "engine".'});
+			var engine = root[0]; 
+
+			var inputs = {};
+			var computes = {};
+			
+			for(var i=0;i< engine.childNodes.length; i++){
+				var node = engine.childNodes[i];
+				var node_name = node.nodeName.toLowerCase(); 
+				if(node_name == "input"){
+					var name = node.attributes.getNamedItem("name").value;
+					inputs[name] = {name: name, node_type: 'input', left: 100 + i*5, top: 100};
+				}
+				if(node_name == "compute"){
+					var name = node.attributes.getNamedItem("name").value;
+					computes[name] = {name: name, node_type: 'compute', left: 100 + i*5, top: 200};
+				}
+			}
+
+			var vnodes = [];
+			push_objs_vals_onto_array(vnodes, inputs);
+			push_objs_vals_onto_array(vnodes, computes);
+			this.set('vnodes', vnodes);
+
+      		console.dir(engine);
+      		this.fire('error', {type: 'not-implemented', msg: 'need to actually implement parsing.'});
       },
       properties: {
       		vnodes: {type: Array,

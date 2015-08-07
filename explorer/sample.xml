@@ -1,0 +1,604 @@
+<?xml version="1.0"?>
+<engine>
+	<input name="axona_file_name" type="string"></input>
+
+	<compute name="axona_file">
+		<arg name="axona_file_name"></arg>
+		<return name="header" type="map"></return>
+		<return name="buffer" type="byte[]" chunking="manual"></return>
+		<description>
+			Reads an axomna file which consists of a header block of multiple lines of: 
+					key_name [SPACE] key_value
+			Followed by a line that begins with the characters "data_start".
+			Following that is a (large) block of binary data.
+			In some cases (set files) there may not be a data_start and binary_data section.
+			This compute is aliased as pos_file, set_file, tet_file, and eeg_file.
+		</description>
+		<hints>disk=True</hints>
+		<code><![CDATA[	
+		
+		const int BLOCK_SIZE = 2*1024*104; //2MB
+		FileStreamer f(axona_file_name); //this is C++ RAII in action, we are using axona_file_name from its definition as an "input".
+		int n_blocks = ceil(f.length()/BLOCK_SIZE); 
+		if ( !computed(header) ){
+			// we may already have this cached.
+			map header_tmp;
+			// parse f into header, storing the n_block, and data_start pointer as well
+			header = header_tmp; 
+		}
+
+		for (block_ii in requested_blocks){
+			buffer[block_ii] = f.read(block_ii*BLOCK_SIZE, BLOCK_SIZE);
+		}
+
+		]]></code>
+	</compute>
+
+	<alias name="pos_file_name" src="axona_file_name"></alias>
+	<alias name="pos_file" src="axona_file">axona_file_name=pos_file_name</alias>
+
+	<alias name="set_file_name" src="axona_file_name"></alias>
+	<alias name="set_file" src="axona_file">axona_file_name=set_file_name</alias>
+
+	<alias name="tet_file_name" src="axona_file_name"></alias>
+	<alias name="tet_file" src="axona_file">axona_file_name=tet_file_name</alias>
+
+	<alias name="eeg_file_name" src="axona_file_name"></alias>
+	<alias name="eeg_file" src="axona_file">axona_file_name=eeg_file_name</alias>
+
+	<raw><![CDATA[
+		struct point{
+		int16 x;
+		int16 y;
+		}
+	]]></raw>
+
+	<compute name="both_xy">
+		<arg name="pos_file"></arg>
+		<arg name="set_file"></arg>
+		<return name="used_both" type="bool"></return>
+		<return name="xy1" type="point[]" chunking="10000"></return>
+		<return name="xy2" type="point[]" chunking="10000"></return>
+		<return name="w1" type="float"></return>
+		<return name="w2" type="float"></return>
+		<description>
+			This takes the pos header and buffer and does the pos-post-processing, to produce either 1 or two
+			arrays of points (only 1 if 1 LED was used).
+		</description>
+		<hints>CPU=1 CACHE=1 pos_file=all</hints>
+		<code><![CDATA[	
+		
+
+		used_both = set_file.header['colactive_2']; 
+
+		int num_samps = parseInt(pos_file.header['num_samps']);
+		if (use_both){
+			xy1.allocate(num_samps);
+			xy2.allocate(num_samps);
+			for(auto c pos_file.buffer.iter_blocks(16)){
+				xy1.write(block[3]); // TODO: actual post processing..this is complicated for a number of reasons.
+				xy2.write(block[4]);
+			}	
+		}else{
+			xy_1.allocate(num_samps);
+			for(auto c pos_file.buffer.iter_blocks(16))
+				xy1.write(block[3]);
+		}
+		w1 = sum(!nan(xy1));
+		w2 = sum(!nan(xy2)); 
+
+		]]></code>
+	</compute>
+
+	<compute name="xy">
+		<arg name="both_xy"></arg>
+		<return name="xy" type="point[]" chunking="10000"></return>
+		<description>
+			If there are two LEDs, this takes both sets of XY data and combines them to get a single value of xy for
+			each moment in time.  with 1 LED, this simply uses that 1 array of XY data.
+		</description>
+		<hints>CPU=1 CACHE=1</hints>
+		<code><![CDATA[		
+
+		if(!both_xy.used_both){
+			xy = both_xy.xy1;
+		}else{
+			xy.allocate(both_xy.xy1.length);
+			for(auto p1, p2 : both_xy.xy1, both_xy.xy2)
+				xy.write(p1*both_xy.w1 + p2*both_xy.w2);
+		}
+
+		]]></code>
+	</compute>
+
+	<raw><![CDATA[
+		float angle_ab(point a, point b){
+			auto dx = b.x - a.x;
+			auto dy = b.y - a.y;
+			return abs(dx) > 0.001 && abs(dy) > 0.001 ? atan2(dy,dx) : nan;
+		}
+	]]></raw>
+
+	<compute name="dir">
+		<arg name="both_xy" required=".used_both"></arg>
+		<arg name="xy"></arg>
+		<arg name="set_file"></arg>
+		<return name="used_both" type="bool"></return>
+		<return name="dir_disp" type="float[]" chunking="10000"></return>
+		<return name="dir" type="float[]" chunking="10000"></return>
+
+		<description>
+			The used_both is copied across from both_xy for convenience.
+			If both LEDs are used then dir!= dir_disp, otherwise dir is dir_disp.
+		</description>
+		<hints>CPU=1 CACHE=1</hints>
+		<code><![CDATA[	
+		
+		used_both = both_xy.used_both;
+		dir_disp.allocate(xy.length);
+		if(used_both){ 
+			// TODO: could check which of the two dirs is requested and do different loop based on that. requested(dir_disp)
+			dir.allocate(xy.length);
+			point pw_old(nan,nan); 
+			for(auto p1, p2, pw : both_xy.xy1, both_xy.xy2, xy){
+				dir.write(angle_ab(p1,p2));
+				dir_disp.write(angle_ab(pw,pw_old));
+				pw_old = pw;	
+			}
+		}else{
+			dir_disp.allocate(xy.length);
+			dir.equals(dir_disp);
+			point pw_old(nan,nan); 
+			for(auto pw : xy){
+				dir_disp.write(angle_ab(pw,pw_old));
+				pw_old = pw;	
+			}
+		}
+
+		]]></code>
+	</compute>
+
+	<compute name="speed">
+		<arg name="xy"></arg>
+		<arg name="pos_file" request=".header"></arg>
+		<return type="int16[]" chunking="10000"></return>
+
+		<hints>CPU=1 CACHE=1</hints>
+		<code><![CDATA[	
+		
+		int f = parseInt(pos_file.header['timebase']);
+		speed.allocate(xy.length);
+		point p_old (nan,nan);
+		for(auto p : xy){
+			speed.write(hypot(p_old.x - p.x, p_old.y - p.y) * f);
+			p_old = p;
+		}
+
+		]]></code>
+	</compute>
+
+	<input name="group_num" type="uint8"></input>
+
+	<raw><![CDATA[
+	template<typename T>
+	struct spatial{
+	float bin_size;
+	int nW;
+	int nH;
+	vector<T> data; // length nW*nH
+	}
+
+	template<typename T>
+	struct slice{
+	T start;
+	T end;
+	}
+
+	enum shape_type{
+	rect;
+	circle;
+	}
+	struct shape{
+	shape_type kind;
+	union shape{
+		struct rect{
+		int W:
+		int H;
+		point topleft;
+		}
+		struct circle{
+		int R;
+		point centre;
+		}
+	}
+	}
+
+	float boundary_dist_rect(point p, point topleft, int W, int H){
+		auto v1 = p.x - topleft.x);
+		auto v2 = topleft.x + W - p.x;
+		auto v3 = p.y - topleft.y);
+		auto v4 = topleft.y + H - p.y;
+		return std::min(v1,v2,v3,v4);
+	};
+
+	]]></raw>
+	<input name="trial_time_slice" type="slice^int32^"></input> 
+	<input name="directional_slice" type="slice^float^"></input>
+	<input name="spatial_mask" type="spatial^bool^"></input>
+	<input name="boundary_dist_slice" type="slice^float^"></input>
+
+	<input name="boundary_shape" type="shape"></input>
+
+	<compute name="dist_to_boundary">
+		<return type="float[]" chunking="10000"></return>
+		<arg name="xy"></arg>
+		<arg name="boundary_shape"></arg>
+
+		<code><![CDATA[
+
+		// might want to implement it as dist_to_boundary squared..although that only makes sense for circle not square 
+		// so the details are a bit more complicated.
+		dist_to_boundary.allocate(xy.length);
+		if(boundary_shape.kind == circle){
+			for(auto p : xy)
+				dist_to_boundary.write( hypot(p.x-boundary_shape.shape.centre.x, p.y-boundary_shape.shape.centre.y));
+		}else{ // boundary_shape.kind == rect
+			for(auto p : xy)
+				dist_to_boundary.write( boundary_dist_rect(p, boundary_shape.shape.topleft, boundary_shape.shape.W, boundary_shape.shape.H));
+		}
+
+		]]></code>
+	</compute>
+
+	<raw><![CDATA[
+		enum logical_summary{
+		// recrods the stat of a bool vector: either all true, none true, or a mixture of true and false.
+		all; 
+		none;
+		mixture;
+		}
+
+		logical_summary make_logical_summary(bool[] X){
+	   		if(all(X))
+	   			return all;
+	   		else if(none(X))
+	   			return none;
+	   		else
+	   			return mixture;
+		}
+	]]></raw>
+	<compute name="pos_mask">
+		<return name="summary" type="logical_summary"></return>
+		<return name="mask" type="bool[]"></return>
+		<arg name="pos_file" request=".header"></arg>
+		<arg name="trial_time_slice" optional="true"></arg>
+		<arg name="directional_slice" optional="true"></arg>
+		<arg name="spatial_mask" optional="true"></arg>
+		<arg name="boundary_dist_slice" optional="true"></arg>
+		<arg name="dist_to_boundary" optional="true"></arg>
+		
+		<description>
+			True means use pos, False means don't use it.
+			Computes a mask using zero or more of four differnt possible speicifications.
+			Check summary to see if the mask is all-False, or all-True.  
+			Note that you might want to have something even more complciated in terms of adding, subtracting and multiple slices.
+			Not sure how easy that would be to implement in any framework, psoup or otherwise...well it might be ok in python actually.
+		</description>
+		<code><![CDATA[
+		if(!isnull(trial_time_slice)  ||
+		   !isnull(directional_slice) ||
+		   !isnull(spatial_mask)	  ||
+		   !isnull(boundary_dist_slice)){
+
+		   	   // some kind of masking has been requested
+		   	   if(!computed(mask)){
+				   // we may already have computed mask, (in which case we are supposed to compute summary)
+				   	   	   
+				   vector<bool> tmp = array(pos_file.header["num_samps"]);
+				   
+				   if(!isnull(trial_time_slice)){
+				   		tmp[:trial_time_slice.start = False;
+				   		tmp[trial_time_slice.end:] = False;
+				   }
+
+				   if(!isnull(directional_slice)){
+						tmp[!(directional_slice.start < dir[1] < directional_slice.end)] = False;
+				   }
+
+				   if(!isnull(boundary_dist_slice)){
+						tmp[!(boundary_dist_slice.start < dist_to_boundary < boundary_dist_slice.end)] = False;
+				   }
+
+				   //TODO: implement spatial mask
+
+				   mask = tmp;
+
+			   }
+			   if(requested(summary))
+			   		summary = make_logical_summary(mask);
+
+		   }else{
+			   summary = all; //mask is all-true, so don't actually need to make it
+		   }
+		]]></code>
+	</compute>
+
+	<compute name="spike_pos_inds">
+		<arg name="pos_file" required=".header"></arg>
+		<arg name="spike_times"></arg>
+		<return type="uint32[]" chunking="10000"></return>
+		<code><![CDATA[
+			// read timebases to get factor and apply to spike times
+		]]></code>
+	</compute>
+
+	<compute name="spike_mask">
+		<arg name="pos_mask"></arg>
+		<arg name="spike_pos_inds"></arg>
+		<return name="summary" type="logical_summary"></return>
+		<return name="mask" type="bool[]"></return>
+		<code><![CDATA[
+			//lookup spike pos inds in pos mask..use sorted_access_iterator
+		]]></code>
+	</compute>
+
+	<input name="speed_bin_size" type="float">
+		<description>cm/s</description>
+	</input>
+
+	<raw><![CDATA[
+
+		vector<int32> hist(vals, bin_size){
+			vector<int32> h; // TODO: behind the scenes we need to decide how to deal with dynamically 
+							 //resizing vector, which will reach a final state by the time the function returns.
+			for(int i=0;i <vals.length;i++)
+				h[vals[i]/bin_size]++;
+			return h;
+		}
+
+		vector<int32> hist_masked(vals, mask, bin_size){
+			vector<int32> h;
+			for(int i=0;i <vals.length;i++) if(mask[i])
+				h[vals[i]/bin_size]++
+			return h;
+		}
+	]]></raw>
+
+	<compute name="speed_dwell">
+		<return type="int32[]"></return>
+		<arg name="speed"></arg>
+		<arg name="pos_mask"></arg>
+		<arg name="speed_bin_size"></arg>
+		<code><![CDATA[
+		if(pos_mask.summary == all)
+			speed_dwell = hist(speed, speed_bin_size);
+		else
+			speed_dwell = hist_masked(speed, pos_mask, speed_bin_size);
+		]]></code>
+	</compute>
+
+	<input name="spa_bin_size" type="float">
+		<description>cm</description>
+	</input>
+
+	<compute name="pos_bin_ind">
+		<return type="point[]" chunking="10000"></return>
+		<arg name="spa_bin_size"></arg>
+		<arg name="xy"></arg>
+		<code><![CDATA[
+			pos_bin_ind.allocate(xy.length);
+			for(auto p : xy)
+				pos_bin_ind.write({p.x/spa_bin_size, p.y/spa_bin_size});
+		]]></code>
+	</compute>
+
+	<compute name="spike_times">
+		<return name="timebase" type="int"></return>
+		<return name="times" type="int32[]" chunking="10000"></return>
+		<arg name="tet_file"></arg>
+		<description>returns spike times in same units as tet_file stored them</description>
+		<code><![CDATA[
+			timebase = parseInt(tet_file.header["timeabase"]);
+			int n_spikes = parseInt(tet_file.header["nump_spikes"]);
+			times.allocate(n_spikes);
+			for(auto c : tet_file.buffer.iter_blocks(216));
+				times.write(c[0:4]);
+
+		]]></code>
+	</compute>
+
+	<alias name="cut_file_name" src="axona_file_name"></alias>
+
+	<compute name="cut_file">
+		<arg name="cut_file_name"></arg>
+		<return type="uint8[]" chunking="10000"></return>
+		<code><![CDATA[
+
+		FileStreamer f(cut_file_name);
+		// read cut header, which gets discarded
+		int n_spikes = ??? header val;
+		cut_file.allocate(n_spikes);
+
+		while(auto buffer = f.read(BLOCK_SIZE){ 
+			for(auto val in buffer.split('\n'))
+				cut_file.write(parseInt(val));
+		}
+
+		]]></code>
+	</compute>
+
+	<input name="tac_window_secs" type="float"></input>
+
+	<loop name="cut_changes_loop">
+		<raw><![CDATA[
+			struct cut_delta_enum{
+				split_v_t;
+				merge;
+				swap;
+				paint;
+			}
+			struct cut_delta_spec{
+				cut_delta_enum kind;
+				union{
+				//stuff;
+				}
+			}
+		]]></raw>
+
+		<input name="cut_delta" type="cut_delta_spec"></input>
+		
+		<compute name="cut_state">
+			<arg name="cut_delta"></arg>
+			<arg name="cut_changes_loop" required=".cut_inds"></arg>
+			<arg name="cut_file" required="first_iteration"></arg>
+			<arg name="waves" required="maybe"></arg>
+			<arg name="amps" required="maybe"></arg>
+			<return name="group_nums" type="uint8[]"></return>
+			<return name="inds_by_group" type="uint8[]" chunking="manual explicit"></return>
+			<description>
+				On the first iteration of cut_changes_loop it reads from cut_file, on subsequent iterations
+				it reads the pervious version of itself, i.e. cut_changes_loop.old_state.
+				Each iteration of the loop is defined by its cut_delta.  This compute applies the delta
+				to the the previous state to produce the current state.
+			</description>
+			<code><![CDATA[
+				uint8[] inds;
+				// need to do check whether the whole thing is required or only group nums
+				// actually I think we are only going to want group nums
+				if(cut_changes_loop.is_first_iteration)
+					old_state = cut_file;
+				else
+					old_state = cut_changes_loop.cut_state.group_nums; // self on previous iteration
+
+				switch(cut_delta.kind){
+					case split_v_t:
+						// do stuff with waves
+						break;
+					case paint:
+						// do stuff with amps
+						break;
+					case swap:
+						// do stuff simly with cut_inds 
+						break;
+					case swap:
+						// do stuff simply with cut_inds
+						break;
+				}  
+				cut_inds = inds;
+			]]></code>
+		</compute>
+
+		<compute name="group_mask">
+			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
+			<arg name="spike_mask"></arg>
+			<return name="summary" type="logical_summary"></return>
+			<return name="mask" type="bool[]"></return>
+			<code><![CDATA[
+				if(!computed(group_mask))
+					group_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+				if(required(summary))
+					summary = make_logical_summary(group_mask);
+			]]></code>
+		</compute>
+
+		<compute name="group_times_unmaksed">
+			<arg name="group_num"></arg>
+			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
+			<arg name="spike_times"></arg>	
+			<code><![CDATA[
+				group_times_unmaksed = copy(spike_times.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			]]></code>
+		</compute>
+
+		<compute name="group_times">
+			<arg name="group_mask"></arg>
+			<arg name="group_times_unmaksed"></arg>
+			<return type="uint32[]"></return>
+
+			<code><![CDATA[
+				if(group_mask.all)
+					group_times.equals(group_times_unmaksed);
+				if(group_mask.none)
+					group_times = [];
+
+				group_times = group_times_unmaksed[group_mask]; // TODO: implement logical take
+			]]></code>
+		</compute>
+
+		<compute name="group_pos_inds_unmasked">
+			<arg name="group_num"></arg>
+			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
+			<arg name="spike_pos_inds"></arg>
+			<return type="uint32[]"></return>
+			<code><![CDATA[
+				group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			]]></code>
+		</compute>
+
+		<compute name="group_pos_inds">
+			<arg name="group_pos_inds_unmasked"></arg>
+			<arg name="group_mask"></arg>
+			<return type="uint32[]"></return>
+			<code><![CDATA[
+				if(group_mask.all)
+					group_pos_inds.equals(group_pos_inds_unmasked);
+				if(group_mask.none)
+					group_pos_inds = [];
+
+				group_pos_inds = group_pos_inds_unmaksed[group_mask]; // TODO: implement logical take
+			]]></code>
+		</compute>
+
+		<compute name="tac">
+			<arg name="group_times"></arg>
+			<arg name="tac_window_secs"></arg>
+			<return name="tac" type="float[]"></return>
+			<return name="max" type="uint32"></return>
+			<code><![CDATA[
+				N_BINS = 100;
+				uint32[] hist(N_BINS);
+				float f = tac_window_secs * group_times.timebase /N_BINS;
+				auto max_diff = tac_window_secs * group_times.timebase;
+				auto later_time = group_times.times; //iterator
+				for(auto earlier_time : group_times.times){
+					// move the later time until it is one element beyond the end of the window
+					for(;later_time < earlier_time + max_diff && later_time != group_times.times.end(); ++later_time) ;
+					// accumulate a "1" in the histogram for each time in the window, relative to the earlier time.
+					for( auto mid_time = earlier_time; mid_time != later_time; ++mid_time)
+						hist[(mid_time-earlier_time)*f]++;
+				}
+				max = maximum(hist);
+				float[] hist_normed(N_BINS);
+				for(int i=0;i<N_BINS;i++)
+					hist_normed[i] = hist[i] / max;
+				tac = hist_normed;
+			]]></code>
+		</compute>
+
+		<compute name="group_speed_hist">
+			<arg name="group_pos_inds"></arg>
+			<arg name="speed_bin_size"></arg>
+			<arg name="speed_dwell"></arg>
+			<arg name="speed"></arg>
+			<return type="float[]"></return>
+			<return name="max" type="float"></return>
+			<description>
+				Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
+			</description>
+			<code><![CDATA[
+				uint32[] spike;
+				for(auto s : speed.iter_sorted(group_pos_inds))
+					spike[speed/speed_bin_size]++;
+				float[] rate = array(spike.length);
+				for(int i=0; i< spike.length; i++)
+					rate[i] = spike[i] / speed_dwell[i];
+				max = maximum(rate);
+				for(int i=0;i<rate.length;i++)
+					rate[i] /= max;
+				group_speed_hist = rate;
+			]]></code>
+		</compute>
+	</loop>
+
+
+</engine>

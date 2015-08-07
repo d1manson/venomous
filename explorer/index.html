@@ -6,15 +6,48 @@
     <script src="bower_components/webcomponentsjs/webcomponents-lite.js">
     </script>
     <link rel="import" href="bower_components/polymer/polymer.html">
+    <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+    <link rel="import" href="bower_components/paper-toast/paper-toast.html">
     <link rel="import" href="venomous_explorer.html">
+
     <title>sample [Venomous Explorer]</title>
+  
+  <style type="text/css">
+  #the_toast{
+  }
+  </style>
   </head>
+  
   <body style="height:100%;margin:0;">
-  <venomous-explorer  id="the_graph" style="height:100%;"></venomous-explorer>
+
+  <iron-ajax
+    url="sample.xml"
+    handle-as="document"
+  ></iron-ajax>
+  
+  <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"></venomous-explorer>
+  
+  <paper-toast id="the_toast" duration="10000"> </paper-toast>
+
   <script>
-  window.addEventListener('WebComponentsReady', function(e) {
-      var el = document.getElementById("the_graph");
+  "use strict";
+ 
+  document.addEventListener('WebComponentsReady', function() { 
+
+    var ajax = document.querySelector("iron-ajax");
+    var the_graph = document.getElementById("the_graph");
+    var the_toast = document.getElementById("the_toast");
+    the_graph.addEventListener("error", function(e){
+      the_toast.text = e.detail.type.toUpperCase() + ": "  + e.detail.msg;
+      the_toast.show();
+      console.dir(e.detail);
     })
+    ajax.addEventListener("response", function(e){
+      the_graph.load_from_xml(e.detail.response.childNodes);
+    });
+    ajax.generateRequest();
+
+  });
   </script>
   </body>
 </html>
