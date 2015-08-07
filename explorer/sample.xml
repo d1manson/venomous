@@ -1,11 +1,13 @@
-<?xml version="1.0"?>
-<engine>
-	<input name="axona_file_name" type="string"></input>
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+  <engine>
+  
+	<input name="axona_file_name" type="string"/>
 
 	<compute name="axona_file">
-		<arg name="axona_file_name"></arg>
-		<return name="header" type="map"></return>
-		<return name="buffer" type="byte[]" chunking="manual"></return>
+		<arg name="axona_file_name"/>
+		<return name="header" type="map"/>
+		<return name="buffer" type="byte[]" chunking="manual"/>
 		<description>
 			Reads an axomna file which consists of a header block of multiple lines of: 
 					key_name [SPACE] key_value
@@ -34,16 +36,16 @@
 		]]></code>
 	</compute>
 
-	<alias name="pos_file_name" src="axona_file_name"></alias>
+	<alias name="pos_file_name" src="axona_file_name"/>
 	<alias name="pos_file" src="axona_file">axona_file_name=pos_file_name</alias>
 
-	<alias name="set_file_name" src="axona_file_name"></alias>
+	<alias name="set_file_name" src="axona_file_name"/>
 	<alias name="set_file" src="axona_file">axona_file_name=set_file_name</alias>
 
-	<alias name="tet_file_name" src="axona_file_name"></alias>
+	<alias name="tet_file_name" src="axona_file_name"/>
 	<alias name="tet_file" src="axona_file">axona_file_name=tet_file_name</alias>
 
-	<alias name="eeg_file_name" src="axona_file_name"></alias>
+	<alias name="eeg_file_name" src="axona_file_name"/>
 	<alias name="eeg_file" src="axona_file">axona_file_name=eeg_file_name</alias>
 
 	<raw><![CDATA[
@@ -54,13 +56,13 @@
 	]]></raw>
 
 	<compute name="both_xy">
-		<arg name="pos_file"></arg>
-		<arg name="set_file"></arg>
-		<return name="used_both" type="bool"></return>
-		<return name="xy1" type="point[]" chunking="10000"></return>
-		<return name="xy2" type="point[]" chunking="10000"></return>
-		<return name="w1" type="float"></return>
-		<return name="w2" type="float"></return>
+		<arg name="pos_file"/>
+		<arg name="set_file"/>
+		<return name="used_both" type="bool"/>
+		<return name="xy1" type="point[]" chunking="10000"/>
+		<return name="xy2" type="point[]" chunking="10000"/>
+		<return name="w1" type="float"/>
+		<return name="w2" type="float"/>
 		<description>
 			This takes the pos header and buffer and does the pos-post-processing, to produce either 1 or two
 			arrays of points (only 1 if 1 LED was used).
@@ -91,8 +93,8 @@
 	</compute>
 
 	<compute name="xy">
-		<arg name="both_xy"></arg>
-		<return name="xy" type="point[]" chunking="10000"></return>
+		<arg name="both_xy"/>
+		<return name="xy" type="point[]" chunking="10000"/>
 		<description>
 			If there are two LEDs, this takes both sets of XY data and combines them to get a single value of xy for
 			each moment in time.  with 1 LED, this simply uses that 1 array of XY data.
@@ -120,12 +122,12 @@
 	]]></raw>
 
 	<compute name="dir">
-		<arg name="both_xy" required=".used_both"></arg>
-		<arg name="xy"></arg>
-		<arg name="set_file"></arg>
-		<return name="used_both" type="bool"></return>
-		<return name="dir_disp" type="float[]" chunking="10000"></return>
-		<return name="dir" type="float[]" chunking="10000"></return>
+		<arg name="both_xy" required=".used_both"/>
+		<arg name="xy"/>
+		<arg name="set_file"/>
+		<return name="used_both" type="bool"/>
+		<return name="dir_disp" type="float[]" chunking="10000"/>
+		<return name="dir" type="float[]" chunking="10000"/>
 
 		<description>
 			The used_both is copied across from both_xy for convenience.
@@ -159,9 +161,9 @@
 	</compute>
 
 	<compute name="speed">
-		<arg name="xy"></arg>
-		<arg name="pos_file" request=".header"></arg>
-		<return type="int16[]" chunking="10000"></return>
+		<arg name="xy"/>
+		<arg name="pos_file" request=".header"/>
+		<return type="int16[]" chunking="10000"/>
 
 		<hints>CPU=1 CACHE=1</hints>
 		<code><![CDATA[	
@@ -177,7 +179,7 @@
 		]]></code>
 	</compute>
 
-	<input name="group_num" type="uint8"></input>
+	<input name="group_num" type="uint8"/>
 
 	<raw><![CDATA[
 	template<typename T>
@@ -222,17 +224,17 @@
 	};
 
 	]]></raw>
-	<input name="trial_time_slice" type="slice^int32^"></input> 
-	<input name="directional_slice" type="slice^float^"></input>
-	<input name="spatial_mask" type="spatial^bool^"></input>
-	<input name="boundary_dist_slice" type="slice^float^"></input>
+	<input name="trial_time_slice" type="slice^int32^"/> 
+	<input name="directional_slice" type="slice^float^"/>
+	<input name="spatial_mask" type="spatial^bool^"/>
+	<input name="boundary_dist_slice" type="slice^float^"/>
 
-	<input name="boundary_shape" type="shape"></input>
+	<input name="boundary_shape" type="shape"/>
 
 	<compute name="dist_to_boundary">
-		<return type="float[]" chunking="10000"></return>
-		<arg name="xy"></arg>
-		<arg name="boundary_shape"></arg>
+		<return type="float[]" chunking="10000"/>
+		<arg name="xy"/>
+		<arg name="boundary_shape"/>
 
 		<code><![CDATA[
 
@@ -268,14 +270,14 @@
 		}
 	]]></raw>
 	<compute name="pos_mask">
-		<return name="summary" type="logical_summary"></return>
-		<return name="mask" type="bool[]"></return>
-		<arg name="pos_file" request=".header"></arg>
-		<arg name="trial_time_slice" optional="true"></arg>
-		<arg name="directional_slice" optional="true"></arg>
-		<arg name="spatial_mask" optional="true"></arg>
-		<arg name="boundary_dist_slice" optional="true"></arg>
-		<arg name="dist_to_boundary" optional="true"></arg>
+		<return name="summary" type="logical_summary"/>
+		<return name="mask" type="bool[]"/>
+		<arg name="pos_file" request=".header"/>
+		<arg name="trial_time_slice" optional="true"/>
+		<arg name="directional_slice" optional="true"/>
+		<arg name="spatial_mask" optional="true"/>
+		<arg name="boundary_dist_slice" optional="true"/>
+		<arg name="dist_to_boundary" optional="true"/>
 		
 		<description>
 			True means use pos, False means don't use it.
@@ -324,19 +326,19 @@
 	</compute>
 
 	<compute name="spike_pos_inds">
-		<arg name="pos_file" required=".header"></arg>
-		<arg name="spike_times"></arg>
-		<return type="uint32[]" chunking="10000"></return>
+		<arg name="pos_file" required=".header"/>
+		<arg name="spike_times"/>
+		<return type="uint32[]" chunking="10000"/>
 		<code><![CDATA[
 			// read timebases to get factor and apply to spike times
 		]]></code>
 	</compute>
 
 	<compute name="spike_mask">
-		<arg name="pos_mask"></arg>
-		<arg name="spike_pos_inds"></arg>
-		<return name="summary" type="logical_summary"></return>
-		<return name="mask" type="bool[]"></return>
+		<arg name="pos_mask"/>
+		<arg name="spike_pos_inds"/>
+		<return name="summary" type="logical_summary"/>
+		<return name="mask" type="bool[]"/>
 		<code><![CDATA[
 			//lookup spike pos inds in pos mask..use sorted_access_iterator
 		]]></code>
@@ -365,10 +367,10 @@
 	]]></raw>
 
 	<compute name="speed_dwell">
-		<return type="int32[]"></return>
-		<arg name="speed"></arg>
-		<arg name="pos_mask"></arg>
-		<arg name="speed_bin_size"></arg>
+		<return type="int32[]"/>
+		<arg name="speed"/>
+		<arg name="pos_mask"/>
+		<arg name="speed_bin_size"/>
 		<code><![CDATA[
 		if(pos_mask.summary == all)
 			speed_dwell = hist(speed, speed_bin_size);
@@ -382,9 +384,9 @@
 	</input>
 
 	<compute name="pos_bin_ind">
-		<return type="point[]" chunking="10000"></return>
-		<arg name="spa_bin_size"></arg>
-		<arg name="xy"></arg>
+		<return type="point[]" chunking="10000"/>
+		<arg name="spa_bin_size"/>
+		<arg name="xy"/>
 		<code><![CDATA[
 			pos_bin_ind.allocate(xy.length);
 			for(auto p : xy)
@@ -393,9 +395,9 @@
 	</compute>
 
 	<compute name="spike_times">
-		<return name="timebase" type="int"></return>
-		<return name="times" type="int32[]" chunking="10000"></return>
-		<arg name="tet_file"></arg>
+		<return name="timebase" type="int"/>
+		<return name="times" type="int32[]" chunking="10000"/>
+		<arg name="tet_file"/>
 		<description>returns spike times in same units as tet_file stored them</description>
 		<code><![CDATA[
 			timebase = parseInt(tet_file.header["timeabase"]);
@@ -407,11 +409,11 @@
 		]]></code>
 	</compute>
 
-	<alias name="cut_file_name" src="axona_file_name"></alias>
+	<alias name="cut_file_name" src="axona_file_name"/>
 
 	<compute name="cut_file">
-		<arg name="cut_file_name"></arg>
-		<return type="uint8[]" chunking="10000"></return>
+		<arg name="cut_file_name"/>
+		<return type="uint8[]" chunking="10000"/>
 		<code><![CDATA[
 
 		FileStreamer f(cut_file_name);
@@ -427,7 +429,7 @@
 		]]></code>
 	</compute>
 
-	<input name="tac_window_secs" type="float"></input>
+	<input name="tac_window_secs" type="float"/>
 
 	<loop name="cut_changes_loop">
 		<raw><![CDATA[
@@ -445,16 +447,16 @@
 			}
 		]]></raw>
 
-		<input name="cut_delta" type="cut_delta_spec"></input>
+		<input name="cut_delta" type="cut_delta_spec"/>
 		
 		<compute name="cut_state">
-			<arg name="cut_delta"></arg>
-			<arg name="cut_changes_loop" required=".cut_inds"></arg>
-			<arg name="cut_file" required="first_iteration"></arg>
-			<arg name="waves" required="maybe"></arg>
-			<arg name="amps" required="maybe"></arg>
-			<return name="group_nums" type="uint8[]"></return>
-			<return name="inds_by_group" type="uint8[]" chunking="manual explicit"></return>
+			<arg name="cut_delta"/>
+			<arg name="cut_changes_loop" required=".cut_inds"/>
+			<arg name="cut_file" required="first_iteration"/>
+			<arg name="waves" required="maybe"/>
+			<arg name="amps" required="maybe"/>
+			<return name="group_nums" type="uint8[]"/>
+			<return name="inds_by_group" type="uint8[]" chunking="manual explicit"/>
 			<description>
 				On the first iteration of cut_changes_loop it reads from cut_file, on subsequent iterations
 				it reads the pervious version of itself, i.e. cut_changes_loop.old_state.
@@ -489,10 +491,10 @@
 		</compute>
 
 		<compute name="group_mask">
-			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
-			<arg name="spike_mask"></arg>
-			<return name="summary" type="logical_summary"></return>
-			<return name="mask" type="bool[]"></return>
+			<arg name="cut_state" required=".inds_by_group[group_num]"/>
+			<arg name="spike_mask"/>
+			<return name="summary" type="logical_summary"/>
+			<return name="mask" type="bool[]"/>
 			<code><![CDATA[
 				if(!computed(group_mask))
 					group_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
@@ -502,18 +504,18 @@
 		</compute>
 
 		<compute name="group_times_unmaksed">
-			<arg name="group_num"></arg>
-			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
-			<arg name="spike_times"></arg>	
+			<arg name="group_num"/>
+			<arg name="cut_state" required=".inds_by_group[group_num]"/>
+			<arg name="spike_times"/>	
 			<code><![CDATA[
 				group_times_unmaksed = copy(spike_times.iter_sorted_inds(cut_state.inds_by_group[group_num]));
 			]]></code>
 		</compute>
 
 		<compute name="group_times">
-			<arg name="group_mask"></arg>
-			<arg name="group_times_unmaksed"></arg>
-			<return type="uint32[]"></return>
+			<arg name="group_mask"/>
+			<arg name="group_times_unmaksed"/>
+			<return type="uint32[]"/>
 
 			<code><![CDATA[
 				if(group_mask.all)
@@ -526,19 +528,19 @@
 		</compute>
 
 		<compute name="group_pos_inds_unmasked">
-			<arg name="group_num"></arg>
-			<arg name="cut_state" required=".inds_by_group[group_num]"></arg>
-			<arg name="spike_pos_inds"></arg>
-			<return type="uint32[]"></return>
+			<arg name="group_num"/>
+			<arg name="cut_state" required=".inds_by_group[group_num]"/>
+			<arg name="spike_pos_inds"/>
+			<return type="uint32[]"/>
 			<code><![CDATA[
 				group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
 			]]></code>
 		</compute>
 
 		<compute name="group_pos_inds">
-			<arg name="group_pos_inds_unmasked"></arg>
-			<arg name="group_mask"></arg>
-			<return type="uint32[]"></return>
+			<arg name="group_pos_inds_unmasked"/>
+			<arg name="group_mask"/>
+			<return type="uint32[]"/>
 			<code><![CDATA[
 				if(group_mask.all)
 					group_pos_inds.equals(group_pos_inds_unmasked);
@@ -550,10 +552,10 @@
 		</compute>
 
 		<compute name="tac">
-			<arg name="group_times"></arg>
-			<arg name="tac_window_secs"></arg>
-			<return name="tac" type="float[]"></return>
-			<return name="max" type="uint32"></return>
+			<arg name="group_times"/>
+			<arg name="tac_window_secs"/>
+			<return name="tac" type="float[]"/>
+			<return name="max" type="uint32"/>
 			<code><![CDATA[
 				N_BINS = 100;
 				uint32[] hist(N_BINS);
@@ -576,12 +578,12 @@
 		</compute>
 
 		<compute name="group_speed_hist">
-			<arg name="group_pos_inds"></arg>
-			<arg name="speed_bin_size"></arg>
-			<arg name="speed_dwell"></arg>
-			<arg name="speed"></arg>
-			<return type="float[]"></return>
-			<return name="max" type="float"></return>
+			<arg name="group_pos_inds"/>
+			<arg name="speed_bin_size"/>
+			<arg name="speed_dwell"/>
+			<arg name="speed"/>
+			<return type="float[]"/>
+			<return name="max" type="float"/>
 			<description>
 				Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
 			</description>
@@ -599,6 +601,30 @@
 			]]></code>
 		</compute>
 	</loop>
-
-
 </engine>
+  <layout>
+    <box name="axona_file_name" left="502" top ="210" />
+    <box name="axona_file" left="1390" top ="34" />
+    <box name="both_xy" left="135" top ="315" />
+    <box name="xy" left="145" top ="325" />
+    <box name="dir" left="165" top ="345" />
+    <box name="speed" left="675" top ="331" />
+    <box name="group_num" left="185" top ="265" />
+    <box name="trial_time_slice" left="435" top ="315" />
+    <box name="directional_slice" left="1028" top ="372" />
+    <box name="spatial_mask" left="1205" top ="243" />
+    <box name="boundary_dist_slice" left="500" top ="131" />
+    <box name="boundary_shape" left="776" top ="170" />
+    <box name="dist_to_boundary" left="255" top ="435" />
+    <box name="pos_mask" left="1044" top ="80" />
+    <box name="spike_pos_inds" left="818" top ="71" />
+    <box name="spike_mask" left="799" top ="294" />
+    <box name="speed_bin_size" left="305" top ="385" />
+    <box name="speed_dwell" left="325" top ="505" />
+    <box name="spa_bin_size" left="1642" top ="144" />
+    <box name="pos_bin_ind" left="345" top ="525" />
+    <box name="spike_times" left="355" top ="535" />
+    <box name="cut_file" left="375" top ="555" />
+    <box name="tac_window_secs" left="1601" top ="414" />
+  </layout>
+</document>

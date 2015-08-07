@@ -114,9 +114,11 @@ USEAGE:
   </template>
 
 
-
+  <script type="text/javascript" src="bower_components/XMLWriter/XMLWriter.js"></script>
 
   <script>
+  "use strict";
+
   var node_type_to_icon_mapping = {
   	input: 'icons:system-update-alt',
   	compute: 'hardware:laptop'
@@ -128,6 +130,10 @@ USEAGE:
   var push_objs_vals_onto_array = function(arr, obj){
 	for(var k in obj)if(obj.hasOwnProperty(k))
 	    arr.push(obj[k]);
+	return arr;
+  }
+  var getAttr = function(el,attr){
+  	return el.attributes.getNamedItem(attr).value;
   }
 
     // element registration
@@ -167,36 +173,96 @@ USEAGE:
             break;
         }
       },
+      write_to_xml: function(){
+      		var xw = new XMLWriter('UTF-8');
+			xw.formatting = 'indented';//add indentation and newlines
+			xw.indentChar = ' ';//indent with spaces
+			xw.indentation = 2;//add 2 spaces per level
+
+			xw.writeStartDocument();
+			xw.writeStartElement('document');
+
+			xw.writeStartElement('engine');
+			xw.writeXML(this.loaded_engine_xml);
+	     	xw.writeEndElement();
+
+			xw.writeStartElement('layout');
+			  for(var i=0; i<this.vnodes.length; i++){
+			  	var v = this.vnodes[i];
+			  	xw.writeStartElement('box')
+			    xw.writeAttributeString('name', v.name);
+			    xw.writeAttributeString('left', v.left);
+			    xw.writeAttributeString('top ', v.top);
+			    xw.writeEndElement(); 
+			  }
+			 xw.writeEndElement(); //layout
+
+			xw.writeEndElement(); //document
+			xw.writeEndDocument();
+
+			return xw.flush(); //generate the xml string
+      },
       load_from_xml: function(root){
-      		if(root.length > 1)
-      			this.fire('error',{type: 'parse-error', msg: 'root should have only 1 child noed, the engine.'});
-      		if(root[0].nodeName.toLowerCase() != "engine")
-      			this.fire('error',{type: 'parse-error', msg: 'the top-level node should be an "engine".'});
-			var engine = root[0]; 
+      		console.dir(root);
+
+      		if(root.length != 1 || root[0].nodeName.toLowerCase() != "document")
+      			return this.fire('error',{type: 'parse-error', msg: 'the root node should simply by called "document", and cannot have any siblings.'});
+      		root = root[0]; // now root really is the root, and contains engine (and layout) children.
+			
+      		for(var i_engine=0;i_engine<root.childNodes.length && root.childNodes[i_engine].nodeName.toLowerCase() == "#text"; i_engine++)
+      			;// find first non-text node
+
+			if(i_engine == root.childNodes.length || root.childNodes[i_engine].nodeName.toLowerCase() != "engine")      		
+      			return this.fire('error',{type: 'parse-error', msg: "document should have the engine as its first child."});
+
+      		var engine = root.childNodes[i_engine]; 
+			this.loaded_engine_xml = engine.innerHTML;
 
 			var inputs = {};
 			var computes = {};
-			
+			var all_vs = {};
+
 			for(var i=0;i< engine.childNodes.length; i++){
 				var node = engine.childNodes[i];
 				var node_name = node.nodeName.toLowerCase(); 
 				if(node_name == "input"){
-					var name = node.attributes.getNamedItem("name").value;
-					inputs[name] = {name: name, node_type: 'input', left: 100 + i*5, top: 100};
+					var v = {name: getAttr(node,"name"),
+					 		 node_type: 'input',
+					 		 left: 20 + i*5,
+					 		 top: 100 + i*5};
+					inputs[v.name] = v;
+					all_vs[v.name] = v;
 				}
 				if(node_name == "compute"){
-					var name = node.attributes.getNamedItem("name").value;
-					computes[name] = {name: name, node_type: 'compute', left: 100 + i*5, top: 200};
+					var v = {name: getAttr(node,"name"),
+					         node_type: 'compute',
+					         left: 20 + i*5,
+					         top: 200 + i*5};
+					computes[v.name] = v;
+					all_vs[v.name] = v;
 				}
 			}
 
-			var vnodes = [];
-			push_objs_vals_onto_array(vnodes, inputs);
-			push_objs_vals_onto_array(vnodes, computes);
-			this.set('vnodes', vnodes);
+      		for(var i_layout=i_engine+1;i_layout<root.childNodes.length && root.childNodes[i_layout].nodeName.toLowerCase() == "#text"; i_layout++)
+      			;// find first non-text node
 
-      		console.dir(engine);
-      		this.fire('error', {type: 'not-implemented', msg: 'need to actually implement parsing.'});
+			if(i_layout < root.childNodes.length){
+				if(root.childNodes[i_layout].nodeName.toLowerCase() != "layout")
+					return this.fire('error',{type: 'parse-error', msg: 'the document can contain only an "engine" and a "layout" node.'});
+				var layout = root.childNodes[i_layout];
+				for( var i=0; i< layout.childNodes.length; i++){
+					var node = layout.childNodes[i];
+					var node_name = node.nodeName.toLowerCase(); 
+					if(node_name == "box"){
+						var name = getAttr(node,"name");
+						all_vs[name].left = parseFloat(getAttr(node,"left"));
+					    all_vs[name].top = parseFloat(getAttr(node,"top"));	
+					}
+				}
+			}
+
+			this.set('vnodes', 	push_objs_vals_onto_array([], all_vs));
+      		return this.fire('error', {type: 'not-implemented', msg: 'need to actually finish implement parsing.'});
       },
       properties: {
       		vnodes: {type: Array,

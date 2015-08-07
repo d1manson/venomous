@@ -9,45 +9,74 @@
     <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
     <link rel="import" href="bower_components/paper-toast/paper-toast.html">
     <link rel="import" href="venomous_explorer.html">
-
+    <link rel="import" href="bower_components/iron-icons/iron-icons.html">    
+    <link rel="import" href="bower_components/paper-fab/paper-fab.html">
     <title>sample [Venomous Explorer]</title>
   
   <style type="text/css">
   #the_toast{
+  }
+  #save_button{
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
   }
   </style>
   </head>
   
   <body style="height:100%;margin:0;">
 
-  <iron-ajax
+  <iron-ajax id="ajax_load"
     url="sample.xml"
     handle-as="document"
   ></iron-ajax>
   
+  <iron-ajax id="ajax_save"
+    url="save"
+    method="post"
+  ></iron-ajax>
+
   <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"></venomous-explorer>
   
   <paper-toast id="the_toast" duration="10000"> </paper-toast>
-
+  <paper-fab icon="save" id="save_button"></paper-fab>
   <script>
   "use strict";
  
   document.addEventListener('WebComponentsReady', function() { 
 
-    var ajax = document.querySelector("iron-ajax");
-    var the_graph = document.getElementById("the_graph");
-    var the_toast = document.getElementById("the_toast");
+    window.ajax_load = document.getElementById("ajax_load");
+    window.ajax_save = document.getElementById("ajax_save");
+    window.the_graph = document.getElementById("the_graph");
+    window.the_toast = document.getElementById("the_toast");
+    window.save_button = document.getElementById("save_button");
+    
+    save_button.addEventListener("click",function(e){
+        var xml = the_graph.write_to_xml();
+        var formData = new FormData();
+        formData.append("file_to_be_saved", new Blob([xml], { type: "text/xml"}));
+        formData.append("filename", "sample.xml");
+        ajax_save.body = formData;
+        ajax_save.generateRequest();
+    })
     the_graph.addEventListener("error", function(e){
       the_toast.text = e.detail.type.toUpperCase() + ": "  + e.detail.msg;
       the_toast.show();
       console.dir(e.detail);
     })
-    ajax.addEventListener("response", function(e){
+    ajax_load.addEventListener("response", function(e){
       the_graph.load_from_xml(e.detail.response.childNodes);
     });
-    ajax.generateRequest();
-
+    ajax_load.generateRequest();
+    ajax_save.addEventListener("response", function(e){
+      if(e.detail.succeeded)
+        the_toast.text = "Successfully saved";
+      else
+        the_toast.text = "ERROR: failed to save";
+      the_toast.show();
+    })
   });
+
   </script>
   </body>
 </html>
