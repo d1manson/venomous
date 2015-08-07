@@ -29,20 +29,29 @@ USEAGE:
    <link rel="import" href="bower_components/iron-icons/hardware-icons.html">
   <style>
 
-	#info{
-	background: #eee;
-	border-top: 1px solid #000;
-	padding: 8px;
-	overflow-y: scroll;
-	}
 	#main_zone{
 	overflow-x: scroll;
 	overflow-y: scroll;
 	cursor: default;
     padding: 8px;
-    height: 500px;
+    height:100%;
+    width:100%;
+    position:absolute;
+    top:0px;
+    left: 0px;
+    z-index: 0;
+	}
+	#grid_pattern{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	height: 100%;
+	width: 100%;
+	z-index: -4;
+    background-size: 25px 25px;    
     background-color: #fafafa;
-    position: relative;
+    background-image:repeating-linear-gradient(0deg, #ccc, #ccc 1px, transparent 1px, transparent 25px),
+    				 repeating-linear-gradient(-90deg, #ccc, #ccc 1px, transparent 1px, transparent 25px);    
 	}
 	::-webkit-scrollbar {
 	width: 10px;
@@ -87,10 +96,20 @@ USEAGE:
 	  -ms-user-select: none;
 	  user-select: none;
 	}
+	#about{
+		position: absolute;
+		right: 10px;
+		top:5px;
+		text-align: right;
+		color: #999;
+		font-family: 'Roboto', 'Noto', sans-serif;
+	}
   </style>
   
   <template>
   	<div id="container" class="layout vertical" style="height:100%;">
+  		<div id="grid_pattern"></div>
+  		<div id="about">venomous explorer</div>
 	    <div id='main_zone' class="noselect" nodrag>	
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
 	    	<template is="dom-repeat" items="{{vedges}}">
@@ -107,9 +126,6 @@ USEAGE:
 	    	</template>
 
 	    </div>
-		<div id='info' class="flex">
-			This is the info
-		</div>
 	</div>
   </template>
 
@@ -140,10 +156,8 @@ USEAGE:
     Polymer({
       is: "venomous-explorer",
       ready: function() {
-      	this.push('vnodes',{name: 'dummy_a', left: 100, top: 40, node_type: 'compute'});
-      	this.push('vnodes',{name: 'dummy_b', left: 290, top: 80, node_type: 'input'});
-
-        this.push('vedges',{start_left: 210, start_top: 50, end_left: 290, end_top: 90});
+      	
+        //this.push('vedges',{start_left: 210, start_top: 50, end_left: 290, end_top: 90});
      
       },
       build_position_css(left,top){
