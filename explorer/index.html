@@ -28,8 +28,12 @@
   }
   #xml_source_editor{
     width: 100%;
-    height: 80%; /*TODO: this is suppsoed to be flex*/;
+    height: 100%; 
+    position: absolute;
+  }
+  #xml_editor_container{
     padding: 0px;
+    position: relative;
   }
   #show_source_button{
     position: absolute;
@@ -44,6 +48,7 @@
       right: 40px;
       left: 40px;
   }
+
   </style>
   </head>
   
@@ -65,9 +70,11 @@
   <paper-fab icon="save" id="save_button"></paper-fab>
   <paper-fab icon="device:developer-mode" id="show_source_button"></paper-fab>
   
-  <paper-dialog id="dialog_xml_source" modal="true" layout vertical>
+  <paper-dialog id="dialog_xml_source" modal="true" class="vertical layout">
   <h2>XML source</h2>
-  <mat-editor id="xml_source_editor" mode="xml" line-numbers="true" flex></mat-editor>
+  <div class="flex" id="xml_editor_container">
+  <mat-editor id="xml_source_editor" mode="xml" line-numbers="true" ></mat-editor>
+  </div>
   <div class="buttons">
     <paper-button dialog-dismiss>Close</paper-button>
     <paper-button dialog-confirm>Apply Changes</paper-button>
@@ -117,8 +124,8 @@
     show_source_button.addEventListener("click", function(){
       xml_source_editor.value = the_graph.write_to_xml();
       dialog_xml_source.open();
-      xml_source_editor._refresh();     
-      xml_source_editor.focus();
+      //xml_source_editor._refresh();     
+      //xml_source_editor.focus();
     })
   });
 
