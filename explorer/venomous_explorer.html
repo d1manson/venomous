@@ -127,9 +127,15 @@ USEAGE:
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
 	    	<template is="dom-repeat" items="[[vedges]]">    	
 		    	<svg class="edge">
+		    	  <defs>
+				    <marker id="arrow" markerWidth="10" markerHeight="10" refx="9" refy="3" orient="auto" markerUnits="strokeWidth">
+				      <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+				    </marker>
+				  </defs>
+
 		    		<line x1$="[[get_edge_xy('x1', item.*)]]" x2$="[[get_edge_xy('x2', item.*)]]" 
 		    		  y1$="[[get_edge_xy('y1', item.*)]]" y2$="[[get_edge_xy('y2', item.*)]]"
-		    		  style="stroke:rgb(0,0,0);stroke-width:1"/>
+		    		  style="stroke:rgb(0,0,0);stroke-width:1" marker-end="url(#arrow)"/>
 		    	</svg>
 	    	</template>
 	    	
