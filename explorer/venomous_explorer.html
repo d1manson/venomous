@@ -340,29 +340,38 @@ USEAGE:
       _vnodes_changed_sub: function(v){
       		// used by _vnodes_changed.
       		if(v.edges_before) for(var i=0;i<v.edges_before.length; i++){
-				v.edges_before[i].node2_left = v.left;
-				v.edges_before[i].node2_top = v.top;
+      			var e = v.edges_before[i];
+				this.set('vedges.' + e.idx + '.node2_left', v.left);
+				this.set('vedges.' + e.idx + '.node2_top', v.top);
 			}
 			if(v.edges_after) for(var i=0;i<v.edges_after.length; i++){
-				v.edges_after[i].node1_left = v.left;
-				v.edges_after[i].node1_top = v.top;
+				var e = v.edges_after[i];
+				this.set('vedges.' + e.idx + '.node1_left', v.left);
+				this.set('vedges.' + e.idx + '.node1_top', v.top);
 			}
       },
       _vnodes_changed: function(delta){
       		/* This is solely responsible for telling edges about the left/top of their start/end nodes.*/
       		if(delta.path == "vnodes.splices"){
       			delta.indexSplices.forEach(function(delta_sub){
-						delta_sub.added.forEach(this._vnodes_changed_sub)
+						delta_sub.added.forEach(this._vnodes_changed_sub, this)
 						},this)
       		}else if(delta.path == "vnodes"){
-      			delta.value.forEach(this._vnodes_changed_sub);
+      			delta.value.forEach(this._vnodes_changed_sub, this);
       		}else{
       			var v = this.vnodes[parseInt(delta.path.split(".")[1])];
       			this._vnodes_changed_sub(v);
       		}
       },
+      _vedges_spliced: function(delta){
+      	// this is solely responsible for keeping the edges informed of their own index in the array,
+      	// information needed by _vnodes_changed_sub
+      	for(var i=0;i<this.vedges.length;i++)
+      		this.vedges[i].idx = i; //lazily set it on all..note we dont use "set" here, so no further event listeners are informed
+      },
        observers: [
-    		'_vnodes_changed(vnodes.*)'
+    		'_vnodes_changed(vnodes.*)',
+    		'_vedges_spliced(vedges.splices)'
   	   ],
       properties: {
       		vnodes: {type: Array,
