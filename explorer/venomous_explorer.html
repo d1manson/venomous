@@ -34,11 +34,87 @@ USEAGE:
 	http://stackoverflow.com/a/30821159/2399799
 -->
 
-<dom-module id="venomous-explorer">
-   <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+<dom-module id="venomous-node">
    <link rel="import" href="bower_components/paper-card/paper-card.html">
    <link rel="import" href="bower_components/iron-icons/iron-icons.html">
    <link rel="import" href="bower_components/iron-icons/device-icons.html">
+   <link rel="import" href="bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
+
+   <style>
+    :host{
+   		position: absolute;
+   	}
+	.card{
+		min-width: 80px;
+		padding: 4px;
+		text-align: center;
+		font-family: 'Roboto', 'Noto', sans-serif;
+		background-color: #fff;
+	}
+	.card[is_moving=true]{
+		cursor: move;
+	}
+	.node_name{	
+		vertical-align: bottom;
+    	font-weight: bold;
+	}
+   </style>
+
+	<template>
+	<paper-material class="card" is_moving$="[[is_moving]]" >
+		<iron-icon style$="[[node_type_to_css(node_type)]]" icon="[[node_type_to_icon(node_type)]]"></iron-icon>
+		<span class="node_name" style$="[[node_type_to_css(node_type)]]">[[name]]</span>
+	</paper-material>
+	</template>
+
+	<script>
+	var node_type_to_icon_mapping = {
+  	input: 'icons:system-update-alt',
+  	compute: 'hardware:laptop'
+	}
+	var node_type_to_css_mapping = {
+	  	input: 'color:#99f',
+	  	compute: 'color:#cc7'
+	}
+	// element registration
+    Polymer({
+      is: "venomous-node",
+      behaviors: [
+      	Polymer.IronResizableBehavior
+      ],
+      properties: {
+  		name: {type: String,
+  			observer: '_contents_changed'},
+  		node_type: {type: String,
+  			observer: '_contents_changed'},
+  		is_moving: {type: Boolean},
+  		left: {type: String,
+  				value: 0,
+  				observer: '_pos_changed'},
+  		top: {type: String ,
+  			  value: 0,
+   			  observer: '_pos_changed'}
+      },
+      _contents_changed: function(){
+      	this.notifyResize();
+      },
+      _pos_changed: function(){
+      	this.style.left = this.left + "px";
+      	this.style.top = this.top + "px";
+		this.notifyResize();
+      },
+      node_type_to_icon(node_type){
+      	return node_type_to_icon_mapping[node_type];
+      },
+      node_type_to_css(node_type){
+		return node_type_to_css_mapping[node_type];
+      }
+    });
+	</script>
+</dom-module>
+
+<dom-module id="venomous-explorer">
+   <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
   <style>
 
 	#main_zone{
@@ -77,21 +153,6 @@ USEAGE:
 	::-webkit-scrollbar-thumb {
 	background-color: rgba(0,0,0,0.2);
 	-webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
-	}
-	.node{
-		position: absolute;
-		min-width: 80px;
-		padding: 4px;
-		text-align: center;
-		font-family: 'Roboto', 'Noto', sans-serif;
-		background-color: #fff;
-	}
-	.node[is_moving=true]{
-		cursor: move;
-	}
-	.node_name{	
-		vertical-align: bottom;
-    	font-weight: bold;
 	}
 	.edge{
 		position: absolute;
@@ -139,13 +200,13 @@ USEAGE:
 		    	</svg>
 	    	</template>
 	    	
-	    	<template is="dom-repeat" items="{{vnodes}}">
-			<paper-material class="node" style$="{{build_position_css(item.left,item.top)}}" index$="{{index}}" on-track="node_on_track"
-			is_moving$="{{item.is_moving}}">
-			<iron-icon style$="{{node_type_to_css(item.node_type)}}" icon="{{node_type_to_icon(item.node_type)}}"></iron-icon>
-			<span class="node_name" style$="{{node_type_to_css(item.node_type)}}">{{item.name}}</span>
-	    	</paper-material>
-	    	</template>
+	    	<template is="dom-repeat" items="[[vnodes]]">
+				<venomous-node class="vnode"
+				   index$="[[index]]" on-track="node_on_track" on-iron-resize="node_on_resize"
+				   is_moving="[[item.is_moving]]"
+				   left="[[item.left]]" top="[[item.top]]"
+				   name="[[item.name]]" node_type="[[item.node_type]]"></venomous-node>
+			</template>
 
 	    </div>
 	</div>
@@ -157,14 +218,6 @@ USEAGE:
   <script>
   "use strict";
 
-  var node_type_to_icon_mapping = {
-  	input: 'icons:system-update-alt',
-  	compute: 'hardware:laptop'
-  }
-  var node_type_to_css_mapping = {
-  	input: 'color:#99f',
-  	compute: 'color:#cc7'
-  }
   var push_objs_vals_onto_array = function(arr, obj){
 	for(var k in obj)if(obj.hasOwnProperty(k))
 	    arr.push(obj[k]);
@@ -177,32 +230,21 @@ USEAGE:
     // element registration
     Polymer({
       is: "venomous-explorer",
-      ready: function() {
-      	
-        //this.push('vedges',{start_left: 210, start_top: 50, end_left: 290, end_top: 90});
-     
-      },
       _vnode_from_name: function(n){
       	// it would be easier to store vnodes in a key-value object rather than an array but I don't think you can for template usage
       	return this.vnodes[this.vnodes.find(function(v){return v.name == n;})];
       },
-      build_position_css(left,top){
+      build_position_css: function(left,top){
       	return "left:" + left + "px;top:" + top + "px;";
-      },
-      node_type_to_icon(node_type){
-      	return node_type_to_icon_mapping[node_type];
-      },
-      node_type_to_css(node_type){
-		return node_type_to_css_mapping[node_type];
       },
       get_edge_xy(coord_type, edge){
       		edge = edge.base;
       		if(coord_type == 'x1')
-      			return edge.node1_left;
+      			return edge.node1_left + 0.5*(edge.node1_width || 0);
       		else if(coord_type == 'x2')
-      			return edge.node2_left;
+      			return edge.node2_left + 0.5*(edge.node2_width || 0);
       		else if(coord_type == 'y1')
-      			return edge.node1_top;
+      			return edge.node1_top + (edge.node1_height || 0);
       		else
       			return edge.node2_top;
       },
@@ -211,7 +253,6 @@ USEAGE:
 
         switch(e.detail.state) {
           case 'start':
-            console.log('Tracking started on ' + idx);
             this.set('vnodes.' + idx + ".is_moving",'true')
             break;
           case 'track':
@@ -219,10 +260,14 @@ USEAGE:
             this.set('vnodes.'+ idx + '.top',this.vnodes[idx].top + e.detail.ddy);
             break;
           case 'end':
-            console.log('Tracking ended on ' + idx);
             this.set('vnodes.' + idx + ".is_moving",'')
             break;
         }
+      },
+      node_on_resize: function(e){
+      	var idx = e.currentTarget.index;
+      	this.set('vnodes.' + idx + '.width', e.currentTarget.clientWidth);
+      	this.set('vnodes.' + idx + '.height', e.currentTarget.clientHeight);
       },
       write_to_xml: function(){
       		var xw = new XMLWriter('UTF-8');
@@ -344,16 +389,21 @@ USEAGE:
       		return this.fire('error', {type: 'not-implemented', msg: 'need to actually finish implement parsing.'});
       },
       _vnodes_changed_sub: function(v){
-      		// used by _vnodes_changed.
+      		// used by _vnodes_changed
+
       		if(v.edges_before) for(var i=0;i<v.edges_before.length; i++){
       			var e = v.edges_before[i];
 				this.set('vedges.' + e.idx + '.node2_left', v.left);
 				this.set('vedges.' + e.idx + '.node2_top', v.top);
+				this.set('vedges.' + e.idx + '.node2_width', v.width);
+				this.set('vedges.' + e.idx + '.node2_height', v.height);
 			}
 			if(v.edges_after) for(var i=0;i<v.edges_after.length; i++){
 				var e = v.edges_after[i];
 				this.set('vedges.' + e.idx + '.node1_left', v.left);
 				this.set('vedges.' + e.idx + '.node1_top', v.top);
+				this.set('vedges.' + e.idx + '.node1_width', v.width);
+				this.set('vedges.' + e.idx + '.node1_height', v.height);
 			}
       },
       _vnodes_changed: function(delta){

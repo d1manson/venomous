@@ -605,26 +605,26 @@
   <layout>
     <box name="axona_file_name" left="591" top ="27" />
     <box name="axona_file" left="626" top ="91" />
-    <box name="both_xy" left="520" top ="156" />
+    <box name="both_xy" left="436" top ="150" />
     <box name="xy" left="475" top ="228" />
-    <box name="dir" left="464" top ="299" />
+    <box name="dir" left="447" top ="326" />
     <box name="speed" left="584" top ="319" />
     <box name="group_num" left="1196" top ="410" />
-    <box name="trial_time_slice" left="967" top ="114" />
-    <box name="directional_slice" left="1198" top ="210" />
-    <box name="spatial_mask" left="1207" top ="108" />
-    <box name="boundary_dist_slice" left="1167" top ="269" />
-    <box name="boundary_shape" left="703" top ="229" />
+    <box name="trial_time_slice" left="936" top ="99" />
+    <box name="directional_slice" left="1083" top ="182" />
+    <box name="spatial_mask" left="1120" top ="98" />
+    <box name="boundary_dist_slice" left="978" top ="140" />
+    <box name="boundary_shape" left="647" top ="230" />
     <box name="dist_to_boundary" left="714" top ="287" />
     <box name="pos_mask" left="966" top ="223" />
-    <box name="spike_pos_inds" left="724" top ="175" />
+    <box name="spike_pos_inds" left="674" top ="172" />
     <box name="spike_mask" left="1007" top ="313" />
-    <box name="speed_bin_size" left="661" top ="395" />
+    <box name="speed_bin_size" left="749" top ="381" />
     <box name="speed_dwell" left="615" top ="441" />
     <box name="spa_bin_size" left="223" top ="271" />
     <box name="pos_bin_ind" left="291" top ="316" />
     <box name="spike_times" left="80" top ="133" />
-    <box name="cut_file" left="1118" top ="29" />
+    <box name="cut_file" left="1216" top ="277" />
     <box name="tac_window_secs" left="178" top ="186" />
   </layout>
 </document>
