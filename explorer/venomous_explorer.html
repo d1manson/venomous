@@ -50,8 +50,11 @@ USEAGE:
 		font-family: 'Roboto', 'Noto', sans-serif;
 		background-color: #fff;
 	}
-	.card[is_moving=true]{
+	:host[is_moving=true] .card{
 		cursor: move;
+	}
+	:host[is_selected=true] .card{
+		background-color: #ffc;
 	}
 	.node_name{	
 		vertical-align: bottom;
@@ -77,10 +80,10 @@ USEAGE:
    </style>
 
 	<template>
-	<paper-material class="card" is_moving$="[[is_moving]]" style$="[[node_type_to_css(node_type)]]">
+	<paper-material class="card" style$="[[node_type_to_css(node_type)]]">
 		<div class="card_top">
 		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
-		<span class="node_name" >[[name]]</span>
+		<span class="node_name">[[name]]</span>
 		</div>
 		<ul><template is="dom-repeat" items="{{aliases}}">
 			<li class="alias_name">{{item.name}}</li>
@@ -111,7 +114,12 @@ USEAGE:
   			observer: '_contents_changed'},
   		node_type: {type: String,
   			observer: '_contents_changed'},
-  		is_moving: {type: Boolean},
+  		is_moving: {type: Boolean,
+  				value: false,
+  				reflectToAttribute: true},
+  		is_selected: {type: Boolean,
+  			value: false,
+  			reflectToAttribute: true},
   		left: {type: String,
   				value: 0,
   				observer: '_pos_changed'},
@@ -213,7 +221,9 @@ USEAGE:
   	<div id="container" class="layout vertical" style="height:100%;">
   		<div id="grid_pattern"></div>
   		<div id="about">venomous explorer</div>
-	    <div id='main_zone' class="noselect" is_moving$="[[is_moving]]" on-track="main_zone_on_track" nodrag>	
+	    <div id='main_zone' class="noselect" is_moving$="[[is_moving]]"
+	     on-track="main_zone_on_track" 
+	     on-down="main_zone_on_click" nodrag>	
 
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
 	    	<template is="dom-repeat" items="[[vedges]]">    	
@@ -232,11 +242,15 @@ USEAGE:
 	    	
 	    	<template is="dom-repeat" items="[[vnodes]]">
 				<venomous-node class="vnode"
-				   index$="[[index]]" on-track="node_on_track" on-iron-resize="node_on_resize"
+				   index$="[[index]]" 
+				   on-track="node_on_track" 
+				   on-iron-resize="node_on_resize"
+				   on-down="node_on_click"
 				   is_moving="[[item.is_moving]]"
 				   left="[[item.left]]" top="[[item.top]]"
 				   name="[[item.name]]" node_type="[[item.node_type]]"
-				   aliases="[[item.aliases]]"></venomous-node>
+				   aliases="[[item.aliases]]"
+				   is_selected="[[item.is_selected]]"></venomous-node>
 			</template>
 
 	    </div>
@@ -262,9 +276,9 @@ USEAGE:
     // element registration
     Polymer({
       is: "venomous-explorer",
-      _vnode_from_name: function(n){
+      _vnode_idx_from_name: function(n){
       	// it would be easier to store vnodes in a key-value object rather than an array but I don't think you can for template usage
-      	return this.vnodes[this.vnodes.find(function(v){return v.name == n;})];
+      	return this.vnodes.findIndex(function(v){return v.name == n;});
       },
       get_edge_xy(coord_type, edge){
       		edge = edge.base;
@@ -276,6 +290,26 @@ USEAGE:
       			return edge.node1_top + (edge.node1_height || 0) + origin.y;
       		else
       			return edge.node2_top + origin.y;
+      },
+      main_zone_on_click: function(e){
+		if(this.active_name){
+			var old_idx = this._vnode_idx_from_name(this.active_name);
+			this.set('vnodes.' + old_idx + ".is_selected", "false");
+		}		
+		this.set('active_name', "");
+		this.set('active_code', "");
+      },
+      node_on_click: function(e){
+		var idx = e.currentTarget.index;
+
+		if(this.active_name){
+			var old_idx = this._vnode_idx_from_name(this.active_name);
+			this.set('vnodes.' + old_idx + ".is_selected", "false");
+		}		
+		this.set('vnodes.' + idx + ".is_selected", "true");
+		this.set('active_name', this.vnodes[idx].name);
+		this.set('active_code', this.vnodes[idx].code);
+		e.stopPropagation(); // prevent click on main zone too.
       },
       main_zone_on_track: function(e){
 		switch(e.detail.state) {
@@ -306,7 +340,7 @@ USEAGE:
             this.set('vnodes.' + idx + ".is_moving",'')
             break;
         }
-        e.stopPropagation(); // prevent dragging on main zone toos.
+        e.stopPropagation(); // prevent dragging on main zone too.
       },
       node_on_resize: function(e){
       	// by modifying the vnodes[idx] we trigger the observer to update all the edges
@@ -505,7 +539,13 @@ USEAGE:
       					  value: origin.y,
       					  notify: true,
       					  observer: '_offset_changed'},
-      		is_moving: {type: Boolean}
+      		is_moving: {type: Boolean},
+      		active_name: {type: String,
+      					value: "",
+      					notify: true},
+      		active_code: {type: String,
+      					value: "",
+      					notify: true}
 
       }
     });

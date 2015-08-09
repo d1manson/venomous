@@ -3,8 +3,7 @@
 <!DOCTYPE html>
 <html style="height:100%;">
   <head>
-    <script src="bower_components/webcomponentsjs/webcomponents-lite.js">
-    </script>
+    <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
     <link rel="import" href="bower_components/polymer/polymer.html">
     <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
     <link rel="import" href="bower_components/paper-toast/paper-toast.html">
@@ -15,6 +14,7 @@
     <link rel="import" href="bower_components/mat-editor/mat-editor.html">
     <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
     <link rel="import" href="bower_components/iron-icons/hardware-icons.html">
+    <link rel="import" href="bower_components/paper-card/paper-card.html">
     <link rel="import" href="venomous_explorer.html">
     <title>sample [Venomous Explorer]</title>
   
@@ -48,12 +48,25 @@
       right: 40px;
       left: 40px;
   }
-
+  #dialog_node {
+      position: fixed;
+      top: 15px;
+      bottom: 15px;
+      width: 30%;
+      left: 15px;
+      background-color: #fff;
+  }
+  #dialog_node h2{
+    margin: 5px;
+    font-size: 1.4em;
+  }
   </style>
   </head>
   
   <body style="height:100%;margin:0;">
 
+  <template id="x_main" is="dom-bind"> <!-- means we can use polymer binding magic within this block -->
+  
   <iron-ajax id="ajax_load"
     url="sample.xml"
     handle-as="document"
@@ -64,12 +77,22 @@
     method="post"
   ></iron-ajax>
 
-  <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"></venomous-explorer>
-  
-  <paper-toast id="the_toast" duration="10000"> </paper-toast>
+  <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"
+  active_name="{{active_node_name}}"
+  active_code="{{active_node_code}}"></venomous-explorer>
+
+  <template is="dom-if" if="{{active_node_name}}">  
+  <paper-material id="dialog_node" class="vertical layout" elevation="3">
+    <h2>[[active_node_name]]</h2>
+    <div class="flex" id="xml_editor_container">
+    <mat-editor id="xml_source_editor" mode="cpp" line-numbers="true" mode="{{active_node_code}}"></mat-editor>
+    </div>
+  </paper-material>
+  </template>
+
   <paper-fab icon="save" id="save_button"></paper-fab>
   <paper-fab icon="device:developer-mode" id="show_source_button"></paper-fab>
-  
+ 
   <paper-dialog id="dialog_xml_source" modal="true" class="vertical layout">
   <h2>XML source</h2>
   <div class="flex" id="xml_editor_container">
@@ -81,11 +104,16 @@
   </div>
   </paper-dialog>
 
+  <paper-toast id="the_toast" duration="10000"> </paper-toast>
+  
+  </template>
+
+
   <script>
   "use strict";
- 
-  document.addEventListener('WebComponentsReady', function() { 
-
+  var x_main = document.getElementById('x_main'); 
+  x_main.addEventListener('dom-change', function() {
+    
     // TODO: should just make a list and loop to auto set id as var on window
     window.ajax_load = document.getElementById("ajax_load");
     window.ajax_save = document.getElementById("ajax_save");
@@ -128,6 +156,7 @@
       //xml_source_editor._refresh();     
       //xml_source_editor.focus();
     })
+
   });
 
   </script>
