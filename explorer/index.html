@@ -113,6 +113,7 @@
     ajax_load.addEventListener("response", function(e){
       the_graph.load_from_xml(e.detail.response.childNodes);
     });
+    ajax_load.params = {dummy: Math.random().toString(36).slice(2)}; //prevent caching
     ajax_load.generateRequest();
     ajax_save.addEventListener("response", function(e){
       if(e.detail.succeeded)

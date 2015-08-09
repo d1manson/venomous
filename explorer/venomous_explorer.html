@@ -89,6 +89,9 @@ USEAGE:
 	</template>
 
 	<script>
+	"use strict";
+  	var origin = {x: 5000, y: 5000}; // copy-pasted below inside venomous-explorer TODO: avoid copy-paste somehow
+  
 	var node_type_to_icon_mapping = {
   	input: 'icons:system-update-alt',
   	compute: 'hardware:laptop'
@@ -123,8 +126,8 @@ USEAGE:
       	this.notifyResize();
       },
       _pos_changed: function(){
-      	this.style.left = this.left + "px";
-      	this.style.top = this.top + "px";
+      	this.style.left = (this.left+origin.x) + "px";
+      	this.style.top = (this.top+origin.y) + "px";
 		this.notifyResize();
       },
       node_type_to_icon(node_type){
@@ -142,12 +145,12 @@ USEAGE:
   <style>
 
 	#main_zone{
-	overflow-x: scroll;
-	overflow-y: scroll;
+	overflow-x: hidden;
+	overflow-y: hidden;
 	cursor: default;
     padding: 8px;
-    height:100%;
-    width:100%;
+    height: 10000%;
+    width:1000%;
     position:absolute;
     top:0px;
     left: 0px;
@@ -201,13 +204,16 @@ USEAGE:
 		color: #999;
 		font-family: 'Roboto', 'Noto', sans-serif;
 	}
+	#main_zone[is_moving=true]{
+		cursor: move;
+	}
   </style>
   
   <template>
   	<div id="container" class="layout vertical" style="height:100%;">
   		<div id="grid_pattern"></div>
   		<div id="about">venomous explorer</div>
-	    <div id='main_zone' class="noselect" nodrag>	
+	    <div id='main_zone' class="noselect" is_moving$="[[is_moving]]" on-track="main_zone_on_track" nodrag>	
 
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
 	    	<template is="dom-repeat" items="[[vedges]]">    	
@@ -242,6 +248,7 @@ USEAGE:
   <script type="text/javascript" src="polyfill_array_find.js"></script>
   <script>
   "use strict";
+  var origin = {x: 5000, y: 5000}; // copy-pasted above inside venomous-node TODO: avoid copy-paste somehow
 
   var push_objs_vals_onto_array = function(arr, obj){
 	for(var k in obj)if(obj.hasOwnProperty(k))
@@ -259,19 +266,30 @@ USEAGE:
       	// it would be easier to store vnodes in a key-value object rather than an array but I don't think you can for template usage
       	return this.vnodes[this.vnodes.find(function(v){return v.name == n;})];
       },
-      build_position_css: function(left,top){
-      	return "left:" + left + "px;top:" + top + "px;";
-      },
       get_edge_xy(coord_type, edge){
       		edge = edge.base;
       		if(coord_type == 'x1')
-      			return edge.node1_left + 0.5*(edge.node1_width || 0);
+      			return edge.node1_left + 0.5*(edge.node1_width || 0) + origin.x;
       		else if(coord_type == 'x2')
-      			return edge.node2_left + 0.5*(edge.node2_width || 0);
+      			return edge.node2_left + 0.5*(edge.node2_width || 0) + origin.x;
       		else if(coord_type == 'y1')
-      			return edge.node1_top + (edge.node1_height || 0);
+      			return edge.node1_top + (edge.node1_height || 0) + origin.y;
       		else
-      			return edge.node2_top;
+      			return edge.node2_top + origin.y;
+      },
+      main_zone_on_track: function(e){
+		switch(e.detail.state) {
+          case 'start':
+            this.set('is_moving','true')
+            break;
+          case 'track':
+            this.set('offset_left', this.offset_left - e.detail.ddx);
+            this.set('offset_top', this.offset_top - e.detail.ddy);
+            break;
+          case 'end':
+            this.set("is_moving",'')
+            break;
+        }      	
       },
       node_on_track: function(e){
       	var idx = e.currentTarget.index;
@@ -288,6 +306,7 @@ USEAGE:
             this.set('vnodes.' + idx + ".is_moving",'')
             break;
         }
+        e.stopPropagation(); // prevent dragging on main zone toos.
       },
       node_on_resize: function(e){
       	// by modifying the vnodes[idx] we trigger the observer to update all the edges
@@ -317,6 +336,11 @@ USEAGE:
 			    xw.writeAttributeString('top ', v.top);
 			    xw.writeEndElement(); 
 			  }
+			  
+			  xw.writeStartElement("offset");
+			  xw.writeAttributeString("left", this.offset_left);
+			  xw.writeAttributeString("top", this.offset_top);
+
 			 xw.writeEndElement(); //layout
 
 			xw.writeEndElement(); //document
@@ -411,6 +435,9 @@ USEAGE:
 						var name = getAttr(node,"name");
 						all_vs[name].left = parseFloat(getAttr(node,"left"));
 					    all_vs[name].top = parseFloat(getAttr(node,"top"));	
+					}else if(node_name == "offset"){
+						this.set("offset_left", parseFloat(getAttr(node, "left")));
+						this.set("offset_top", parseFloat(getAttr(node, "top")));
 					}
 				}
 			}
@@ -455,6 +482,10 @@ USEAGE:
       	for(var i=0;i<this.vedges.length;i++)
       		this.vedges[i].idx = i; //lazily set it on all..note we dont use "set" here, so no further event listeners are informed
       },
+	 _offset_changed: function(){
+	 	this.$.main_zone.style.left = -this.offset_left + "px";
+		this.$.main_zone.style.top = -this.offset_top + "px";
+	 },
        observers: [
     		'_vnodes_changed(vnodes.*)',
     		'_vedges_spliced(vedges.splices)'
@@ -465,7 +496,16 @@ USEAGE:
       		        notify: true},
       		vedges: {type: Array,
       		        value: function() {return [];},
-      		        notify: true}
+      		        notify: true},
+      		offset_left: {type: Number,
+      					  value: origin.x,
+      					  notify: true,
+      					  observer: '_offset_changed'},
+      		offset_top: {type: Number,
+      					  value: origin.y,
+      					  notify: true,
+      					  observer: '_offset_changed'},
+      		is_moving: {type: Boolean}
 
       }
     });

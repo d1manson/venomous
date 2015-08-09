@@ -603,28 +603,29 @@
 	</loop>
 </engine>
   <layout>
-    <box name="axona_file_name" left="709" top ="-82" />
-    <box name="axona_file" left="639" top ="88" />
-    <box name="both_xy" left="380" top ="142" />
-    <box name="xy" left="467" top ="197" />
+    <box name="axona_file_name" left="651" top ="-227" />
+    <box name="axona_file" left="661" top ="-66" />
+    <box name="both_xy" left="442" top ="121" />
+    <box name="xy" left="353" top ="219" />
     <box name="dir" left="447" top ="326" />
     <box name="speed" left="584" top ="319" />
-    <box name="group_num" left="1196" top ="410" />
-    <box name="trial_time_slice" left="910" top ="92" />
-    <box name="directional_slice" left="1153" top ="185" />
-    <box name="spatial_mask" left="1120" top ="98" />
-    <box name="boundary_dist_slice" left="978" top ="140" />
-    <box name="boundary_shape" left="711" top ="233" />
-    <box name="dist_to_boundary" left="714" top ="287" />
+    <box name="group_num" left="1387" top ="373" />
+    <box name="trial_time_slice" left="970" top ="225" />
+    <box name="directional_slice" left="1136" top ="289" />
+    <box name="spatial_mask" left="1134" top ="234" />
+    <box name="boundary_dist_slice" left="1043" top ="182" />
+    <box name="boundary_shape" left="746" top ="244" />
+    <box name="dist_to_boundary" left="805" top ="305" />
     <box name="pos_mask" left="983" top ="355" />
-    <box name="spike_pos_inds" left="839" top ="188" />
-    <box name="spike_mask" left="931" top ="476" />
+    <box name="spike_pos_inds" left="1271" top ="145" />
+    <box name="spike_mask" left="1252" top ="461" />
     <box name="speed_bin_size" left="749" top ="381" />
     <box name="speed_dwell" left="625" top ="475" />
     <box name="spa_bin_size" left="223" top ="271" />
-    <box name="pos_bin_ind" left="291" top ="316" />
-    <box name="spike_times" left="80" top ="133" />
-    <box name="cut_file" left="1216" top ="277" />
+    <box name="pos_bin_ind" left="284" top ="331" />
+    <box name="spike_times" left="56" top ="122" />
+    <box name="cut_file" left="1283" top ="-43" />
     <box name="tac_window_secs" left="178" top ="186" />
+    <offset left="5042" top="4761" />
   </layout>
 </document>
