@@ -1,0 +1,213 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to decorate contents as material ink.
+
+@element mat-ink
+@description A custom element used to decorate content as Material Design ink
+@keywords material design, material ink, web app, html5, expandjs, web-components
+@group decorators
+@homepage http://expandjs.com/elements/mat-ink
+@repository https://github.com/ExpandJS/mat-ink
+
+@behavior mat-palette /bower_components/mat-palette/mat-palette.html
+@behavior xp-shared-behavior /bower_components/xp-shared-behavior/xp-shared-behavior.html
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency mat-palette ExpandJS/mat-palette#0.9.5
+@dependency mat-typography ExpandJS/mat-typography#0.9.5
+@dependency xp-shared-behavior ExpandJS/xp-shared-behavior#0.9.5
+@dependency xp-slave-state ExpandJS/xp-slave-state#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../mat-palette/mat-palette.html">
+<link rel="import" href="../mat-typography/mat-typography.html">
+<link rel="import" href="../xp-shared-behavior/xp-shared-behavior.html">
+<link rel="import" href="../xp-slave-state/xp-slave-state.html">
+
+<dom-module id="mat-ink">
+
+    <style>
+        :host {
+            display: block;
+            overflow: visible;
+        }
+
+        /* FOREGROUND */
+
+        :host([foreground="dark"]) { color: hsla(0, 0%, 0%, 0.87); }
+        :host([foreground="light"]) { color: hsla(0, 0%, 100%, 1); }
+
+        /* OPACITY */
+
+        :host([opacity="divider"][foreground="dark"]) { color: hsla(0, 0%, 0%, 0.12); }
+        :host([opacity="divider"][foreground="light"]) { color: hsla(0, 0%, 100%, 0.12); }
+        :host([opacity="hint"][foreground="dark"]) { color: hsla(0, 0%, 0%, 0.26); }
+        :host([opacity="hint"][foreground="light"]) { color: hsla(0, 0%, 100%, 0.30); }
+        :host([opacity="icon"][foreground="dark"]) { color: hsla(0, 0%, 0%, 0.54); }
+        :host([opacity="icon"][foreground="light"]) { color: hsla(0, 0%, 100%, 1); }
+        :host([opacity="secondary"][foreground="dark"]) { color: hsla(0, 0%, 0%, 0.54); }
+        :host([opacity="secondary"][foreground="light"]) { color: hsla(0, 0%, 100%, 0.70); }
+
+        /* DISABLED */
+        :host([disabled]) {
+            filter: gray;
+            filter: grayscale(100%);
+            -webkit-filter: grayscale(100%);
+            pointer-events: none !important;
+            text-shadow: none !important;
+        }
+
+        :host([disabled][foreground="dark"]) {
+            color: hsla(0, 0%, 0%, 0.26) !important;
+        }
+
+        :host([disabled][foreground="light"]) {
+            color: hsla(0, 0%, 100%, 0.30) !important;
+        }
+    </style>
+
+    <template>
+        <template is="xp-slave-state" master="{{layer}}" master-tag="mat-paper"></template>
+        <content id="content"></content>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'mat-ink',
+
+            // BEHAVIORS
+            behaviors: [
+                Polymer.MatPalette,
+                Polymer.XPSharedBehavior
+            ],
+
+            /*********************************************************************/
+
+            /**
+             * Refreshes the element.
+             *
+             * @method _refresh
+             * @returns {Element}
+             * @private
+             */
+            _refresh: function () {
+                var self = this;
+                XP.setStyle(self, 'color', !self.disabled && self._getColor(self.color));
+                return self;
+            },
+
+            /*********************************************************************/
+
+            // OBSERVERS
+            observers: [
+                '_refresh(color, disabled)'
+            ],
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * The ink's color.
+                 *
+                 * @attribute color
+                 * @type string
+                 */
+                color: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the element is disabled.
+                 *
+                 * @attribute disabled
+                 * @type boolean
+                 * @default false
+                 */
+                disabled: {
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * The ink's foreground color.
+                 *
+                 * @attribute foreground
+                 * @type "dark" | "light"
+                 * @notifies
+                 * @readonly
+                 */
+                foreground: {
+                    notify: true,
+                    readOnly: true,
+                    reflectToAttribute: true,
+                    type: String
+                },
+
+                /**
+                 * The paper layer where ink is placed.
+                 *
+                 * @attribute layer
+                 * @type Element
+                 * @notifies
+                 */
+                layer: {
+                    notify: true,
+                    observer: '_layerChanged',
+                    value: null
+                },
+
+                /**
+                 * The ink's opacity level.
+                 *
+                 * @attribute opacity
+                 * @type string
+                 */
+                opacity: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                }
+            },
+
+            /**
+             * The opacity list.
+             *
+             * @property opacityList
+             * @type Array
+             * @default ["divider", "hint", "icon", "secondary"]
+             * @readonly
+             */
+            opacityList: ['divider', 'hint', 'icon', 'secondary'],
+
+            /*********************************************************************/
+
+            // OBSERVER
+            _layerChanged: function () {
+                if (this.layer) { this._setForeground(this.layer.foreground); }
+            },
+
+            /*********************************************************************/
+
+            // LISTENER
+            ready: function () {
+                this._setForeground(this._getForeground(this.shared && this.shared.theme));
+            }
+        });
+    </script>
+
+</dom-module>

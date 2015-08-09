@@ -1,0 +1,768 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This behavior is used to add input capabilities on a custom element.
+
+@behavior xp-input-behavior
+@description A behavior used to add input capabilities on the context element
+@keywords web app, html5, expandjs, web-components
+@group behaviors
+@homepage http://expandjs.com/elements/xp-input-behavior
+@repository https://github.com/ExpandJS/xp-input-behavior
+
+@behavior xp-adapter-behavior /bower_components/xp-adapter-behavior/xp-adapter-behavior.html
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency xp-adapter-behavior ExpandJS/xp-adapter-behavior#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../xp-adapter-behavior/xp-adapter-behavior.html">
+
+<script>
+    Polymer.XPInputBehaviorImp = {
+
+        /**
+         * Fired when the input's model changes.
+         *
+         * @event xp-input-change
+         * @param {Element} firer
+         * @param {boolean} isChanged
+         * @param {*} model
+         * @bubbles
+         */
+
+        /*********************************************************************/
+
+        /**
+         * Blurs the input.
+         *
+         * @method focus
+         * @abstract
+         */
+        blur: XP.mock(),
+
+        /**
+         * Focuses the input.
+         *
+         * @method focus
+         * @abstract
+         */
+        focus: XP.mock(),
+
+        /**
+         * Selects the input.
+         *
+         * @method select
+         * @abstract
+         */
+        select: XP.mock(),
+
+        /*********************************************************************/
+
+        /**
+         * Set the adaptee.
+         *
+         * @method _adapt
+         * @returns {Element}
+         * @private
+         */
+        _adapt: XP.mock(),
+
+        /**
+         * The operation used to reflect adapted input's `value` onto the element.
+         *
+         * @method _commitFrom
+         * @abstract
+         * @private
+         */
+        _commitFrom: XP.mock(),
+
+        /**
+         * The operation used to reflect element's `value` onto the adapted input.
+         *
+         * @method _commitTo
+         * @abstract
+         * @private
+         */
+        _commitTo: XP.mock(),
+
+        /**
+         * The operation used to reflect element's `tabIndex` onto the adapted input.
+         *
+         * @method _index
+         * @abstract
+         * @private
+         */
+        _index: XP.mock(),
+
+        /**
+         * The operation used to sanitize adapted input's `value`.
+         *
+         * @method _sanitize
+         * @abstract
+         * @private
+         */
+        _sanitize: XP.mock(),
+
+        /**
+         * The operation used to update adapted input's attributes.
+         *
+         * @method _update
+         * @abstract
+         * @private
+         */
+        _update: XP.mock(),
+
+        /**
+         * The operation used to validate adapted input's `value`.
+         *
+         * @method _validate
+         * @abstract
+         * @private
+         */
+        _validate: XP.mock(),
+
+        /*********************************************************************/
+
+        /**
+         * Finds the label.
+         *
+         * @method findLabel
+         * @returns {Element}
+         */
+        findLabel: function () {
+            var self = this, label = (self.id && XP.getElement('label[for="' + self.id + '"]'));
+            return label || XP.findParentElement(Polymer.dom(self), 'label') || null;
+        },
+
+        /**
+         * Resets the input.
+         *
+         * @method reset
+         * @returns {Element}
+         */
+        reset: function () {
+            var self = XP.assign(this, this.initial);
+            self._setInvalid(false);
+            self._setInvalidMessage(null);
+            return self;
+        },
+
+        /**
+         * Toggles the checked state.
+         *
+         * @method toggle
+         * @returns {Element}
+         */
+        toggle: function () {
+            var self = this;
+            if (self.primitive === 'boolean' && !self.disabled) { self.checked = !self.checked; }
+            return self;
+        },
+
+        /*********************************************************************/
+
+        /**
+         * Refreshes the element.
+         *
+         * @method _refresh
+         * @returns {Element}
+         * @private
+         */
+        _refresh: function () {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (!self.adaptee) { return self; }
+
+            // Updating
+            self._update();
+
+            // Sanitizing
+            self._sanitize();
+
+            // Validating
+            if (self.value || !self.required) { self._validate(); }
+
+            return self;
+        },
+
+        /**
+         * Returns model representation of input's plain value.
+         *
+         * @method _toModel
+         * @param {*} value
+         * @returns {boolean | number | string}
+         * @private
+         */
+        _toModel: function (value) {
+            var self = this, from = XP.isPrimitive(value) ? value : null;
+            if (self.primitive === 'boolean') { return XP.toBoolean(from); }
+            if (self.primitive === 'number') { return XP.toNumber(from); }
+            return XP.toString(from);
+        },
+
+        /**
+         * Returns primitive representation of input's type
+         *
+         * @method _toPrimitive
+         * @param {string} type
+         * @returns {string}
+         * @private
+         */
+        _toPrimitive: function (type) {
+            if (type === 'checkbox') { return 'boolean'; }
+            if (type === 'number') { return 'number'; }
+            return 'string';
+        },
+
+        /**
+         * Returns plain value representation of input's model.
+         *
+         * @method _toValue
+         * @param {*} model
+         * @returns {boolean | string}
+         * @private
+         */
+        _toValue: function (model) {
+            var self = this, from = XP.isPrimitive(model) ? model : null;
+            if (self.primitive === 'boolean') { return XP.toBoolean(from, true); }
+            return XP.toString(from, true);
+        },
+
+        /*********************************************************************/
+
+        // LISTENERS
+        listeners: {
+            'click': '_clickHandler',
+            'adaptee-changed': '_adapteeHandler'
+        },
+
+        // OBSERVERS
+        observers: [
+            '_refresh(adaptee, disabled, name)'
+        ],
+
+        // PROPERTIES
+        properties: {
+
+            /**
+             * If set to true, the input will focus on attach.
+             *
+             * @attribute auto-focus
+             * @type boolean
+             * @default false
+             */
+            autoFocus: {
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * If set to true, the input's model is changed.
+             *
+             * @attribute changed
+             * @type boolean
+             * @default false
+             * @notifies
+             * @readonly
+             */
+            changed: {
+                notify: true,
+                readOnly: true,
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * The input's character counter.
+             *
+             * @attribute chars
+             * @type number
+             * @default 0
+             * @notifies
+             * @readonly
+             */
+            chars: {
+                notify: true,
+                readOnly: true,
+                type: Number,
+                value: 0
+            },
+
+            /**
+             * If set to true, the input is checked.
+             *
+             * @attribute checked
+             * @type boolean
+             * @notifies
+             */
+            checked: {
+                notify: true,
+                observer: '_checkedChanged',
+                reflectToAttribute: true,
+                type: Boolean
+            },
+
+            /**
+             * If set to true, the input is disabled.
+             *
+             * @attribute disabled
+             * @type boolean
+             * @default false
+             */
+            disabled: {
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * If set to true, the input is empty.
+             *
+             * @attribute empty
+             * @type boolean
+             * @default false
+             * @notifies
+             * @readonly
+             */
+            empty: {
+                notify: true,
+                readOnly: true,
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * If set to true, the label is hidden.
+             *
+             * @attribute empty-label
+             * @type boolean
+             * @default false
+             * @notifies
+             * @readonly
+             */
+            emptyLabel: {
+                computed: '_computeEmptyLabel(label)',
+                notify: true,
+                reflectToAttribute: true,
+                type: Boolean
+            },
+
+            /**
+             * The input's custom error message, used instead of `invalidMessage`.
+             *
+             * @attribute error
+             * @type string
+             */
+            error: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * If set to true, the input is focused.
+             *
+             * @attribute focused
+             * @type boolean
+             * @default false
+             * @notifies
+             * @readonly
+             */
+            focused: {
+                notify: true,
+                observer: '_focusedChanged',
+                readOnly: true,
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * The input's form.
+             *
+             * @attribute form
+             * @type Element
+             * @readonly
+             */
+            form: {
+                observer: '_formChanged',
+                readOnly: true,
+                value: null
+            },
+
+            /**
+             * The initial state.
+             *
+             * @attribute initial
+             * @type Object
+             * @readonly
+             */
+            initial: {
+                readOnly: true,
+                value: function () { return {}; }
+            },
+
+            /**
+             * If set to true, the input's value is not valid.
+             *
+             * @attribute invalid
+             * @type boolean
+             * @default false
+             * @notifies
+             * @readonly
+             */
+            invalid: {
+                notify: true,
+                readOnly: true,
+                reflectToAttribute: true,
+                type: Boolean,
+                value: false
+            },
+
+            /**
+             * The input's system error message.
+             *
+             * @attribute invalid-message
+             * @type string
+             * @notifies
+             * @readonly
+             */
+            invalidMessage: {
+                notify: true,
+                readOnly: true,
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The input's label.
+             *
+             * @attribute label
+             * @type string
+             */
+            label: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The input's value, casted accordingly to `type`.
+             *
+             * @attribute model
+             * @type *
+             * @notifies
+             */
+            model: {
+                notify: true,
+                observer: '_modelChanged'
+            },
+
+            /**
+             * The input's name.
+             *
+             * @attribute name
+             * @type string
+             */
+            name: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The input's primitive type.
+             *
+             * @attribute primitive
+             * @type "boolean" | "number" | "string"
+             * @default "string"
+             * @readonly
+             */
+            primitive: {
+                readOnly: true,
+                type: String,
+                value: 'string'
+            },
+
+            /**
+             * The input's type.
+             *
+             * @attribute type
+             * @type string
+             * @default "text"
+             */
+            type: {
+                observer: '_typeChanged',
+                reflectToAttribute: true,
+                type: String,
+                value: 'text'
+            },
+
+            /**
+             * The input's raw value, always expressed as string.
+             *
+             * @attribute value
+             * @type string
+             * @notifies
+             */
+            value: {
+                notify: true,
+                observer: '_valueChanged',
+                type: String
+            }
+        },
+
+        /**
+         * The list of primitives.
+         *
+         * @property primitives
+         * @type Array
+         * @default ["boolean", "number", "string"]
+         * @readonly
+         */
+        primitives: ['boolean', 'number', 'string'],
+
+        /*********************************************************************/
+
+        // COMPUTER
+        _computeEmptyLabel: function (label) {
+            return !label;
+        },
+
+        /*********************************************************************/
+
+        // OBSERVER
+        _checkedChanged: function (post) {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (!self.adaptee) { return; }
+
+            // Setting
+            self._setChanged(self.initial.checked !== post);
+            self.model = self.changed ? self._toModel(post) : self.initial.model;
+
+            // Committing
+            self._commitTo();
+
+            // Firing
+            self.fire('xp-input-change', {firer: self, isChanged: self.changed, model: self.model});
+        },
+
+        // OBSERVER
+        _focusedChanged: function (post) {
+
+            // Vars
+            var self = this;
+
+            // Propagating
+            XP.setAttribute(self.findLabel(), 'focused', post);
+        },
+
+        // OBSERVER
+        _formChanged: function (post, pre) {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (arguments.length < 2) { return; }
+
+            // Listening
+            if (pre) { self.unlisten(pre, 'reset', '_resetHandler'); }
+            if (post) { self.listen(post, 'reset', '_resetHandler'); }
+
+            // Refreshing
+            self._refresh();
+        },
+
+        // OBSERVER
+        _adapteeHandler: function () {
+
+            // Vars
+            var self = this;
+
+            // Listening
+            if (XP.isElement(self.adaptee)) {
+                self.listen(self.adaptee, 'blur', '_blurHandler');
+                self.listen(self.adaptee, 'change', '_changeHandler');
+                self.listen(self.adaptee, 'focus', '_focusHandler');
+            }
+
+            // Mutating
+            Polymer.XPInputBehaviorImp.mutated.apply(self);
+
+            // Refreshing
+            self._refresh();
+        },
+
+        // OBSERVER
+        _modelChanged: function () {
+
+            // Casting
+            this[this.primitive === 'boolean' ? 'checked' : 'value'] = this._toValue(this.model);
+        },
+
+        // OBSERVER
+        _typeChanged: function (post) {
+
+            // Vars
+            var self = this;
+
+            // Setting
+            self._setPrimitive(self._toPrimitive(post));
+
+            // Refreshing
+            self._refresh();
+        },
+
+        // OBSERVER
+        _valueChanged: function (post) {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (!self.adaptee) { return; }
+
+            // Sanitizing
+            self._sanitize();
+
+            // Checking
+            if (self.value !== post) { return; }
+
+            // Setting
+            self._setChanged(self.initial.value !== post);
+            self._setEmpty(!self.value);
+            self.model = self.changed ? self._toModel(post) : self.initial.model;
+
+            // Committing
+            self._commitTo();
+
+            // Validating
+            self._validate();
+
+            // Firing
+            self.fire('xp-input-change', {firer: self, isChanged: self.changed, model: self.model});
+        },
+
+        /*********************************************************************/
+
+        // LISTENER
+        attached: function () {
+
+            // Vars
+            var self = this;
+
+            // Setting
+            self._setForm(XP.findParentElement(Polymer.dom(self), 'form'));
+            self._setInvalid(false);
+
+            // Focusing
+            if (self.autoFocus) { XP.delay(function () { self.focus(); }); }
+        },
+
+        // LISTENER
+        detached: function () {
+
+            // Vars
+            var self = this;
+
+            // Setting
+            self._setForm(null);
+        },
+
+        // LISTENER
+        mutated: function () {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (self._index === Polymer.XPInputBehavior._index) { return; }
+            if (self._index === Polymer.XPInputBehavior._index) { return; }
+
+            // Disconnecting
+            if (self.indexObserver) { self.indexObserver.disconnect(); }
+
+            // Indexing
+            self.async(function () { self._index(Math.max(self.tabIndex, 0)); });
+
+            // Setting
+            self.removeAttribute(self.adaptee ? 'tabindex' : '');
+
+            // Observing
+            self.indexObserver = XP.onMutation(self, Polymer.XPInputBehaviorImp.mutated.bind(self), {attributes: true, attributeFilter: ['tabindex']});
+        },
+
+        // LISTENER
+        ready: function () {
+
+            // Vars
+            var self = this;
+
+            // Setting
+            self.set('initial.checked', self.checked = self.model && self.primitive === 'boolean' ? true : self.checked || false);
+            self.set('initial.value', self.value = self.model && self.primitive !== 'boolean' ? self._toValue(self.model) : self.value || '');
+            self.set('initial.model', self.model = self.checked || (self.value ? self._toModel(self.value) : self.model || null));
+            self._setEmpty(self.primitive !== 'boolean' && !self.value);
+
+            // Adapting
+            self._adapt();
+
+            // Committing
+            self._commitTo();
+        },
+
+        /*********************************************************************/
+
+        // HANDLER
+        _blurHandler: function () {
+            this._setFocused(false);
+        },
+
+        // HANDLER
+        _changeHandler: function () {
+            this._commitFrom();
+        },
+
+        // HANDLER
+        _clickHandler: function () {
+            this.focus();
+        },
+
+        // HANDLER
+        _focusHandler: function () {
+            this._setFocused(!this.disabled);
+        },
+
+        // HANDLER
+        _resetHandler: function () {
+            XP.delay(this.reset.bind(this));
+        }
+    };
+
+    Polymer.XPInputBehavior = [
+        Polymer.XPAdapterBehavior,
+        Polymer.XPInputBehaviorImp
+    ];
+</script>

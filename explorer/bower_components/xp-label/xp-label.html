@@ -1,0 +1,115 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to add shadow traverse capabilities on an HTML label.
+
+@element xp-label
+@description A custom element used to add shadow traverse capabilities on an HTML label
+@keywords web app, html5, expandjs, web-components
+@group accessibility
+@homepage http://expandjs.com/elements/xp-label
+@repository https://github.com/ExpandJS/xp-label
+
+@extends label
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+
+<dom-module id="xp-label">
+
+    <style>
+        :host {
+            display: block;
+            overflow: visible;
+        }
+    </style>
+
+    <template>
+        <content id="content"></content>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'xp-label',
+
+            // EXTENDS
+            extends: 'label',
+
+            /*********************************************************************/
+
+            /**
+             * Finds the input.
+             *
+             * @method findInput
+             * @returns {Element}
+             */
+            findInput: function () {
+
+                // Vars
+                var self    = this,
+                    input   = self.htmlFor && XP.getElementById(self.htmlFor),
+                    wrapped = Polymer.dom(self);
+
+                // Finding
+                return input || XP.mapOne(self.selectors, function (selector) { return XP.getElement(wrapped, selector); }) || null;
+            },
+
+            /*********************************************************************/
+
+            // LISTENERS
+            listeners: {
+                click: '_handleClick'
+            },
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * If set to true, the element is focused.
+                 *
+                 * @attribute focused
+                 * @type boolean
+                 * @default false
+                 * @notifies
+                 */
+                focused: {
+                    notify: true,
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            /**
+             * The list of available inputs the label can work with
+             *
+             * @property selectors
+             * @type Array
+             * @default ["button", "input", "reset", "select", "submit", "textarea"]
+             * @readonly
+             */
+            selectors: ['button', 'input', 'reset', 'select', 'submit', 'textarea'],
+
+            /*********************************************************************/
+
+            // HANDLER
+            _handleClick: function (event) {
+                var self = this, input = self.findInput();
+                if (input && !event.button) { input.focus(); input.click(); }
+            }
+        });
+    </script>
+
+</dom-module>

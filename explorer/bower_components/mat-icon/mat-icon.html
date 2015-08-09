@@ -1,0 +1,221 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+An element used to display a [Material Design icon](https://www.google.com/design/icons/)
+on a 24px square.
+
+It can be used either by importing an icon set from [mat-icons](http://expandjs.com/elements/mat-icons)...
+
+```html
+<link rel="import" href="bower_components/mat-icons/social-icons.html">
+
+<mat-icon name="social:cake"></mat-icon>
+```
+
+...or by setting `src`, linking to a custom icon...
+
+```html
+<mat-icon src="http://example.com/path/icon.png"></mat-icon>
+```
+
+...or passing it directly in base64.
+
+```html
+<mat-icon src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDov..."></mat-icon>
+```
+
+---
+
+## Styling
+
+The icon's color can be changed accordingly to the
+[Material Design palette](http://www.google.com/design/spec/style/color.html#color-color-palette).
+
+```html
+<mat-icon name="toggle:star" color="yellow"></mat-icon>
+```
+
+@element mat-icon
+@description A custom element used to display a Material Design icon
+@keywords material design, material icon, web app, html5, expandjs, web-components
+@group contents
+@homepage http://expandjs.com/elements/mat-icon
+@repository https://github.com/ExpandJS/mat-icon
+@demo http://expandjs.com/demo/mat-icon
+
+@adapts xp-icon /bower_components/xp-icon/xp-icon.html
+@behavior xp-adapter-behavior /bower_components/xp-adapter-behavior/xp-adapter-behavior.html
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency mat-ink ExpandJS/mat-ink#0.9.5
+@dependency xp-adapter-behavior ExpandJS/xp-adapter-behavior#0.9.5
+@dependency xp-icon ExpandJS/xp-icon#0.9.5
+
+@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+@devDependency mat-icons ExpandJS/mat-icons#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../mat-ink/mat-ink.html">
+<link rel="import" href="../xp-adapter-behavior/xp-adapter-behavior.html">
+<link rel="import" href="../xp-icon/xp-icon.html">
+
+<dom-module id="mat-icon">
+
+    <style>
+        :host {
+            display: inline-block;
+            height: 24px;
+            overflow: visible;
+            width: 24px;
+        }
+
+        :host([empty]) {
+            display: none !important;
+        }
+
+        :host #matIconWrapper,
+        :host #matIconAdaptee {
+            border-radius: inherit;
+            display: block;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+    <template>
+        <mat-ink id="matIconWrapper" color="[[color]]" disabled="[[disabled]]" opacity="[[_computeOpacity(opacity, raster)]]">
+            <xp-icon id="matIconAdaptee" empty="{{empty}}" name="[[name]]" raster="{{raster}}" src="[[src]]"></xp-icon>
+        </mat-ink>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'mat-icon',
+
+            // BEHAVIORS
+            behaviors: [
+                Polymer.XPAdapterBehavior
+            ],
+
+            /*********************************************************************/
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * The ink's color.
+                 *
+                 * @attribute color
+                 * @type string
+                 */
+                color: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the element is disabled.
+                 *
+                 * @attribute disabled
+                 * @type boolean
+                 * @default false
+                 */
+                disabled: {
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * If set to true, the element is hidden.
+                 *
+                 * @attribute empty
+                 * @type boolean
+                 * @notifies
+                 * @readonly
+                 */
+                empty: {
+                    notify: true,
+                    reflectToAttribute: true,
+                    type: Boolean
+                },
+
+                /**
+                 * The icon's iconset:name.
+                 *
+                 * @attribute name
+                 * @type string
+                 */
+                name: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The ink's opacity level.
+                 *
+                 * @attribute opacity
+                 * @type string
+                 */
+                opacity: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the icon is rendered as `div` background instead of `svg`.
+                 *
+                 * @attribute raster
+                 * @type boolean
+                 * @notifies
+                 * @readonly
+                 */
+                raster: {
+                    notify: true,
+                    type: Boolean
+                },
+
+                /**
+                 * The icon's src.
+                 *
+                 * @attribute src
+                 * @type string
+                 */
+                src: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                }
+            },
+
+            /*********************************************************************/
+
+            // COMPUTER
+            _computeOpacity: function (opacity, raster) {
+                return opacity || (raster ? '' : 'icon');
+            },
+
+            /*********************************************************************/
+
+            // LISTENER
+            ready: function () {
+                this._adapt(this.$.matIconAdaptee);
+            }
+        });
+    </script>
+
+</dom-module>

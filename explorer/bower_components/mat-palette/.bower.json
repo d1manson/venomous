@@ -1,0 +1,40 @@
+{
+  "name": "mat-palette",
+  "license": "BSD-3-Clause",
+  "version": "0.9.5",
+  "description": "A custom element used to add support for material palettes",
+  "homepage": "http://expandjs.com/elements/mat-palette",
+  "authors": [
+    "Giuliano Rullo <g.rullo@expandjs.com>",
+    "Maurizio Stefàno <m.stefano@expandjs.com>",
+    "Robert Manolea <r.manolea@expandjs.com>"
+  ],
+  "keywords": [
+    "material design",
+    "material palette",
+    "material color palette",
+    "web app",
+    "html5",
+    "expandjs",
+    "web-components"
+  ],
+  "main": [
+    "mat-palette.html"
+  ],
+  "ignore": [
+    "**/.*"
+  ],
+  "dependencies": {
+    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "polymer": "Polymer/polymer#^1.0.0"
+  },
+  "_release": "0.9.5",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.9.5",
+    "commit": "9696249a32cc738a18de1562fb888239dd02da8f"
+  },
+  "_source": "git://github.com/ExpandJS/mat-palette.git",
+  "_target": "0.9.5",
+  "_originalSource": "ExpandJS/mat-palette"
+}

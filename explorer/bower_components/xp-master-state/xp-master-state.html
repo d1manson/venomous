@@ -1,0 +1,152 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to add master capabilities on the context element for a master-slave pattern.
+It extends the native html `template`.
+
+It should be used in conjunction with xp-slave-state.
+
+@element xp-master-state
+@description A custom element used to add slave capabilities on the context element for a master-slave pattern
+@keywords web app, html5, expandjs, web-components
+@group functionality
+@homepage http://expandjs.com/elements/xp-master-state
+@repository https://github.com/ExpandJS/xp-master-state
+
+@extends template
+@behavior xp-array-behavior /bower_components/xp-array-behavior/xp-array-behavior.html
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency xp-array-behavior ExpandJS/xp-array-behavior#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../xp-array-behavior/xp-array-behavior.html">
+
+<script>
+    Polymer({
+
+        // ELEMENT
+        is: 'xp-master-state',
+
+        // EXTENDS
+        extends: 'template',
+
+        // BEHAVIORS
+        behaviors: [
+            Polymer.XPArrayBehavior
+        ],
+
+        /*********************************************************************/
+
+        /**
+         * Couples the master to a slave.
+         *
+         * @method _couple
+         * @param {Element} slave
+         * @returns {Element}
+         * @private
+         */
+        _couple: function (slave) {
+            return this.append('slaves', slave);
+        },
+
+        /**
+         * Decouples the master from a slave.
+         *
+         * @method _decouple
+         * @param {Element} slave
+         * @returns {Element}
+         * @private
+         */
+        _decouple: function (slave) {
+            var self = this, index = self.slaves.indexOf(slave);
+            return index >= 0 ? self.pullAt('slaves', index) : null;
+        },
+
+        /*********************************************************************/
+
+        // PROPERTIES
+        properties: {
+
+            /**
+             * A selector used to recognize the slaves.
+             *
+             * @attribute slave-selector
+             * @type string
+             */
+            slaveSelector: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The `tagName` of the slaves.
+             *
+             * @attribute slave-tag
+             * @type string
+             */
+            slaveTag: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The master's slaves.
+             *
+             * @attribute slaves
+             * @type Array
+             * @notifies
+             * @readonly
+             */
+            slaves: {
+                notify: true,
+                readOnly: true,
+                type: Array,
+                value: function () { return []; }
+            }
+        },
+
+        /*********************************************************************/
+
+        // LISTENER
+        attached: function () {
+            this.listen(this.domHost, 'xp-slave-state', '_handleSlave');
+        },
+
+        /*********************************************************************/
+
+        // HANDLER
+        _handleSlave: function (event) {
+
+            // Vars
+            var self = this;
+
+            // Checking
+            if (self.domHost === event.detail.firer) { return; }
+            if (self.slaveTag && self.slaveTag !== event.detail.firer.tagName.toLowerCase()) { return; }
+            if (self.slaveSelector && !XP.matches(event.detail.firer, self.slaveSelector)) { return; }
+            if (event.detail.masterTag && event.detail.masterTag !== self.domHost.tagName.toLowerCase()) { return; }
+            if (event.detail.masterSelector && !XP.matches(self.domHost, event.detail.masterSelector)) { return; }
+
+            // Coupling (master side)
+            self[event.detail.isAttached ? '_couple' : '_decouple'](event.detail.firer);
+
+            // Coupling (slave side)
+            event.detail.coupler(self.domHost);
+
+            // Stopping
+            event.stopPropagation();
+        }
+    });
+</script>

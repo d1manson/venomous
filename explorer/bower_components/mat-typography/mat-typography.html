@@ -1,0 +1,202 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This style provides css variables for material typography.
+
+@element mat-typography
+@description A custom style used to provide css variables for Material Design typography
+@keywords material design, material typography, web app, html5, expandjs, web-components
+@group decorators
+@homepage http://expandjs.com/elements/mat-typography
+@repository https://github.com/ExpandJS/mat-typography
+
+@dependency font-roboto PolymerElements/font-roboto#^1.0.0
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+-->
+
+<link rel="import" href="../font-roboto/roboto.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+
+<style>
+    html {
+        background: hsla(0, 0%, 93%, 1);
+        color: hsla(0, 0%, 0%, 0.87);
+        font-family: RobotoDraft, Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+
+        /* SUBHEAD */
+
+        font-size: 16px;
+        font-weight: 400;
+        letter-spacing: 0.01em;
+        line-height: 24px;
+        text-overflow: clip;
+        text-rendering: optimizeLegibility;
+        white-space: normal;
+    }
+
+    a {
+        color: inherit;
+    }
+</style>
+
+<style is="custom-style">
+    :root {
+
+        /* CAPTION */
+
+        --mat-font-caption: {
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            line-height: 14px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            white-space: nowrap;
+        };
+
+        /* BODY */
+
+        --mat-font-body: {
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 20px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        --mat-font-body2: {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 24px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        /* MENU */
+
+        --mat-font-menu: {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 20px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            white-space: nowrap;
+        };
+
+        /* BUTTON */
+
+        --mat-font-button: {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 20px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            text-transform: uppercase;
+            white-space: nowrap;
+        };
+
+        /* SUBHEAD */
+
+        --mat-font-subhead: {
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 24px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        --mat-font-subhead2: {
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            line-height: 28px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        /* TITLE */
+
+        --mat-font-title: {
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: 0.005em;
+            line-height: 24px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            white-space: nowrap;
+        };
+
+        /* HEADLINE */
+
+        --mat-font-headline: {
+            font-size: 24px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 32px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        /* DISPLAY */
+
+        --mat-font-display: {
+            font-size: 34px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 40px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        --mat-font-display2: {
+            font-size: 45px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 48px;
+            text-overflow: clip;
+            text-rendering: optimizeLegibility;
+            white-space: normal;
+        };
+
+        --mat-font-display3: {
+            font-size: 56px;
+            font-weight: 400;
+            letter-spacing: -0.005em;
+            line-height: 68px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            white-space: nowrap;
+        };
+
+        --mat-font-display4: {
+            font-size: 112px;
+            font-weight: 300;
+            letter-spacing: -0.01em;
+            line-height: 134px;
+            text-overflow: ellipsis;
+            text-rendering: optimizeLegibility;
+            white-space: nowrap;
+        };
+
+    }
+</style>

@@ -1,0 +1,63 @@
+<link rel="import" href="../mat-demo/mat-demo.html">
+<link rel="import" href="../mat-icons/action-icons.html">
+<link rel="import" href="../mat-icons/av-icons.html">
+<link rel="import" href="mat-icon-button.html">
+
+<dom-module id="mat-icon-button-demo">
+
+    <template>
+
+        <mat-demo name="mat-icon-button" type="element" url="http://expandjs.com/elements/mat-icon-button">
+
+            <mat-demo-panel label="Default">
+                <script type="text/html">
+                    <mat-icon-button icon="action:favorite"></mat-icon-button>
+                    <mat-icon-button icon="action:favorite" color="red"></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline"></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline" color="red"></mat-icon-button>
+                </script>
+                <mat-icon-button icon="action:favorite"></mat-icon-button>
+                <mat-icon-button icon="action:favorite" color="red"></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline"></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline" color="red"></mat-icon-button>
+            </mat-demo-panel>
+
+            <mat-demo-panel label="Disabled">
+                <script type="text/html">
+                    <mat-icon-button icon="action:favorite" disabled></mat-icon-button>
+                    <mat-icon-button icon="action:favorite" color="red" disabled></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline" disabled></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline" color="red" disabled></mat-icon-button>
+                </script>
+                <mat-icon-button icon="action:favorite" disabled></mat-icon-button>
+                <mat-icon-button icon="action:favorite" color="red" disabled></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline" disabled></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline" color="red" disabled></mat-icon-button>
+            </mat-demo-panel>
+
+            <mat-demo-panel label="Toggleable">
+                <script type="text/html">
+                    <mat-icon-button icon="action:favorite" dimmed toggleable></mat-icon-button>
+                    <mat-icon-button icon="action:favorite" active-color="red" toggleable></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline" active-icon="action:favorite" toggleable></mat-icon-button>
+                    <mat-icon-button icon="action:favorite-outline" active-color="red" active-icon="action:favorite" toggleable></mat-icon-button>
+                </script>
+                <mat-icon-button icon="action:favorite" dimmed toggleable></mat-icon-button>
+                <mat-icon-button icon="action:favorite" active-color="red" toggleable></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline" active-icon="action:favorite" toggleable></mat-icon-button>
+                <mat-icon-button icon="action:favorite-outline" active-color="red" active-icon="action:favorite" toggleable></mat-icon-button>
+            </mat-demo-panel>
+
+        </mat-demo>
+
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'mat-icon-button-demo'
+        });
+    </script>
+
+</dom-module>

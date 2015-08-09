@@ -1,0 +1,416 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+An element used to display a [Material Design icon button](http://www.google.com/design/spec/components/buttons.html#buttons-other-buttons).
+
+To be able to use the `icon` attribute, you must import an icon set.
+
+```html
+<link rel="import" href="bower_components/mat-icons/action-icons.html">
+
+<mat-icon-button icon="action:favorite"></mat-icon-button>
+```
+
+Otherwise you can use `icon-src` to set a custom icon.
+```html
+<mat-icon-button icon-src="https://example.com/path/icon.png"></mat-icon-button>
+```
+
+The button can be used to toggle other elements...
+
+```html
+<mat-icon-button icon="nagivation:more-vert" target="myMenu" toggles-target></mat-icon-button>
+<mat-menu id="myMenu">...</mat-menu>
+```
+
+...link to external resources...
+
+```html
+<mat-icon-button icon="content:link" href="http://expandjs.com" target="_blank"></mat-icon-button>
+```
+
+...or do custom actions via listeners.
+
+```html
+<mat-icon-button id="myButton" icon="toggle:star-outline" active-icon="toggle:star" toggleable></mat-icon-button>
+
+<script>
+    (function () {
+        var button = XP.getElementById('myButton');
+
+        XP.listen(button, 'xp-active', function (event) {
+            if (event.detail.isActive) {
+                console.log("I've been activated!");
+            } else {
+                console.log("I've been deactivated!");
+            }
+        });
+    }());
+</script>
+```
+
+---
+
+## Styling
+
+The button's color can be changed accordingly to the
+[Material Design palette](http://www.google.com/design/spec/style/color.html#color-color-palette).
+
+```html
+<mat-button icon="social:person" color="blue"></mat-button>
+<mat-button icon="action:favorite" active-color="red" toggleable></mat-button>
+```
+
+If you want the button to be semi-transparent whenever it's inactive, you can add `dimmed`.
+
+```html
+<mat-icon-button icon="action:favorite" active-color="red" dimmed toggleable></mat-icon-button>
+```
+
+@element mat-icon-button
+@description A custom element used to display a Material Design icon button
+@keywords material design, material icon button, material button, web app, html5, expandjs, web-components
+@group contents
+@homepage http://expandjs.com/elements/mat-icon-button
+@repository https://github.com/ExpandJS/mat-icon-button
+@demo http://expandjs.com/demo/mat-icon-button
+
+@behavior xp-anchor-behavior /bower_components/xp-anchor-behavior/xp-anchor-behavior.html
+@behavior xp-pressed-behavior /bower_components/xp-pressed-behavior/xp-pressed-behavior.html
+@behavior xp-referral-behavior /bower_components/xp-referral-behavior/xp-referral-behavior.html
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency iron-flex-layout PolymerElements/iron-flex-layout#^1.0.0
+@dependency mat-icon ExpandJS/mat-icon#0.9.5
+@dependency mat-ripple ExpandJS/mat-ripple#0.9.5
+@dependency xp-anchor-behavior ExpandJS/xp-anchor-behavior#0.9.5
+@dependency xp-pressed-behavior ExpandJS/xp-pressed-behavior#0.9.5
+@dependency xp-referral-behavior ExpandJS/xp-referral-behavior#0.9.5
+
+@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+@devDependency mat-icons ExpandJS/mat-icons#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../mat-icon/mat-icon.html">
+<link rel="import" href="../mat-ripple/mat-ripple.html">
+<link rel="import" href="../xp-anchor-behavior/xp-anchor-behavior.html">
+<link rel="import" href="../xp-pressed-behavior/xp-pressed-behavior.html">
+<link rel="import" href="../xp-referral-behavior/xp-referral-behavior.html">
+
+<dom-module id="mat-icon-button">
+
+    <link rel="import" type="css" href="../xp-pressed-behavior/xp-pressed-behavior.css">
+
+    <style>
+        :host {
+            border-radius: 50%;
+            height: 40px;
+            margin: 4px;
+            width: 40px;
+        }
+
+        :host([empty]) {
+            display: none !important;
+        }
+
+        :host #matIconButtonWrapper,
+        :host #matIconButtonMain {
+            border-radius: inherit;
+            height: 100%;
+        }
+
+        :host #matIconButtonMain {
+            @apply(--layout-horizontal);
+            @apply(--layout-center-center);
+        }
+
+        :host #matIconButtonAnchor {
+            border-radius: inherit;
+            display: block;
+            height: 100%;
+            outline: 0;
+            overflow: hidden;
+            text-decoration: none;
+        }
+
+        :host #matIconButtonAnchor:after {
+            bottom: -4px;
+            content: "";
+            left: -4px;
+            position: absolute;
+            right: -4px;
+            top: -4px;
+        }
+
+        :host #matIconButtonIcons,
+        :host #matIconButtonIcon,
+        :host #matIconButtonActiveIcon {
+            display: block;
+            position: relative;
+        }
+
+        :host #matIconButtonRipple {
+            margin: -4px;
+            padding: 4px;
+        }
+
+        /* ANIMATION */
+
+        :host #matIconButtonIcon,
+        :host #matIconButtonActiveIcon {
+            -webkit-transition: opacity 0.4s cubic-bezier(0.55, 0, 0.01, 1),
+                                -webkit-transform 0.4s cubic-bezier(0.55, 0, 0.01, 1),
+                                visibility 0.4s cubic-bezier(0.55, 0, 0.01, 1);
+            transition: opacity 0.4s cubic-bezier(0.55, 0, 0.01, 1),
+                        transform 0.4s cubic-bezier(0.55, 0, 0.01, 1),
+                        visibility 0.4s cubic-bezier(0.55, 0, 0.01, 1);
+        }
+
+        :host([animated]) #matIconButtonIcon {
+            position: absolute;
+        }
+
+        :host #matIconButtonIcon,
+        :host([active]) #matIconButtonActiveIcon {
+            -webkit-transform: scale(1);
+            transform: scale(1);
+            visibility: visible;
+        }
+
+        :host([active][animated]) #matIconButtonIcon,
+        :host(:not([active])) #matIconButtonActiveIcon {
+            opacity: 0;
+            -webkit-transform: scale(0);
+            transform: scale(0);
+            visibility: hidden;
+        }
+    </style>
+
+    <template>
+        <div id="matIconButtonWrapper">
+            <a id="matIconButtonAnchor" tabindex="-1">
+                <div id="matIconButtonMain">
+                    <div id="matIconButtonIcons">
+                        <mat-icon id="matIconButtonIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[icon]]" opacity="[[_computeOpacity(active, dimmed)]]" raster="{{raster}}" src="[[iconSrc]]"></mat-icon>
+                        <mat-icon id="matIconButtonActiveIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[activeIcon]]" raster="{{activeRaster}}" src="[[activeIconSrc]]"></mat-icon>
+                    </div>
+                </div>
+            </a>
+            <mat-ripple context="[[self]]" id="matIconButtonRipple" color="[[_computeColor(active, activeColor, color)]]" auto-center></mat-ripple>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'mat-icon-button',
+
+            // BEHAVIORS
+            behaviors: [
+                Polymer.XPAnchorBehavior,
+                Polymer.XPPressedBehavior,
+                Polymer.XPReferralBehavior
+            ],
+
+            /*********************************************************************/
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * The ink's active color.
+                 *
+                 * @attribute active-color
+                 * @type string
+                 */
+                activeColor: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The button's active icon.
+                 *
+                 * @attribute active-icon
+                 * @type string
+                 */
+                activeIcon: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The button's active icon's src.
+                 *
+                 * @attribute active-icon-src
+                 * @type string
+                 */
+                activeIconSrc: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the active icon is a raster one instead of svg.
+                 *
+                 * @attribute active-raster
+                 * @type boolean
+                 * @notifies
+                 * @readonly
+                 */
+                activeRaster: {
+                    notify: true,
+                    type: Boolean
+                },
+
+                /**
+                 * If set to true, both icon and active icon are set.
+                 *
+                 * @attribute active-icon
+                 * @type string
+                 * @notifies
+                 * @readonly
+                 */
+                animated: {
+                    computed: '_computeAnimated(activeIcon, activeIconSrc)',
+                    notify: true,
+                    reflectToAttribute: true,
+                    type: Boolean
+                },
+
+                /**
+                 * The ink's color.
+                 *
+                 * @attribute color
+                 * @type string
+                 */
+                color: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The element's data.
+                 *
+                 * @attribute data
+                 * @type *
+                 * @notifies
+                 */
+                data: {
+                    notify: true,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the icon is dimmed on inactive state.
+                 *
+                 * @attribute dimmed
+                 * @type boolean
+                 * @default false
+                 */
+                dimmed: {
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * If set to true, the element is hidden.
+                 *
+                 * @attribute empty
+                 * @type boolean
+                 * @notifies
+                 * @readonly
+                 */
+                empty: {
+                    computed: '_computeEmpty(animated, active, icon, iconSrc)',
+                    notify: true,
+                    reflectToAttribute: true,
+                    type: Boolean
+                },
+
+                /**
+                 * The button's icon.
+                 *
+                 * @attribute icon
+                 * @type string
+                 */
+                icon: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The button's icon's src.
+                 *
+                 * @attribute icon-src
+                 * @type string
+                 */
+                iconSrc: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the icon is a raster one instead of svg.
+                 *
+                 * @attribute raster
+                 * @type boolean
+                 * @notifies
+                 * @readonly
+                 */
+                raster: {
+                    notify: true,
+                    type: Boolean
+                }
+            },
+
+            /*********************************************************************/
+
+            // COMPUTER
+            _computeAnimated: function (activeIcon, activeIconSrc) {
+                return !!activeIcon || !!activeIconSrc;
+            },
+
+            // COMPUTER
+            _computeColor: function (active, activeColor, color) {
+                return (active && activeColor) || color;
+            },
+
+            // COMPUTER
+            _computeEmpty: function (animated, active, icon, iconSrc) {
+                return (!animated || !active) && !icon && !iconSrc;
+            },
+
+            // COMPUTER
+            _computeOpacity: function (active, dimmed) {
+                return (!active && dimmed && 'hint') || null;
+            },
+
+            /*********************************************************************/
+
+            // LISTENER
+            ready: function () {
+                this._setAnchor(this.$.matIconButtonAnchor);
+            }
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,123 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This behavior is used to add anchor capabilities on the context element.
+
+@behavior xp-anchor-behavior
+@description A behavior used to add anchor capabilities on the context element
+@keywords web app, html5, expandjs, web-components
+@group behaviors
+@homepage http://expandjs.com/elements/xp-anchor-behavior
+@repository https://github.com/ExpandJS/xp-anchor-behavior
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+
+<script>
+    Polymer.XPAnchorBehavior = {
+
+        /**
+         * Refreshes the anchor.
+         *
+         * @method _updateAnchor
+         * @returns {Element}
+         * @private
+         */
+        _updateAnchor: function () {
+
+            // Vars
+            var self = this;
+
+            // Setting
+            XP.setAttribute(self.anchor, 'download', (self.href && self.download) || null);
+            XP.setAttribute(self.anchor, 'href', self.href || null);
+            XP.setAttribute(self.anchor, 'rel', (self.href && self.rel) || null);
+            XP.setAttribute(self.anchor, 'target', (self.href && self.target) || null);
+
+            return self;
+        },
+
+        /*********************************************************************/
+
+        // OBSERVERS
+        observers: [
+            '_updateAnchor(anchor, download, href, rel, target)'
+        ],
+
+        // PROPERTIES
+        properties: {
+
+            /**
+             * The element's anchor.
+             *
+             * @attribute anchor
+             * @type Element
+             * @notifies
+             * @readonly
+             */
+            anchor: {
+                notify: true,
+                readOnly: true,
+                value: null
+            },
+
+            /**
+             * The anchor's download property's value.
+             *
+             * @attribute download
+             * @type string
+             */
+            download: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The anchor's href property's value.
+             *
+             * @attribute href
+             * @type string
+             */
+            href: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The anchor's rel property's value.
+             *
+             * @attribute rel
+             * @type string
+             */
+            rel: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The anchor's target property's value.
+             *
+             * @attribute target
+             * @type string
+             * @notifies
+             */
+            target: {
+                notify: true,
+                value: null
+            }
+        }
+    };
+</script>

@@ -1,0 +1,249 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to display an icon.
+
+It can be used in conjunction with xp-iconset.
+
+@element xp-icon
+@description A custom element able to display an icon
+@keywords web app, html5, expandjs, web-components
+@group contents
+@homepage http://expandjs.com/elements/xp-icon
+@repository https://github.com/ExpandJS/xp-icon
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency xp-iconset ExpandJS/xp-iconset#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../xp-iconset/xp-iconset.html">
+
+<dom-module id="xp-icon">
+
+    <style>
+        :host {
+            display: inline-block;
+            height: 24px;
+            overflow: visible;
+            width: 24px;
+        }
+
+        :host([empty]) {
+            display: none !important;
+        }
+
+        :host #xpIconWrapper,
+        :host #xpIconWrapper * {
+            border-radius: inherit;
+            height: 100%;
+            width: 100%;
+        }
+
+        :host svg {
+            display: block;
+            fill: currentcolor;
+        }
+    </style>
+
+    <template>
+        <div id="xpIconWrapper"></div>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'xp-icon',
+
+            /*********************************************************************/
+
+            /**
+             * Refreshes the element.
+             *
+             * @method _refresh
+             * @returns {Element}
+             * @private
+             */
+            _refresh: function () {
+
+                // Vars
+                var self        = this,
+                    icon        = self.iconSet && self.iconName ? self.iconSet.findIcon(self.iconName) : null,
+                    iconElement = self.src ? XP.createElement('div') : icon && XP.createElementNS('http://www.w3.org/2000/svg', 'svg', {children: [icon]}),
+                    iconTag     = iconElement ? XP.getTag(XP.addAttribute(iconElement, 'icon')) : null;
+
+                // Setting
+                self._setIconElement(iconElement);
+                self._setEmpty(!iconElement);
+                self._setRaster(iconTag !== 'svg');
+
+                // Stylizing
+                if (iconTag === 'div') { XP.setStyles(iconElement, {background: 'url(' + self.src + ') 100% no-repeat', 'background-size': '100% 100%'}); }
+                if (iconTag === 'svg') { XP.setAttributes(iconElement, {xmlns: "http://www.w3.org/2000/svg", height: 24, width: 24, viewBox: '0 0 ' + 24 + ' ' + 24}); }
+
+                // Replacing
+                XP.setChildren(Polymer.dom(self.$.xpIconWrapper), [iconElement]);
+
+                return self;
+            },
+
+            /*********************************************************************/
+
+            // OBSERVERS
+            observers: [
+                '_refresh(iconName, iconSet, src)'
+            ],
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * If set to true, the element is hidden.
+                 *
+                 * @attribute empty
+                 * @type boolean
+                 * @default false
+                 * @notifies
+                 * @readonly
+                 */
+                empty: {
+                    notify: true,
+                    readOnly: true,
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * The iconset used to find others.
+                 *
+                 * @attribute finder
+                 * @type Element
+                 * @readonly
+                 */
+                finder: {
+                    readOnly: true,
+                    value: function () { return XP.createElement('xp-iconset'); }
+                },
+
+                /**
+                 * The icon's rendered element.
+                 *
+                 * @attribute icon-element
+                 * @type Element
+                 * @readonly
+                 */
+                iconElement: {
+                    readOnly: true,
+                    value: null
+                },
+
+                /**
+                 * The icon's name.
+                 *
+                 * @attribute icon-name
+                 * @type string
+                 * @notifies
+                 * @readonly
+                 */
+                iconName: {
+                    notify: true,
+                    readOnly: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The icon's iconset.
+                 *
+                 * @attribute icon-set
+                 * @type Element
+                 * @notifies
+                 * @readonly
+                 */
+                iconSet: {
+                    notify: true,
+                    readOnly: true,
+                    value: null
+                },
+
+                /**
+                 * The icon's iconset:name.
+                 *
+                 * @attribute name
+                 * @type string
+                 */
+                name: {
+                    observer: '_nameChanged',
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * If set to true, the icon is rendered as `div` background instead of `svg`.
+                 *
+                 * @attribute raster
+                 * @type boolean
+                 * @default false
+                 * @notifies
+                 * @readonly
+                 */
+                raster: {
+                    notify: true,
+                    readOnly: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * The icon's src.
+                 *
+                 * @attribute src
+                 * @type string
+                 */
+                src: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                }
+            },
+
+            /**
+             * The list iconsets.
+             *
+             * @property iconSets
+             * @type Object
+             * @readonly
+             */
+            iconSets: {},
+
+            /*********************************************************************/
+
+            // OBSERVER
+            _nameChanged: function (post) {
+
+                // Vars
+                var self  = this,
+                    parts = XP.split(post, ':');
+
+                // Finding
+                if (parts[0]) { self.iconSets[parts[0]] = self.iconSets[parts[0]] || self.finder.findInstance(parts[0]); }
+
+                // Setting
+                self._setIconName(parts[1] || '');
+                self._setIconSet(parts[0] ? self.iconSets[parts[0]] : null);
+            }
+        });
+    </script>
+
+</dom-module>

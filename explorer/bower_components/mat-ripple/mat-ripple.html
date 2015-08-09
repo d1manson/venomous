@@ -1,0 +1,369 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to display a visual effect that simulates rippling from the touch point.
+
+@element mat-ripple
+@description A custom element used to display a Material Design ripple effect created by user interaction
+@keywords material design, material ripple, material ripple effect, web app, html5, expandjs, web-components
+@group decorators
+@homepage http://expandjs.com/elements/mat-ripple
+@repository https://github.com/ExpandJS/mat-ripple
+@demo http://expandjs.com/demo/mat-ripple
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency iron-flex-layout PolymerElements/iron-flex-layout#^1.0.0
+@dependency mat-ink ExpandJS/mat-ink#0.9.5
+
+@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../mat-ink/mat-ink.html">
+
+<dom-module id="mat-ripple">
+
+    <style>
+        :host {
+            @apply(--layout-fit);
+            border-radius: inherit;
+            display: block;
+            overflow: hidden;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        :host([animated]) {
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+
+        :host #matRippleWrapper {
+            @apply(--layout-fit);
+            border-radius: inherit;
+            color: inherit;
+            pointer-events: none !important;
+        }
+
+        :host #matRippleBackground {
+            @apply(--layout-fit);
+            background: currentColor;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.8s;
+            will-change: opacity;
+        }
+
+        :host(:not([auto-center])) #matRippleBackground[rippling] {
+            opacity: 0.10;
+        }
+
+        :host #matRippleWaves {
+            @apply(--layout-fit);
+            border-radius: 50%;
+        }
+
+        :host #matRippleWaves * {
+            background: currentColor;
+            border-radius: inherit;
+            opacity: 0.10;
+            position: absolute;
+            -webkit-transform: translate(0, 0) scale(0);
+            transform: translate(0, 0) scale(0);
+            -webkit-transition: opacity 0.54s, -webkit-transform 0.54s;
+            transition: opacity 0.54s, transform 0.54s;
+            will-change: opacity, transform;
+        }
+
+        :host([auto-center]) #matRippleWaves * {
+            opacity: 0.20;
+        }
+
+        :host #matRippleWaves *[smoothing] {
+            opacity: 0;
+            -webkit-transform: scale(1);
+            transform: scale(1);
+            -webkit-transition: opacity 0.54s, -webkit-transform 0.54s;
+            transition: opacity 0.54s, transform 0.54s;
+        }
+    </style>
+
+    <template>
+        <mat-ink id="matRippleWrapper" color="[[color]]">
+            <div id="matRippleBackground"></div>
+            <div id="matRippleWaves"></div>
+        </mat-ink>
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'mat-ripple',
+
+            /*********************************************************************/
+
+            /**
+             * Ripples a wave.
+             *
+             * @method ripple
+             * @param {number} [startX]
+             * @param {number} [startY]
+             * @returns {Element}
+             */
+            ripple: function (startX, startY) {
+
+                // Asserting
+                XP.assertArgument(XP.isVoid(startX) || XP.isNumber(startX), 1, 'number');
+                XP.assertArgument(XP.isVoid(startY) || XP.isNumber(startY), 2, 'number');
+
+                // Vars
+                var self       = this,
+                    background = self.$.matRippleBackground,
+                    waves      = self.$.matRippleWaves,
+                    wave       = Polymer.dom(waves).appendChild(XP.createElement('div')),
+                    data       = self._waveData(wave, startX, startY);
+
+                // Setting
+                self.timeLast = Date.now();
+
+                // Animation
+                XP.delay(function () {
+
+                    // Styling
+                    XP.setStyle(wave, 'height', data.radius + 'px');
+                    XP.setStyle(wave, 'left', data.left + 'px');
+                    XP.setStyle(wave, 'top', data.top + 'px');
+                    XP.setStyle(wave, 'width', data.radius + 'px');
+                    XP.setStyle(wave, '-webkit-transform', 'translate(' + data.dx + 'px, ' + data.dy + 'px) scale(1)');
+                    XP.setStyle(wave, 'transform', 'translate(' + data.dx + 'px, ' + data.dy + 'px) scale(1)');
+
+                    // Setting
+                    XP.addAttribute(self, 'animated');
+                    XP.addAttribute(background, 'rippling');
+                    XP.addAttribute(wave, 'rippling');
+
+                    // Smoothing
+                    if (!self.pressed) { self.smooth(); }
+                });
+
+                return self;
+            },
+
+            /**
+             * Smooths a wave.
+             *
+             * @method smooth
+             * @param {boolean} [force = false]
+             * @returns {Element}
+             */
+            smooth: function (force) {
+
+                // Vars
+                var self = this;
+
+                // Animation
+                XP.delay(function () {
+
+                    // Vars
+                    var elapsed    = Date.now() - self.timeLast,
+                        background = self.$.matRippleBackground,
+                        waves      = self.$.matRippleWaves,
+                        wave       = XP.getElement(Polymer.dom(waves), '[rippling]');
+
+                    // Checking
+                    if (!wave) { return; }
+
+                    // Delaying
+                    if (!force && elapsed < 240) { XP.delay(function () { self.smooth(true); }, 240 - elapsed); return; }
+
+                    // Wave
+                    XP.removeAttribute(wave, 'rippling');
+                    XP.removeAttribute(!XP.getElement(Polymer.dom(waves), '[rippling]') ? background : null, 'rippling');
+                    XP.addAttribute(wave, 'smoothing');
+
+                    // Delaying
+                    XP.delay(function() {
+
+                        // Removing
+                        XP.removeChild(Polymer.dom(waves), wave);
+                        XP.removeAttribute(!Polymer.dom(waves).children.length ? self : null, 'animated');
+
+                    }, 600);
+                });
+
+                return self;
+            },
+
+            /*********************************************************************/
+
+            /**
+             * Creates the data to position the wave.
+             *
+             * @method _waveData
+             * @param {Element} wave
+             * @param {number} [startX]
+             * @param {number} [startY]
+             * @returns {Object}
+             * @private
+             */
+            _waveData: function (wave, startX, startY) {
+
+                // Asserting
+                XP.assertArgument(XP.isElement(wave), 1, 'Element');
+                XP.assertArgument(XP.isVoid(startX) || XP.isNumber(startX), 2, 'number');
+                XP.assertArgument(XP.isVoid(startY) || XP.isNumber(startY), 3, 'number');
+
+                // Vars
+                var self      = this,
+                    boundings = XP.getBoundings(self),
+                    centerX   = XP.isVoid(startX) || self.autoCenter,
+                    centerY   = XP.isVoid(startY) || self.autoCenter,
+                    data      = {};
+
+                // Setting
+                data.radius = Math.floor(Math.max(boundings.width, boundings.height)) * 1.5;
+                data.left   = (centerX ? (boundings.width / 2) : Math.max(startX, boundings.left) - Math.min(startX, boundings.left)) - (data.radius / 2);
+                data.top    = (centerY ? (boundings.height / 2) : Math.max(startY, boundings.top) - Math.min(startY, boundings.top)) - (data.radius / 2);
+                data.dx     = (boundings.width / 2) - data.left - (data.radius / 2);
+                data.dy     = (boundings.height / 2) - data.top - (data.radius / 2);
+
+                return data;
+            },
+
+            /*********************************************************************/
+
+            // LISTENERS
+            listeners: {
+                down: '_handleTouch',
+                up: '_handleTouch'
+            },
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * If set to true, the waves will propagate from the center instead of the touch point.
+                 *
+                 * @attribute auto-center
+                 * @type boolean
+                 * @default false
+                 */
+                autoCenter: {
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * The ink's color.
+                 *
+                 * @attribute color
+                 * @type string
+                 */
+                color: {
+                    reflectToAttribute: true,
+                    type: String,
+                    value: null
+                },
+
+                /**
+                 * The context element.
+                 *
+                 * @attribute context
+                 * @type Element
+                 */
+                context: {
+                    observer: '_contextChanged',
+                    value: null
+                },
+
+                /**
+                 * If set to true, the element is pressed.
+                 *
+                 * @attribute pressed
+                 * @type boolean
+                 * @default false
+                 * @notifies
+                 * @readonly
+                 */
+                pressed: {
+                    notify: true,
+                    readOnly: true,
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            /**
+             * The timestamp of the last wave.
+             *
+             * @property timeLast
+             * @type number
+             * @default 0
+             * @readonly
+             */
+            timeLast: 0,
+
+            /*********************************************************************/
+
+            // OBSERVER
+            _contextChanged: function (post, pre) {
+
+                // Vars
+                var self = this;
+
+                // Checking
+                if (arguments.length < 2) { return; }
+
+                // Listening
+                if (pre) { self.unlisten(pre, 'down', '_handleTouch'); self.unlisten(pre, 'up', '_handleTouch'); }
+                if (post) { self.listen(post, 'down', '_handleTouch'); self.listen(post, 'up', '_handleTouch'); }
+
+                // Styling
+                XP.setStyle(self, 'pointer-events', post ? 'none' : null);
+            },
+
+            /*********************************************************************/
+
+            // LISTENER
+            attached: function () {
+
+                // Vars
+                var self   = this,
+                    parent = XP.getParentElement(Polymer.dom(self));
+
+                // Setting
+                if (parent && !self.context && XP.matches(parent, 'mat-paper[pressable]')) { self.context = parent; }
+            },
+
+            /*********************************************************************/
+
+            // HANDLER
+            _handleTouch: function (event) {
+
+                // Vars
+                var self = this;
+
+                // Setting
+                self._setPressed(event.type === 'down');
+
+                // Animating
+                if (event.type === 'down') { self.ripple(event.detail.x, event.detail.y); } else { self.smooth(); }
+            }
+        });
+    </script>
+
+</dom-module>

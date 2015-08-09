@@ -1,0 +1,15 @@
+{
+  "name": "XMLWriter",
+  "homepage": "https://github.com/flesler/XMLWriter",
+  "version": "1.0.2",
+  "_release": "1.0.2",
+  "_resolution": {
+    "type": "version",
+    "tag": "v1.0.2",
+    "commit": "df46054c819e3b781b7e5b0bed5e98a47180ae7a"
+  },
+  "_source": "https://github.com/flesler/XMLWriter.git",
+  "_target": "~1.0.2",
+  "_originalSource": "https://github.com/flesler/XMLWriter.git",
+  "_direct": true
+}

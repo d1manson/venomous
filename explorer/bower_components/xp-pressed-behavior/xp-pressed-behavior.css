@@ -1,0 +1,18 @@
+:host {
+    cursor: pointer;
+    display: inline-block;
+    outline: 0;
+    overflow: visible;
+    position: relative;
+    text-align: left;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+:host([disabled]) {
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}

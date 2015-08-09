@@ -1,0 +1,143 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This element is used to add slave capabilities on the context element.
+It extends the native html `template`.
+
+It should be used in conjunction with xp-master-state.
+
+@element xp-slave-state
+@description A custom element used to add slave capabilities, for a master-slave pattern, on the context element
+@keywords web app, html5, expandjs, web-components
+@group functionality
+@homepage http://expandjs.com/elements/xp-slave-state
+@repository https://github.com/ExpandJS/xp-slave-state
+
+@extends template
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.5
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+
+<script>
+    Polymer({
+
+        // ELEMENT
+        is: 'xp-slave-state',
+
+        // EXTENDS
+        extends: 'template',
+
+        /*********************************************************************/
+
+        /**
+         * Fired when the slave is attached.
+         *
+         * @event xp-slave-state
+         * @param {Element} firer
+         * @param {Function} coupler
+         * @param {string} masterSelector
+         * @param {string} masterTag
+         * @param {boolean} isAttached
+         * @bubbles
+         */
+
+        /*********************************************************************/
+
+        /**
+         * Couples the slave to a master.
+         *
+         * @method _couple
+         * @param {Element} master
+         * @returns {Element}
+         * @private
+         */
+        _couple: function (master) {
+            var self = this;
+            if (!self.master) { self._setMaster(master); }
+            return master === self.master ? master : null;
+        },
+
+        /**
+         * Decouples the slave from its master.
+         *
+         * @method _decouple
+         * @param {Element} master
+         * @returns {Element}
+         * @private
+         */
+        _decouple: function (master) {
+            var self = this;
+            if (self.master === master) { self._setMaster(null); }
+            return !self.master ? master : null;
+        },
+
+        /*********************************************************************/
+
+        // PROPERTIES
+        properties: {
+
+            /**
+             * The slave's master.
+             *
+             * @attribute master
+             * @type Element
+             * @notifies
+             * @readonly
+             */
+            master: {
+                notify: true,
+                readOnly: true,
+                value: null
+            },
+
+            /**
+             * A selector used to recognize the master.
+             *
+             * @attribute master-selector
+             * @type string
+             */
+            masterSelector: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            },
+
+            /**
+             * The `tagName` of the master.
+             *
+             * @attribute master-tag
+             * @type string
+             */
+            masterTag: {
+                reflectToAttribute: true,
+                type: String,
+                value: null
+            }
+        },
+
+        /*********************************************************************/
+
+        // LISTENER
+        attached: function () {
+            var self = this;
+            XP.delay(function () { self.fire('xp-slave-state', {firer: self.domHost, coupler: self._couple.bind(self), masterSelector: self.masterSelector, masterTag: self.masterTag, isAttached: true}); });
+        },
+
+        // LISTENER
+        detached: function () {
+            var self = this;
+            if (!self.master) { return; }
+            XP.delay(function () { self.master.fire('xp-slave-state', {firer: self.domHost, coupler: self._decouple.bind(self), masterSelector: self.masterSelector, masterTag: self.masterTag, isAttached: false}); });
+        }
+    });
+</script>

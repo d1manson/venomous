@@ -1,0 +1,37 @@
+{
+  "name": "xp-slave-state",
+  "license": "BSD-3-Clause",
+  "version": "0.9.5",
+  "description": "A custom element used to add slave capabilities, for a master-slave pattern, on the context element",
+  "homepage": "http://expandjs.com/elements/xp-slave-state",
+  "authors": [
+    "Giuliano Rullo <g.rullo@expandjs.com>",
+    "Maurizio Stefàno <m.stefano@expandjs.com>",
+    "Robert Manolea <r.manolea@expandjs.com>"
+  ],
+  "keywords": [
+    "web app",
+    "html5",
+    "expandjs",
+    "web-components"
+  ],
+  "main": [
+    "xp-slave-state.html"
+  ],
+  "ignore": [
+    "**/.*"
+  ],
+  "dependencies": {
+    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "polymer": "Polymer/polymer#^1.0.0"
+  },
+  "_release": "0.9.5",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.9.5",
+    "commit": "3e2a3d53138d11019c3c71fa218e6617355d4f95"
+  },
+  "_source": "git://github.com/ExpandJS/xp-slave-state.git",
+  "_target": "0.9.5",
+  "_originalSource": "ExpandJS/xp-slave-state"
+}
