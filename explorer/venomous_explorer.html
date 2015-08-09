@@ -47,7 +47,6 @@ USEAGE:
 	.card{
 		min-width: 80px;
 		padding: 4px;
-		text-align: center;
 		font-family: 'Roboto', 'Noto', sans-serif;
 		background-color: #fff;
 	}
@@ -58,12 +57,34 @@ USEAGE:
 		vertical-align: bottom;
     	font-weight: bold;
 	}
+	.card_name{
+		text-align: center;
+	}
+	ul{
+		margin: 0px;
+		list-style-position: inside;
+		font-size: 0.8em;
+		line-height: initial;
+    	padding-left: 0px;
+	    list-style-type: none;
+	}
+	li{
+		border: 1px solid #ccc;
+		margin-bottom: 2px;
+		padding-left: 4px;
+		padding-right: 4px;
+	}
    </style>
 
 	<template>
-	<paper-material class="card" is_moving$="[[is_moving]]" >
-		<iron-icon style$="[[node_type_to_css(node_type)]]" icon="[[node_type_to_icon(node_type)]]"></iron-icon>
-		<span class="node_name" style$="[[node_type_to_css(node_type)]]">[[name]]</span>
+	<paper-material class="card" is_moving$="[[is_moving]]" style$="[[node_type_to_css(node_type)]]">
+		<div class="card_top">
+		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
+		<span class="node_name" >[[name]]</span>
+		</div>
+		<ul><template is="dom-repeat" items="{{aliases}}">
+			<li class="alias_name">{{item.name}}</li>
+		</template></ul>
 	</paper-material>
 	</template>
 
@@ -93,7 +114,10 @@ USEAGE:
   				observer: '_pos_changed'},
   		top: {type: String ,
   			  value: 0,
-   			  observer: '_pos_changed'}
+   			  observer: '_pos_changed'},
+   		aliases: {type: Array,
+   				  value: function(){return [];},
+   			      observer: '_contents_changed'}
       },
       _contents_changed: function(){
       	this.notifyResize();
@@ -205,7 +229,8 @@ USEAGE:
 				   index$="[[index]]" on-track="node_on_track" on-iron-resize="node_on_resize"
 				   is_moving="[[item.is_moving]]"
 				   left="[[item.left]]" top="[[item.top]]"
-				   name="[[item.name]]" node_type="[[item.node_type]]"></venomous-node>
+				   name="[[item.name]]" node_type="[[item.node_type]]"
+				   aliases="[[item.aliases]]"></venomous-node>
 			</template>
 
 	    </div>
@@ -265,6 +290,7 @@ USEAGE:
         }
       },
       node_on_resize: function(e){
+      	// by modifying the vnodes[idx] we trigger the observer to update all the edges
       	var idx = e.currentTarget.index;
       	this.set('vnodes.' + idx + '.width', e.currentTarget.clientWidth);
       	this.set('vnodes.' + idx + '.height', e.currentTarget.clientHeight);
@@ -327,7 +353,8 @@ USEAGE:
 					 		 node_type: 'input',
 					 		 left: 20 + i*5,
 					 		 top: 100 + i*5,
-					 		 edges_after: []};
+					 		 edges_after: [],
+					 		 aliases: []};
 					inputs[v.name] = v;
 					all_vs[v.name] = v;
 				}else if(node_name == "compute"){
@@ -336,7 +363,8 @@ USEAGE:
 					         left: 20 + i*5,
 					         top: 200 + i*5,
 					     	 edges_before: [],
-					     	 edges_after: []};
+					     	 edges_after: [],
+					     	 aliases: []};
 					for(var j=0;j<node.childNodes.length; j++){
 						var node_j = node.childNodes[j];
 						var node_j_name = node_j.nodeName.toLowerCase()
@@ -358,11 +386,13 @@ USEAGE:
 					computes[v.name] = v;
 					all_vs[v.name] = v;
 				}else if(node_name == "alias"){
+					var src = all_vs[getAttr(node, 'src')]; 
 					var a = {name: getAttr(node, 'name'),
-							 src: getAttr(node, 'src')
+							 src: src
 							}
-					a.edges_before = all_vs[a.src].edges_before; // alias the array TODO: somehting more complciated in the long run
-					a.edges_after = all_vs[a.src].edges_after; // alias the array
+					src.aliases.push(a);
+					a.edges_before = src.edges_before; // alias the array TODO: somehting more complciated in the long run
+					a.edges_after = src.edges_after; // alias the array
 					aliases[a.name] = a;
 				}
 			}	
