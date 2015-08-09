@@ -3,6 +3,18 @@ CUSTOM ELEMENT: venomous-explorer
 BY: DM, but all the hard work is from [github.com/cpettitt/dagre-d3]
 
 
+There are two main psuedo-classes in use here: vnodes and vedges.
+vnode:
+	name - string, is the text displayed
+	left, top - raw values in svg pixels
+	node_type - string such as "input" or "compute"
+	edges_before, edges_after - arrays, with references to vedges
+
+vedge:
+	node1_name, node2_name - strings matching vnode.name
+	node1_left, node1_top, node2_left, node2_top - values in svg pixels kept up to date by _vnodes_changed listener
+
+
 USEAGE:
     <venomous-explorer id="my_graph"></venomous-explorer>
     <script>
@@ -111,10 +123,14 @@ USEAGE:
   		<div id="grid_pattern"></div>
   		<div id="about">venomous explorer</div>
 	    <div id='main_zone' class="noselect" nodrag>	
+
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
-	    	<template is="dom-repeat" items="{{vedges}}">
-	    	<svg class="edge"> <line x1$="{{item.start_left}}" x2$="{{item.end_left}}" y1$="{{item.start_top}}" y2$="{{item.end_top}}"
-	    	style="stroke:rgb(0,0,0);stroke-width:1"/></svg>
+	    	<template is="dom-repeat" items="[[vedges]]">    	
+		    	<svg class="edge">
+		    		<line x1$="[[get_edge_xy('x1', item.*)]]" x2$="[[get_edge_xy('x2', item.*)]]" 
+		    		  y1$="[[get_edge_xy('y1', item.*)]]" y2$="[[get_edge_xy('y2', item.*)]]"
+		    		  style="stroke:rgb(0,0,0);stroke-width:1"/>
+		    	</svg>
 	    	</template>
 	    	
 	    	<template is="dom-repeat" items="{{vnodes}}">
@@ -131,7 +147,7 @@ USEAGE:
 
 
   <script type="text/javascript" src="bower_components/XMLWriter/XMLWriter.js"></script>
-
+  <script type="text/javascript" src="polyfill_array_find.js"></script>
   <script>
   "use strict";
 
@@ -160,6 +176,10 @@ USEAGE:
         //this.push('vedges',{start_left: 210, start_top: 50, end_left: 290, end_top: 90});
      
       },
+      _vnode_from_name: function(n){
+      	// it would be easier to store vnodes in a key-value object rather than an array but I don't think you can for template usage
+      	return this.vnodes[this.vnodes.find(function(v){return v.name == n;})];
+      },
       build_position_css(left,top){
       	return "left:" + left + "px;top:" + top + "px;";
       },
@@ -168,6 +188,17 @@ USEAGE:
       },
       node_type_to_css(node_type){
 		return node_type_to_css_mapping[node_type];
+      },
+      get_edge_xy(coord_type, edge){
+      		edge = edge.base;
+      		if(coord_type == 'x1')
+      			return edge.node1_left;
+      		else if(coord_type == 'x2')
+      			return edge.node2_left;
+      		else if(coord_type == 'y1')
+      			return edge.node1_top;
+      		else
+      			return edge.node2_top;
       },
       node_on_track: function(e){
       	var idx = e.currentTarget.index;
@@ -234,8 +265,9 @@ USEAGE:
 
 			var inputs = {};
 			var computes = {};
+			var aliases = {};
 			var all_vs = {};
-
+			var edges_ = [];
 			for(var i=0;i< engine.childNodes.length; i++){
 				var node = engine.childNodes[i];
 				var node_name = node.nodeName.toLowerCase(); 
@@ -243,19 +275,46 @@ USEAGE:
 					var v = {name: getAttr(node,"name"),
 					 		 node_type: 'input',
 					 		 left: 20 + i*5,
-					 		 top: 100 + i*5};
+					 		 top: 100 + i*5,
+					 		 edges_after: []};
 					inputs[v.name] = v;
 					all_vs[v.name] = v;
-				}
-				if(node_name == "compute"){
+				}else if(node_name == "compute"){
 					var v = {name: getAttr(node,"name"),
 					         node_type: 'compute',
 					         left: 20 + i*5,
-					         top: 200 + i*5};
+					         top: 200 + i*5,
+					     	 edges_before: [],
+					     	 edges_after: []};
+					for(var j=0;j<node.childNodes.length; j++){
+						var node_j = node.childNodes[j];
+						var node_j_name = node_j.nodeName.toLowerCase()
+						if(node_j_name == "arg"){
+							var e = {node1_name: getAttr(node_j,"name"),
+									 node2_name: v.name };
+							if(e.node1_name in aliases){
+								aliases[e.node1_name].edges_after.push(e);
+							}else if(e.node1_name in all_vs){
+								all_vs[e.node1_name].edges_after.push(e);
+							}else{
+								this.fire('error', {type: 'parse-error', msg: 'could not find arg named "' + e.node1_name + '"'})
+								continue;
+							}
+							v.edges_before.push(e);
+							edges_.push(e);
+						}
+					}
 					computes[v.name] = v;
 					all_vs[v.name] = v;
+				}else if(node_name == "alias"){
+					var a = {name: getAttr(node, 'name'),
+							 src: getAttr(node, 'src')
+							}
+					a.edges_before = all_vs[a.src].edges_before; // alias the array TODO: somehting more complciated in the long run
+					a.edges_after = all_vs[a.src].edges_after; // alias the array
+					aliases[a.name] = a;
 				}
-			}
+			}	
 
       		for(var i_layout=i_engine+1;i_layout<root.childNodes.length && root.childNodes[i_layout].nodeName.toLowerCase() == "#text"; i_layout++)
       			;// find first non-text node
@@ -274,10 +333,37 @@ USEAGE:
 					}
 				}
 			}
-
+			this.set('vedges', edges_);
 			this.set('vnodes', 	push_objs_vals_onto_array([], all_vs));
       		return this.fire('error', {type: 'not-implemented', msg: 'need to actually finish implement parsing.'});
       },
+      _vnodes_changed_sub: function(v){
+      		// used by _vnodes_changed.
+      		if(v.edges_before) for(var i=0;i<v.edges_before.length; i++){
+				v.edges_before[i].node2_left = v.left;
+				v.edges_before[i].node2_top = v.top;
+			}
+			if(v.edges_after) for(var i=0;i<v.edges_after.length; i++){
+				v.edges_after[i].node1_left = v.left;
+				v.edges_after[i].node1_top = v.top;
+			}
+      },
+      _vnodes_changed: function(delta){
+      		/* This is solely responsible for telling edges about the left/top of their start/end nodes.*/
+      		if(delta.path == "vnodes.splices"){
+      			delta.indexSplices.forEach(function(delta_sub){
+						delta_sub.added.forEach(this._vnodes_changed_sub)
+						},this)
+      		}else if(delta.path == "vnodes"){
+      			delta.value.forEach(this._vnodes_changed_sub);
+      		}else{
+      			var v = this.vnodes[parseInt(delta.path.split(".")[1])];
+      			this._vnodes_changed_sub(v);
+      		}
+      },
+       observers: [
+    		'_vnodes_changed(vnodes.*)'
+  	   ],
       properties: {
       		vnodes: {type: Array,
       		        value: function() {return [];},
