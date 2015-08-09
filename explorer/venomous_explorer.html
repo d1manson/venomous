@@ -273,6 +273,21 @@ USEAGE:
   	return el.attributes.getNamedItem(attr).value;
   }
 
+  var remove_common_indent = function(s){
+		var lines = s.split(/\r?\n/);
+		// find minimum common indent on non-empty lines
+		var min_indent = s.length; //simple upper bound
+		for(var i=0; i<lines.length;i++) {
+			var whitespace = lines[i].split(/\S/,1)[0];
+			if(whitespace.length < min_indent && whitespace.length != lines[i].length)
+				min_indent = whitespace.length;
+		}
+		// remove indent
+		if(min_indent)
+			s = lines.map(function(line){return line.substr(min_indent)}).join('\r\n');
+		return s;
+  }
+
     // element registration
     Polymer({
       is: "venomous-explorer",
@@ -422,7 +437,8 @@ USEAGE:
 					         top: 200 + i*5,
 					     	 edges_before: [],
 					     	 edges_after: [],
-					     	 aliases: []};
+					     	 aliases: [],
+					     	 code: ''};
 					for(var j=0;j<node.childNodes.length; j++){
 						var node_j = node.childNodes[j];
 						var node_j_name = node_j.nodeName.toLowerCase()
@@ -439,6 +455,10 @@ USEAGE:
 							}
 							v.edges_before.push(e);
 							edges_.push(e);
+						}else if(node_j_name == "code"){
+							for(var k=0;k<node_j.childNodes.length;k++)if(node_j.childNodes[k].nodeName.toLowerCase() == "#cdata-section")
+								v.code += node_j.childNodes[k].data;
+							v.code = remove_common_indent(v.code).trim();
 						}
 					}
 					computes[v.name] = v;
