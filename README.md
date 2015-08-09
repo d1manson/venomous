@@ -15,7 +15,7 @@ In summary, by declaring your analysis pipeline using the Venomous XML/C++ synta
 
 **Example 2:** *An application showing separate summary plots for each of the many clusters within a dataset, where the user can modify the cluster assignment, with full redo-undo capabilities.*
  ![example2](/img/example2.png)  
- This is the usage case that motivated the development of Venomous.  See the [waveform project](http://www.github.com/d1manson/waveform).
+ This is the usage case that motivated the development of Venomous.  See the [waveform project](http://www.github.com/d1manson/waveform) for a poorly-structured implementation that doesn't use Venomous.  And, more importantly, see the draft of the new Venomous xml/c++ implementation - available [here](http://d1manson.github.io/venomous/explorer/) with the online Venomous Explorer.
 
 
 ### Roadmap   
