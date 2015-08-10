@@ -363,10 +363,15 @@ USEAGE:
         e.stopPropagation(); // prevent dragging on main zone too.
       },
       node_on_resize: function(e){
-      	// by modifying the vnodes[idx] we trigger the observer to update all the edges
-      	var idx = e.currentTarget.index;
-      	this.set('vnodes.' + idx + '.width', e.currentTarget.clientWidth);
-      	this.set('vnodes.' + idx + '.height', e.currentTarget.clientHeight);
+		var idx = e.currentTarget.index;
+		var el = e.currentTarget;
+		// I'm not sure why this has to be async
+		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
+      	this.debounce('node_on_resize_' + idx, function(){
+	      	// by modifying the vnodes[idx] we trigger the observer to update all the edges
+	      	this.set('vnodes.' + idx + '.width', el.clientWidth);
+	      	this.set('vnodes.' + idx + '.height', el.clientHeight);
+	    }, 1)
       },
       write_to_xml: function(){
       		var xw = new XMLWriter('UTF-8');
