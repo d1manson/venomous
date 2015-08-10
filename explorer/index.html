@@ -36684,7 +36684,7 @@ if (!Array.prototype.findIndex) {
   <venomous-explorer id="the_graph" style="height:100%; width: 100%; position:fixed;" active_name="{{active_node_name}}" active_code="{{active_node_code}}" active_description="{{active_node_description}}" no_node_is_active="{{no_node_is_active}}"></venomous-explorer>
 
   <paper-material id="dialog_node" class="vertical layout" elevation="5" hidden$="[[no_node_is_active]]">
-    <paper-tabs selected="{{tab_selected}}">
+    <paper-tabs selected="{{tab_selected}}" id="dialog_node_tabs">
       <paper-tab>VIEW SUMMARY</paper-tab>
       <paper-tab>EDIT CODE</paper-tab>
       <paper-tab>EDIT INFO</paper-tab>
@@ -36699,9 +36699,9 @@ if (!Array.prototype.findIndex) {
         <marked-element markdown="[[active_node_description]]"></marked-element>
       </div>
 
-      <mat-editor class="flex_inner" mode="clike" line-numbers="true" value="[[active_node_code]]"></mat-editor>
+      <mat-editor id="dialog_node_editor_code" class="flex_inner" mode="clike" line-numbers="true" value="[[active_node_code]]"></mat-editor>
 
-      <mat-editor class="flex_inner" mode="markdown" line-numbers="true" value="[[active_node_description]]"></mat-editor>
+      <mat-editor id="dialog_node_editor_description" class="flex_inner" mode="markdown" line-numbers="true" value="[[active_node_description]]"></mat-editor>
 
     </iron-pages>
 
@@ -36740,6 +36740,8 @@ if (!Array.prototype.findIndex) {
     window.show_source_button = document.getElementById("show_source_button");
     window.dialog_xml_source = document.getElementById("dialog_xml_source");
     window.xml_source_editor = document.getElementById("xml_source_editor");
+    window.dialog_node_tabs = document.getElementById("dialog_node_tabs");
+    
     x_main.tab_selected = 0;
 
     save_button.addEventListener("click",function(e){
@@ -36770,8 +36772,16 @@ if (!Array.prototype.findIndex) {
     show_source_button.addEventListener("click", function(){
       xml_source_editor.value = the_graph.write_to_xml();
       dialog_xml_source.open();
-      //xml_source_editor._refresh();     
-      //xml_source_editor.focus();
+      Polymer.Async.run(function(){
+        xml_source_editor.adaptee.refresh(); 
+      }, 1)
+    })
+    
+    window.dialog_node_tabs.addEventListener('selected-changed',function(e){
+      Polymer.Async.run(function(){
+        document.getElementById("dialog_node_editor_description").adaptee.refresh();
+        document.getElementById("dialog_node_editor_code").adaptee.refresh();
+      });
     })
 
   });
