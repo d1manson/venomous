@@ -10,11 +10,13 @@
 		<return name="buffer" type="byte[]" chunking="manual"/>
 		<description>
 			Reads an axomna file which consists of a header block of multiple lines of: 
-					key_name [SPACE] key_value
-			Followed by a line that begins with the characters "data_start".
+			```
+			key_name [SPACE] key_value
+			```
+			Followed by a line that begins with the characters `"data_start"`.
 			Following that is a (large) block of binary data.
-			In some cases (set files) there may not be a data_start and binary_data section.
-			This compute is aliased as pos_file, set_file, tet_file, and eeg_file.
+			In some cases (set files) there may not be a `data_start` and binary_data section.
+			This compute is aliased as `pos_file`, `set_file`, `tet_file`, and `eeg_file`.
 		</description>
 		<hints>disk=True</hints>
 		<code><![CDATA[	
@@ -130,8 +132,8 @@
 		<return name="dir" type="float[]" chunking="10000"/>
 
 		<description>
-			The used_both is copied across from both_xy for convenience.
-			If both LEDs are used then dir!= dir_disp, otherwise dir is dir_disp.
+			The `used_both` is copied across from both_xy for convenience.
+			If both LEDs are used then `dir!= dir_disp`, otherwise `dir` is `dir_disp`.
 		</description>
 		<hints>CPU=1 CACHE=1</hints>
 		<code><![CDATA[	
@@ -280,9 +282,9 @@
 		<arg name="dist_to_boundary" optional="true"/>
 		
 		<description>
-			True means use pos, False means don't use it.
+			`True` means use pos, `False` means don't use it.
 			Computes a mask using zero or more of four differnt possible speicifications.
-			Check summary to see if the mask is all-False, or all-True.  
+			Check `summary` to see if the mask is all-`False`, or all-`True`.  
 			Note that you might want to have something even more complciated in terms of adding, subtracting and multiple slices.
 			Not sure how easy that would be to implement in any framework, psoup or otherwise...well it might be ok in python actually.
 		</description>
@@ -398,7 +400,7 @@
 		<return name="timebase" type="int"/>
 		<return name="times" type="int32[]" chunking="10000"/>
 		<arg name="tet_file"/>
-		<description>returns spike times in same units as tet_file stored them</description>
+		<description>returns spike times in same units as `tet_file` stored them</description>
 		<code><![CDATA[
 			timebase = parseInt(tet_file.header["timeabase"]);
 			int n_spikes = parseInt(tet_file.header["nump_spikes"]);

@@ -15,6 +15,10 @@
     <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
     <link rel="import" href="bower_components/iron-icons/hardware-icons.html">
     <link rel="import" href="bower_components/paper-card/paper-card.html">
+    <link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
+    <link rel="import" href="bower_components/paper-tabs/paper-tab.html">
+    <link rel="import" href="bower_components/iron-pages/iron-pages.html">
+    <link rel="import" href="bower_components/marked-element/marked-element.html">
     <link rel="import" href="venomous_explorer.html">
     <title>sample [Venomous Explorer]</title>
   
@@ -55,10 +59,24 @@
       width: 30%;
       left: 15px;
       background-color: #fff;
+      overflow: hidden;
   }
-  #dialog_node h2{
-    margin: 5px;
-    font-size: 1.4em;
+  paper-tabs{
+    height: 30px;
+  }
+  .flex{
+    position: relative;
+  }
+  .flex_inner{
+    /* if this is the sole element inside a flex'ed element, this fills it */
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+  }
+  #dialog_node_summary{
+    margin-left: 10px;
+    width: initial;
   }
   </style>
   </head>
@@ -79,16 +97,34 @@
 
   <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"
   active_name="{{active_node_name}}"
-  active_code="{{active_node_code}}"></venomous-explorer>
+  active_code="{{active_node_code}}"
+  active_description="{{active_node_description}}"
+  no_node_is_active="{{no_node_is_active}}"></venomous-explorer>
 
-  <template is="dom-if" if="{{active_node_name}}">  
-  <paper-material id="dialog_node" class="vertical layout" elevation="3">
-    <h2>[[active_node_name]]</h2>
-    <div class="flex" id="xml_editor_container">
-    <mat-editor id="xml_source_editor" mode="cpp" line-numbers="true" value="[[active_node_code]]"></mat-editor>
-    </div>
+  <paper-material id="dialog_node" class="vertical layout" elevation="5" 
+          hidden$="[[no_node_is_active]]">
+    <paper-tabs selected="{{tab_selected}}">
+      <paper-tab>VIEW SUMMARY</paper-tab>
+      <paper-tab>EDIT CODE</paper-tab>
+      <paper-tab>EDIT INFO</paper-tab>
+    </paper-tabs>
+    
+    <iron-pages selected="{{tab_selected}}" class="flex">
+      
+      <div class="flex_inner" id="dialog_node_summary">
+        <h2>[[active_node_name]]</h2>
+        <!-- TODO: provide args, return types, hints, alias info, and links to afters -->
+        <br>
+        <marked-element markdown="[[active_node_description]]"></marked-element>
+      </div>
+
+      <mat-editor class="flex_inner" mode="c_cpp" line-numbers="true" value="[[active_node_code]]"></mat-editor>
+
+      <mat-editor class="flex_inner" mode="markdown" line-numbers="true" value="[[active_node_description]]"></mat-editor>
+
+    </iron-pages>
+
   </paper-material>
-  </template>
 
   <paper-fab icon="save" id="save_button"></paper-fab>
   <paper-fab icon="device:developer-mode" id="show_source_button"></paper-fab>
@@ -123,7 +159,7 @@
     window.show_source_button = document.getElementById("show_source_button");
     window.dialog_xml_source = document.getElementById("dialog_xml_source");
     window.xml_source_editor = document.getElementById("xml_source_editor");
-
+    x_main.tab_selected = 0;
 
     save_button.addEventListener("click",function(e){
         var xml = the_graph.write_to_xml();

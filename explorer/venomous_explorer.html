@@ -50,10 +50,10 @@ USEAGE:
 		font-family: 'Roboto', 'Noto', sans-serif;
 		background-color: #fff;
 	}
-	:host[is_moving=true] .card{
+	:host[is_moving] .card{
 		cursor: move;
 	}
-	:host[is_selected=true] .card{
+	:host[is_selected] .card{
 		background-color: #ffc;
 	}
 	.node_name{	
@@ -80,7 +80,7 @@ USEAGE:
    </style>
 
 	<template>
-	<paper-material class="card" style$="[[node_type_to_css(node_type)]]">
+	<paper-material class="card" style$="[[node_type_to_css(node_type)]]" elevation$="[[elevation]]">
 		<div class="card_top">
 		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
 		<span class="node_name">[[name]]</span>
@@ -103,9 +103,13 @@ USEAGE:
 	  	input: 'color:#99f',
 	  	compute: 'color:#cc7'
 	}
+
 	// element registration
     Polymer({
       is: "venomous-node",
+      get_elevation: function(is_selected){
+      	return is_selected  ? 5 : 2;
+      },
       behaviors: [
       	Polymer.IronResizableBehavior
       ],
@@ -128,7 +132,11 @@ USEAGE:
    			  observer: '_pos_changed'},
    		aliases: {type: Array,
    				  value: function(){return [];},
-   			      observer: '_contents_changed'}
+   			      observer: '_contents_changed'},
+   	    elevation: {type: Number,
+   	    		value: 2,
+   	    	    computed: 'get_elevation(is_selected)',
+   	    		notify: true}
       },
       _contents_changed: function(){
       	this.notifyResize();
@@ -212,7 +220,7 @@ USEAGE:
 		color: #999;
 		font-family: 'Roboto', 'Noto', sans-serif;
 	}
-	#main_zone[is_moving=true]{
+	:host[is_moving] #main_zone{
 		cursor: move;
 	}
   </style>
@@ -221,9 +229,9 @@ USEAGE:
   	<div id="container" class="layout vertical" style="height:100%;">
   		<div id="grid_pattern"></div>
   		<div id="about">venomous explorer</div>
-	    <div id='main_zone' class="noselect" is_moving$="[[is_moving]]"
+	    <div id='main_zone' class="noselect"
 	     on-track="main_zone_on_track" 
-	     on-down="main_zone_on_click" nodrag>	
+	     on-tap="main_zone_on_click" nodrag>	
 
 	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
 	    	<template is="dom-repeat" items="[[vedges]]">    	
@@ -245,7 +253,7 @@ USEAGE:
 				   index$="[[index]]" 
 				   on-track="node_on_track" 
 				   on-iron-resize="node_on_resize"
-				   on-down="node_on_click"
+				   on-tap="node_on_click"
 				   is_moving="[[item.is_moving]]"
 				   left="[[item.left]]" top="[[item.top]]"
 				   name="[[item.name]]" node_type="[[item.node_type]]"
@@ -309,34 +317,31 @@ USEAGE:
       main_zone_on_click: function(e){
 		if(this.active_name){
 			var old_idx = this._vnode_idx_from_name(this.active_name);
-			this.set('vnodes.' + old_idx + ".is_selected", "false");
+			this.set('vnodes.' + old_idx + ".is_selected", false);
 		}		
 		this.set('active_name', "");
-		this.set('active_code', "");
       },
       node_on_click: function(e){
 		var idx = e.currentTarget.index;
-
 		if(this.active_name){
 			var old_idx = this._vnode_idx_from_name(this.active_name);
-			this.set('vnodes.' + old_idx + ".is_selected", "false");
-		}		
-		this.set('vnodes.' + idx + ".is_selected", "true");
+			this.set('vnodes.' + old_idx + ".is_selected", false);			
+		}
+		this.set('vnodes.' + idx + ".is_selected", true);
 		this.set('active_name', this.vnodes[idx].name);
-		this.set('active_code', this.vnodes[idx].code);
 		e.stopPropagation(); // prevent click on main zone too.
       },
       main_zone_on_track: function(e){
 		switch(e.detail.state) {
           case 'start':
-            this.set('is_moving','true')
+            this.set('is_moving',true)
             break;
           case 'track':
             this.set('offset_left', this.offset_left - e.detail.ddx);
             this.set('offset_top', this.offset_top - e.detail.ddy);
             break;
           case 'end':
-            this.set("is_moving",'')
+            this.set("is_moving",false)
             break;
         }      	
       },
@@ -345,14 +350,14 @@ USEAGE:
 
         switch(e.detail.state) {
           case 'start':
-            this.set('vnodes.' + idx + ".is_moving",'true')
+            this.set('vnodes.' + idx + ".is_moving",true)
             break;
           case 'track':
             this.set('vnodes.'+ idx + '.left',this.vnodes[idx].left + e.detail.ddx);
             this.set('vnodes.'+ idx + '.top',this.vnodes[idx].top + e.detail.ddy);
             break;
           case 'end':
-            this.set('vnodes.' + idx + ".is_moving",'')
+            this.set('vnodes.' + idx + ".is_moving",false)
             break;
         }
         e.stopPropagation(); // prevent dragging on main zone too.
@@ -427,9 +432,18 @@ USEAGE:
 					 		 left: 20 + i*5,
 					 		 top: 100 + i*5,
 					 		 edges_after: [],
-					 		 aliases: []};
+					 		 aliases: [],
+					 		 description: ''};
 					inputs[v.name] = v;
 					all_vs[v.name] = v;
+					for(var j=0;j<node.childNodes.length; j++){
+						var node_j = node.childNodes[j];
+						var node_j_name = node_j.nodeName.toLowerCase()
+						if(node_j_name == "description"){
+							v.description = remove_common_indent(node_j.innerHTML).trim();
+						}
+					}
+
 				}else if(node_name == "compute"){
 					var v = {name: getAttr(node,"name"),
 					         node_type: 'compute',
@@ -438,7 +452,8 @@ USEAGE:
 					     	 edges_before: [],
 					     	 edges_after: [],
 					     	 aliases: [],
-					     	 code: ''};
+					     	 code: '',
+					     	 description: ''};
 					for(var j=0;j<node.childNodes.length; j++){
 						var node_j = node.childNodes[j];
 						var node_j_name = node_j.nodeName.toLowerCase()
@@ -459,7 +474,10 @@ USEAGE:
 							for(var k=0;k<node_j.childNodes.length;k++)if(node_j.childNodes[k].nodeName.toLowerCase() == "#cdata-section")
 								v.code += node_j.childNodes[k].data;
 							v.code = remove_common_indent(v.code).trim();
+						}else if(node_j_name == "description"){
+							v.description = remove_common_indent(node_j.innerHTML).trim();
 						}
+
 					}
 					computes[v.name] = v;
 					all_vs[v.name] = v;
@@ -540,10 +558,17 @@ USEAGE:
 	 	this.$.main_zone.style.left = -this.offset_left + "px";
 		this.$.main_zone.style.top = -this.offset_top + "px";
 	 },
-       observers: [
+	 is_falsy: function(x){
+	 	return !x;
+	 },
+	 lookup_node_key: function(node_name, key){
+	 	var v = this.vnodes[this._vnode_idx_from_name(node_name)]
+	 	return v ? v[key] : "";
+	 },
+      observers: [
     		'_vnodes_changed(vnodes.*)',
     		'_vedges_spliced(vedges.splices)'
-  	   ],
+  	  ],
       properties: {
       		vnodes: {type: Array,
       		        value: function() {return [];},
@@ -559,11 +584,22 @@ USEAGE:
       					  value: origin.y,
       					  notify: true,
       					  observer: '_offset_changed'},
-      		is_moving: {type: Boolean},
+      		is_moving: {type: Boolean,
+      					value: false,
+      				  reflectToAttribute: true},
+      		no_node_is_active: {type: Boolean,
+      							 value: true,
+      							 computed: 'is_falsy(active_name)',
+      							 notify: true},
       		active_name: {type: String,
       					value: "",
       					notify: true},
       		active_code: {type: String,
+      					computed: "lookup_node_key(active_name,'code')",
+      					value: "",
+      					notify: true},
+      		active_description: {type: String,
+      					computed: "lookup_node_key(active_name,'description')",
       					value: "",
       					notify: true}
 
