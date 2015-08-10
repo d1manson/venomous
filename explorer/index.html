@@ -35997,6 +35997,154 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 	</script>
 </dom-module>
 
+<dom-module id="venomous-loop" assetpath="/">
+<style type="text/css">
+	:host{
+		position: absolute;
+	    background-color: rgba(0,255,0,0.1);
+	    overflow: hidden;
+	}
+	:host[is_moving]{
+		cursor: move;
+	}
+	.bar{
+		background-color: #0f0;
+		position: absolute;
+	}
+	.left_bar{
+		left: 0px;
+		top: 0px;
+		width: 5px;
+		height: 100%;
+		cursor: ew-resize;
+	}
+	.right_bar{
+		right: 0px;
+		top: 0px;
+		width: 5px;
+		height: 100%;
+		cursor: ew-resize;
+	}
+	.top_bar{
+		top: 0px;
+		height: 5px;
+		width: 100%;
+		cursor: ns-resize;
+	}
+	.bottom_bar{
+		bottom: 0px;
+		height: 5px;
+		width: 100%;
+		cursor: ns-resize;
+	}
+	.back_bar{
+		position: absolute;
+		width: 100%;
+		height: 100%;
+	}
+	.name_text{
+		color: #1FB31F;
+		font-weight: bold;
+		font-family: 'Roboto', 'Noto', sans-serif;
+		position: absolute;
+		text-align: left;
+		top: 10px;
+		left: 10px;
+	}
+</style>
+<template>
+	<div class="back_bar" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="name_text">[[name]]</div>
+	<content>
+		
+	</content>	
+	<div class="left_bar bar" on-track="_on_drag" bar_duty="left"></div>
+	<div class="right_bar bar" on-track="_on_drag" bar_duty="right"></div>
+	<div class="top_bar bar" on-track="_on_drag" bar_duty="top"></div>
+	<div class="bottom_bar bar" on-track="_on_drag" bar_duty="bottom"></div>
+
+</template>
+<script>
+  var origin = {x: 5000, y: 5000}; // copy-pasted above and below in other elements TODO: avoid copy-paste somehow
+
+	Polymer({
+		is: 'venomous-loop',
+		properties: {
+			width: {
+				type: Number,
+				notify: true,
+				value: 100,
+				observer: '_sizeChanged'
+			},
+			height: {
+				type: Number,
+				notify: true,
+				value: 100,
+				observer: '_sizeChanged'
+			},
+			left: {
+				type: Number,
+				notify: true,
+				value: 0,
+				observer: '_sizeChanged'
+			},
+			top: {
+				type: Number,
+				notify: true,
+				value: 0,
+				observer: '_sizeChanged'
+			},
+			is_moving:{
+				type: Boolean,
+				reflectToAttribute: true,
+				default: false,
+				notify: true
+			},
+			name: {
+				type: String
+			}
+		},
+		_sizeChanged: function(e){
+			this.style.width = this.width + "px";
+			this.style.height = this.height + "px";
+			this.style.left = (this.left + origin.x) + "px";
+			this.style.top = (this.top + origin.y) + "px";
+		},
+		_on_drag: function(e){
+			var duty = e.currentTarget.getAttribute('bar_duty');
+			switch(e.detail.state) {
+	          case 'start':
+	          	if(duty == "centre")
+	          		this.set('is_moving', true)
+	            break;
+	          case 'track':
+	          	if(duty == 'right'){
+	          		this.set('width', this.width + e.detail.ddx);
+	          	}else if(duty == 'bottom'){
+	          		this.set('height', this.height + e.detail.ddy);
+	          	}else if(duty == 'left'){
+	          		this.set('width', this.width - e.detail.ddx);
+	          		this.set('left', this.left + e.detail.ddx);
+	          	}else if(duty == 'top'){
+	          		this.set('height', this.height - e.detail.ddy);
+	          		this.set('top', this.top + e.detail.ddy);
+	          	}else{ //centre
+	          		this.set('left', this.left + e.detail.ddx);
+	          		this.set('top', this.top + e.detail.ddy);
+	          	}
+	            break;
+	          case 'end':
+  	          	if(duty == "centre")
+	          		this.set('is_moving', false)
+	            break;
+	        }
+	        e.stopPropagation(); // prevent dragging on main zone too.
+		}
+
+	});
+</script>
+</dom-module>
+
 <dom-module id="venomous-explorer" assetpath="/">
    <style>
 
@@ -36011,6 +36159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     top:0px;
     left: 0px;
     z-index: 0;
+	border: 10px solid #f00;
 	}
 	#grid_pattern{
 	position: absolute;
@@ -36071,7 +36220,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   		<div id="about">venomous explorer</div>
 	    <div id="main_zone" class="noselect" on-track="main_zone_on_track" on-tap="main_zone_on_click" nodrag="">	
 
-	    	
+	     	
 	    	<template is="dom-repeat" items="[[vedges]]">    	
 		    	<svg class="edge">
 		    	  <defs>
@@ -36087,6 +36236,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 	    	<template is="dom-repeat" items="[[vnodes]]">
 				<venomous-node class="vnode" index$="[[index]]" on-track="node_on_track" on-iron-resize="node_on_resize" on-tap="node_on_click" is_moving="[[item.is_moving]]" left="[[item.left]]" top="[[item.top]]" name="[[item.name]]" node_type="[[item.node_type]]" aliases="[[item.aliases]]" is_selected="[[item.is_selected]]"></venomous-node>
 			</template>
+
+			<template is="dom-repeat" items="[[vloops]]">
+			<venomous-loop index$="[[index]]" name="[[item.name]]" left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}">
+			</venomous-loop>
+	    	</template>
 
 	    </div>
 	</div>
@@ -36453,6 +36607,18 @@ if (!Array.prototype.findIndex) {
 			    xw.writeEndElement(); 
 			  }
 			  
+			  for(var i=0; i<this.vloops.length; i++){
+			  	var v = this.vloops[i];
+			  	xw.writeStartElement('box')
+			    xw.writeAttributeString('name', v.name);
+			    xw.writeAttributeString('left', v.left);
+			    xw.writeAttributeString('top', v.top);
+				xw.writeAttributeString('width ', v.width);
+				xw.writeAttributeString('height', v.height);
+			    xw.writeEndElement(); 
+			  }
+			  
+
 			  xw.writeStartElement("offset");
 			  xw.writeAttributeString("left", this.offset_left);
 			  xw.writeAttributeString("top", this.offset_top);
@@ -36483,6 +36649,7 @@ if (!Array.prototype.findIndex) {
 			var inputs = {};
 			var computes = {};
 			var aliases = {};
+			var loops = {};
 			var all_vs = {};
 			var edges_ = [];
 			for(var i=0;i< engine.childNodes.length; i++){
@@ -36552,6 +36719,14 @@ if (!Array.prototype.findIndex) {
 					a.edges_before = src.edges_before; // alias the array TODO: somehting more complciated in the long run
 					a.edges_after = src.edges_after; // alias the array
 					aliases[a.name] = a;
+				}else if(node_name == "loop"){
+					var v = {name: getAttr(node, 'name'),
+							 top: 0,
+							 left: 0,
+							 width: 100,
+							 height: 100
+							};
+					loops[v.name] = v;
 				}
 			}	
 
@@ -36567,8 +36742,15 @@ if (!Array.prototype.findIndex) {
 					var node_name = node.nodeName.toLowerCase(); 
 					if(node_name == "box"){
 						var name = getAttr(node,"name");
-						all_vs[name].left = parseFloat(getAttr(node,"left"));
-					    all_vs[name].top = parseFloat(getAttr(node,"top"));	
+						if(name in all_vs){
+							all_vs[name].left = parseFloat(getAttr(node,"left"));
+						    all_vs[name].top = parseFloat(getAttr(node,"top"));	
+						}else if(name in loops){
+							loops[name].left = parseFloat(getAttr(node,"left"));
+							loops[name].top = parseFloat(getAttr(node,"top"));
+							loops[name].width = parseFloat(getAttr(node,"width"));
+							loops[name].height = parseFloat(getAttr(node,"height"));	
+						}
 					}else if(node_name == "offset"){
 						this.set("offset_left", parseFloat(getAttr(node, "left")));
 						this.set("offset_top", parseFloat(getAttr(node, "top")));
@@ -36577,6 +36759,8 @@ if (!Array.prototype.findIndex) {
 			}
 			this.set('vedges', edges_);
 			this.set('vnodes', 	push_objs_vals_onto_array([], all_vs));
+			this.set('vloops', 	push_objs_vals_onto_array([], loops));
+			
       		return this.fire('error', {type: 'not-implemented', msg: 'need to actually finish implement parsing.'});
       },
       _vnodes_changed_sub: function(v){
@@ -36638,6 +36822,9 @@ if (!Array.prototype.findIndex) {
       		vedges: {type: Array,
       		        value: function() {return [];},
       		        notify: true},
+      		vloops: {type: Array,
+      				value: function() {return [];},
+      				notify: true},
       		offset_left: {type: Number,
       					  value: origin.x,
       					  notify: true,
