@@ -1,4 +1,4 @@
-<!DOCTYPE html><html style="height:100%;"><head>
+<!DOCTYPE html><html style="height:100%;"><head><meta charset="UTF-8">
     <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
     <script>(function () {
 function resolve() {
@@ -534,8 +534,6 @@ this._setupDebouncers();
 this._marshalBehaviors();
 }
 });</script>
-
-
 
 <script>Polymer.Base._addFeature({
 _prepTemplate: function () {
@@ -1998,8 +1996,6 @@ this._tryReady();
 _marshalBehavior: function (b) {
 }
 });</script>
-
-
 
 <script>Polymer.nar = [];
 Polymer.Annotations = {
@@ -6056,10 +6052,6 @@ this._insertChildren();
 this.fire('dom-change');
 }
 });</script>
-
-    
-
-
 <script src="bower_components/promise-polyfill/Promise.js"></script>
 <script>
 if (!window.Promise) {
@@ -6067,14 +6059,6 @@ if (!window.Promise) {
 }
 </script>
 
-
-<!--
-iron-request can be used to perform XMLHttpRequests.
-
-    <iron-request id="xhr"></iron-request>
-    ...
-    this.$.xhr.send({url: url, params: params});
--->
 <script>
   'use strict'
 
@@ -6429,31 +6413,6 @@ iron-request can be used to perform XMLHttpRequests.
 </script>
 
 
-
-<!--
-The `iron-ajax` element exposes network request functionality.
-
-    <iron-ajax
-        auto
-        url="http://gdata.youtube.com/feeds/api/videos/"
-        params='{"alt":"json", "q":"chrome"}'
-        handle-as="json"
-        on-response="handleResponse"
-        debounce-duration="300"></iron-ajax>
-
-With `auto` set to `true`, the element performs a request whenever
-its `url`, `params` or `body` properties are changed. Automatically generated
-requests will be debounced in the case that multiple attributes are changed
-sequentially.
-
-Note: The `params` attribute must be double quoted JSON.
-
-You can trigger a request explicitly by calling `generateRequest` on the
-element.
-
-@demo demo/index.html
-@hero hero.svg
--->
 
 <script>
   'use strict';
@@ -6870,13 +6829,8 @@ element.
 
   });
 </script>
-
-    
-
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700">
-
-
 <style is="custom-style">
 
   :root {
@@ -7105,55 +7059,6 @@ element.
 
 
 
-<!--
-`iron-a11y-announcer` is a singleton element that is intended to add a11y
-to features that require on-demand announcement from screen readers. In
-order to make use of the announcer, it is best to request its availability
-in the announcing element.
-
-Example:
-
-    Polymer({
-
-      is: 'x-chatty',
-
-      attached: function() {
-        // This will create the singlton element if it has not
-        // been created yet:
-        Polymer.IronA11yAnnouncer.requestAvailability();
-      }
-    });
-
-After the `iron-a11y-announcer` has been made available, elements can
-make announces by firing bubbling `iron-announce` events.
-
-Example:
-
-    this.fire('iron-announce', {
-      text: 'This is an announcement!'
-    }, { bubbles: true });
-
-Note: announcements are only audible if you have a screen reader enabled.
-
-@group Iron Elements
-@demo demo/index.html
--->
-
-
-
-<!--
-`paper-toast` provides a subtle notification toast.
-
-@group Paper Elements
-@element paper-toast
-@demo demo/index.html
-@hero hero.svg
--->
-
-    
-
-
-
 <style is="custom-style">
 
   :root {
@@ -7207,26 +7112,6 @@ Note: announcements are only audible if you have a screen reader enabled.
   }
 
 </style>
-
-
-<!--
-
-`paper-material` is a container that renders two shadows on top of each other to
-create the effect of a lifted piece of paper.
-
-Example:
-
-    <paper-material elevation="1">
-      ... content ...
-    </paper-material>
-
-@group Paper Elements
-@class paper-material
-@demo demo/index.html
--->
-
-
-
 
 
 <script>
@@ -7640,68 +7525,6 @@ Example:
 </script>
 
 
-<!--
-`paper-ripple` provides a visual effect that other paper elements can
-use to simulate a rippling effect emanating from the point of contact.  The
-effect can be visualized as a concentric circle with motion.
-
-Example:
-
-    <paper-ripple></paper-ripple>
-
-`paper-ripple` listens to "mousedown" and "mouseup" events so it would display ripple
-effect when touches on it.  You can also defeat the default behavior and
-manually route the down and up actions to the ripple element.  Note that it is
-important if you call downAction() you will have to make sure to call
-upAction() so that `paper-ripple` would end the animation loop.
-
-Example:
-
-    <paper-ripple id="ripple" style="pointer-events: none;"></paper-ripple>
-    ...
-    downAction: function(e) {
-      this.$.ripple.downAction({x: e.x, y: e.y});
-    },
-    upAction: function(e) {
-      this.$.ripple.upAction();
-    }
-
-Styling ripple effect:
-
-  Use CSS color property to style the ripple:
-
-    paper-ripple {
-      color: #4285f4;
-    }
-
-  Note that CSS color property is inherited so it is not required to set it on
-  the `paper-ripple` element directly.
-
-By default, the ripple is centered on the point of contact.  Apply the `recenters`
-attribute to have the ripple grow toward the center of its container.
-
-    <paper-ripple recenters></paper-ripple>
-
-You can also  center the ripple inside its container from the start.
-
-    <paper-ripple center></paper-ripple>
-
-Apply `circle` class to make the rippling effect within a circle.
-
-    <paper-ripple class="circle"></paper-ripple>
-
-@group Paper Elements
-@element paper-ripple
-@hero hero.svg
-@demo demo/index.html
--->
-
-
-
-
-
-
-
 <script>
 
   /**
@@ -7792,8 +7615,6 @@ Apply `circle` class to make the rippling effect within a circle.
   };
 
 </script>
-
-
 <script>
 
   /**
@@ -7996,8 +7817,6 @@ Apply `circle` class to make the rippling effect within a circle.
   ];
 
 </script>
-
-
 <script>
 
   /** @polymerBehavior */
@@ -8043,108 +7862,7 @@ Apply `circle` class to make the rippling effect within a circle.
 </script>
 
 
-<!--
 
-Material Design: <a href="http://www.google.com/design/spec/components/buttons.html">Buttons</a>
-
-`paper-button` is a button. When the user touches the button, a ripple effect emanates
-from the point of contact. It may be flat or raised. A raised button is styled with a
-shadow.
-
-Example:
-
-    <paper-button>flat button</paper-button>
-    <paper-button raised>raised button</paper-button>
-    <paper-button noink>No ripple effect</paper-button>
-    <paper-button toggles>toggle-able button</paper-button>
-
-A button that has `toggles` true will remain `active` after being clicked (and
-will have an `active` attribute set). For more information, see the `Polymer.IronButtonState`
-behavior.
-
-You may use custom DOM in the button body to create a variety of buttons. For example, to
-create a button with an icon and some text:
-
-    <paper-button>
-      <iron-icon icon="favorite"></iron-icon>
-      custom button content
-    </paper-button>
-
-### Styling
-
-Style the button with CSS as you would a normal DOM element.
-
-    /* make #my-button green with yellow text */
-    #my-button {
-        background: green;
-        color: yellow;
-    }
-
-By default, the ripple is the same color as the foreground at 25% opacity. You may
-customize the color using this selector:
-
-    /* make #my-button use a blue ripple instead of foreground color */
-    #my-button::shadow paper-ripple {
-      color: blue;
-    }
-
-The opacity of the ripple is not customizable via CSS.
-
-The following custom properties and mixins are also available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-button-flat-focus-color` | Background color of a focused flat button | `--paper-grey-200`
-`--paper-button` | Mixin applied to the button | `{}`
-`--paper-button-disabled` | Mixin applied to the disabled button | `{}`
-
-@demo demo/index.html
--->
-
-
-    
-
-
-<!--
-`iron-meta` is a generic element you can use for sharing information across the DOM tree.
-It uses [monostate pattern](http://c2.com/cgi/wiki?MonostatePattern) such that any
-instance of iron-meta has access to the shared
-information. You can use `iron-meta` to share whatever you want (or create an extension
-[like x-meta] for enhancements).
-
-The `iron-meta` instances containing your actual data can be loaded in an import,
-or constructed in any way you see fit. The only requirement is that you create them
-before you try to access them.
-
-Examples:
-
-If I create an instance like this:
-
-    <iron-meta key="info" value="foo/bar"></iron-meta>
-
-Note that value="foo/bar" is the metadata I've defined. I could define more
-attributes or use child nodes to define additional metadata.
-
-Now I can access that element (and it's metadata) from any iron-meta instance
-via the byKey method, e.g.
-
-    meta.byKey('info').getAttribute('value').
-
-Pure imperative form would be like:
-
-    document.createElement('iron-meta').byKey('info').getAttribute('value');
-
-Or, in a Polymer element, you can include a meta in your template:
-
-    <iron-meta id="meta"></iron-meta>
-    ...
-    this.$.meta.byKey('info').getAttribute('value');
-
-@group Iron Elements
-@demo demo/index.html
-@hero hero.svg
-@element iron-meta
--->
 
 <script>
 
@@ -8410,9 +8128,6 @@ Or, in a Polymer element, you can include a meta in your template:
 
   })();
 </script>
-
-
-
 <style is="custom-style">
 
   :root {
@@ -8716,73 +8431,6 @@ Or, in a Polymer element, you can include a meta in your template:
 </style>
 
 
-<!--
-
-The `iron-icon` element displays an icon. By default an icon renders as a 24px square.
-
-Example using src:
-
-    <iron-icon src="star.png"></iron-icon>
-
-Example setting size to 32px x 32px:
-
-    <iron-icon class="big" src="big_star.png"></iron-icon>
-
-    <style is="custom-style">
-      .big {
-        --iron-icon-height: 32px;
-        --iron-icon-width: 32px;
-      }
-    </style>
-
-The iron elements include several sets of icons.
-To use the default set of icons, import  `iron-icons.html` and use the `icon` attribute to specify an icon:
-
-    &lt;!-- import default iconset and iron-icon --&gt;
-    <link rel="import" href="/components/iron-icons/iron-icons.html">
-
-    <iron-icon icon="menu"></iron-icon>
-
-To use a different built-in set of icons, import  `iron-icons/<iconset>-icons.html`, and
-specify the icon as `<iconset>:<icon>`. For example:
-
-    &lt;!-- import communication iconset and iron-icon --&gt;
-    <link rel="import" href="/components/iron-icons/communication-icons.html">
-
-    <iron-icon icon="communication:email"></iron-icon>
-
-You can also create custom icon sets of bitmap or SVG icons.
-
-Example of using an icon named `cherry` from a custom iconset with the ID `fruit`:
-
-    <iron-icon icon="fruit:cherry"></iron-icon>
-
-See [iron-iconset](#iron-iconset) and [iron-iconset-svg](#iron-iconset-svg) for more information about
-how to create a custom iconset.
-
-See [iron-icons](https://elements.polymer-project.org/elements/iron-icons?view=demo:demo/index.html) for the default set of icons.
-
-
-### Styling
-
-The following custom properties are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--iron-icon-width` | Width of the icon | `24px`
-`--iron-icon-height` | Height of the icon | `24px`
-
-@group Iron Elements
-@element iron-icon
-@demo demo/index.html
-@hero hero.svg
-@homepage polymer.github.io
--->
-
-
-
-
-
 <script>
   /**
    * The `iron-iconset-svg` element allows users to define their own icon sets
@@ -8962,10 +8610,6 @@ Custom property | Description | Default
 
   });
 </script>
-
-    
-    
-
 <style>
 
   /*******************************
@@ -9259,8 +8903,6 @@ Custom property | Description | Default
   }
 
 </style>
-
-
 <style>
 
   /*******************************
@@ -9556,9 +9198,6 @@ Custom property | Description | Default
   }
 
 </style>
-
-
-
 <style is="custom-style">
 
   :root {
@@ -9586,9 +9225,6 @@ Custom property | Description | Default
   }
 
 </style>
-
-
-
 <style is="custom-style">
 
   :root {
@@ -9912,56 +9548,6 @@ Custom property | Description | Default
 </style>
 
 
-
-
-
-<!--
-Material Design: <a href="http://www.google.com/design/spec/components/buttons.html">Button</a>
-
-`paper-fab` is a floating action button. It contains an image placed in the center and
-comes in two sizes: regular size and a smaller size by applying the attribute `mini`. When
-the user touches the button, a ripple effect emanates from the center of the button.
-
-You may import `iron-icons` to use with this element, or provide a URL to a custom icon.
-See `iron-iconset` for more information about how to use a custom icon set.
-
-Example:
-
-    <link href="path/to/iron-icons/iron-icons.html" rel="import">
-
-    <paper-fab icon="add"></paper-fab>
-    <paper-fab mini icon="favorite"></paper-fab>
-    <paper-fab src="star.png"></paper-fab>
-
-
-### Styling
-
-The following custom properties and mixins are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-fab-background` | The background color of the button | `--accent-color`
-`--paper-fab-keyboard-focus-background` | The background color of the button when focused | `--paper-pink-900`
-`--paper-fab-disabled-background` | The background color of the button when it's disabled | `--paper-grey-300`
-`--paper-fab-disabled-text` | The text color of the button when it's disabled | `--paper-grey-500`
-`--paper-fab` | Mixin applied to the button | `{}`
-`--paper-fab-mini` | Mixin applied to a mini button | `{}`
-`--paper-fab-disabled` | Mixin applied to a disabled button | `{}`
-
-@group Paper Elements
-@demo demo/index.html
-
--->
-
-
-    
-
-
-
-
-
-
-
 <script>
 
   /**
@@ -10034,14 +9620,8 @@ Custom property | Description | Default
   };
 
 </script>
-
 <script src="bower_components/web-animations-js/web-animations-next-lite.min.js"></script>
 
-
-<!--
-`<opaque-animation>` makes an element `opacity:1` for the duration of the animation. Used to prevent
-webkit/safari from drawing a frame before an animation for elements that animate from display:none.
--->
 
 <script>
 
@@ -10070,8 +9650,6 @@ webkit/safari from drawing a frame before an animation for elements that animate
   });
 
 </script>
-
-
 <script>
 
   /**
@@ -10216,8 +9794,6 @@ webkit/safari from drawing a frame before an animation for elements that animate
   };
 
 </script>
-
-
 <script>
 
   /**
@@ -10325,11 +9901,6 @@ webkit/safari from drawing a frame before an animation for elements that animate
     Polymer.NeonAnimationRunnerBehaviorImpl
   ];
 </script>
-
-
-
-
-
 <script>
 
 /**
@@ -10574,9 +10145,6 @@ CSS properties               | Action
   };
 
 </script>
-
-
-
 <script>
   /**
    * `IronResizableBehavior` is a behavior that can be used in Polymer elements to
@@ -10758,10 +10326,6 @@ CSS properties               | Action
   };
 </script>
 
-
-
-
-
 <script>
 
   Polymer.IronOverlayManager = (function() {
@@ -10857,25 +10421,6 @@ CSS properties               | Action
   })();
 
 </script>
-
-
-<!--
-`iron-overlay-backdrop` is a backdrop used by `Polymer.IronOverlayBehavior`. It should be a
-singleton.
-
-### Styling
-
-The following custom properties and mixins are available for styling.
-
-Custom property | Description | Default
--------------------------------------------|------------------------|---------
-`--iron-overlay-backdrop-background-color` | Backdrop background color                                     | #000
-`--iron-overlay-backdrop-opacity`          | Backdrop opacity                                              | 0.6
-`--iron-overlay-backdrop`                  | Mixin applied to `iron-overlay-backdrop`.                      | {}
-`--iron-overlay-backdrop-opened`           | Mixin applied to `iron-overlay-backdrop` when it is displayed | {}
--->
-
-
 
 
 <script>
@@ -11296,16 +10841,6 @@ context. You should place this element as a child of `<body>` whenever possible.
 
 
 </script>
-
-
-
-
-
-
-
-
-
-
 <script>
 
 /**
@@ -11533,80 +11068,12 @@ The `aria-labelledby` attribute will be set to the header element, if one exists
 </script>
 
 
-
-<!--
-`<paper-dialog>` is a dialog with Material Design styling and optional animations when it is
-opened or closed. It provides styles for a header, content area, and an action area for buttons.
-You can use the `<paper-dialog-scrollable` element (in its own repository) if you need a scrolling
-content area. See `Polymer.PaperDialogBehavior` for specifics.
-
-For example, the following code implements a dialog with a header, scrolling content area and
-buttons.
-
-    <paper-dialog>
-      <h2>Header</h2>
-      <paper-dialog-scrollable>
-        Lorem ipsum...
-      </paper-dialog-scrollable>
-      <div class="buttons">
-        <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button dialog-confirm>Accept</paper-button>
-      </div>
-    </paper-dialog>
-
-### Styling
-
-See the docs for `Polymer.PaperDialogBehavior` for the custom properties available for styling
-this element.
-
-### Animations
-
-Set the `entry-animation` and/or `exit-animation` attributes to add an animation when the dialog
-is opened or closed. See the documentation in
-[PolymerElements/neon-animation](https://github.com/PolymerElements/neon-animation) for more info.
-
-For example:
-
-    <link rel="import" href="components/neon-animation/animations/scale-up-animation.html">
-    <link rel="import" href="components/neon-animation/animations/fade-out-animation.html">
-
-    <paper-dialog entry-animation="scale-up-animation"
-                  exit-animation="fade-out-animation">
-      <h2>Header</h2>
-      <div>Dialog body</div>
-    </paper-dialog>
-
-### Accessibility
-
-See the docs for `Polymer.PaperDialogBehavior` for accessibility features implemented by this
-element.
-
-@group Paper Elements
-@element paper-dialog
-@hero hero.svg
-@demo demo/index.html
--->
-
-
-    <script src="bower_components/codemirror/lib/codemirror.js"></script>
+<script src="bower_components/codemirror/lib/codemirror.js"></script>
 <script src="bower_components/codemirror/mode/css/css.js"></script>
 <script src="bower_components/codemirror/mode/javascript/javascript.js"></script>
 <script src="bower_components/codemirror/mode/xml/xml.js"></script>
 <script src="bower_components/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-
-<script src="bower_components/expandjs/dist/expandjs.min.js"></script>
-
-
-
-
-
-
-
-
-
-
-
-<script>
+<script src="bower_components/expandjs/dist/expandjs.min.js"></script><script>
     Polymer.MatPalette = {
 
         /**
@@ -11926,12 +11393,7 @@ element.
             }
         }
     };
-</script>
-
-
-
-
-<style>
+</script><style>
     html {
         background: hsla(0, 0%, 93%, 1);
         color: hsla(0, 0%, 0%, 0.87);
@@ -12105,11 +11567,7 @@ element.
         };
 
     }
-</style>
-
-
-
-<script>
+</style><script>
     Polymer.XPSharedBehavior = {
 
         /**
@@ -12172,11 +11630,7 @@ element.
             this.push('sharers', this);
         }
     };
-</script>
-
-
-
-<script>
+</script><script>
     Polymer({
 
         // ELEMENT
@@ -12288,13 +11742,7 @@ element.
             XP.delay(function () { self.master.fire('xp-slave-state', {firer: self.domHost, coupler: self._decouple.bind(self), masterSelector: self.masterSelector, masterTag: self.masterTag, isAttached: false}); });
         }
     });
-</script>
-
-
-
-
-
-<script>
+</script><script>
     Polymer.XPAdapterBehavior = {
 
         /**
@@ -12339,15 +11787,7 @@ element.
             }
         }
     };
-</script>
-
-
-
-
-
-
-
-<script>
+</script><script>
     Polymer.XPArrayBehavior = {
 
         /**
@@ -12416,23 +11856,7 @@ element.
             return index < this[array].length ? this.splice(array, index, 1)[0] : undefined;
         }
     };
-</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<script>
+</script><script>
     Polymer.XPAnchorBehavior = {
 
         /**
@@ -12529,13 +11953,7 @@ element.
             }
         }
     };
-</script>
-
-
-
-
-
-<script>
+</script><script>
     Polymer.XPFocusedBehavior = {
 
         // LISTENERS
@@ -12640,11 +12058,7 @@ element.
             this._setFocused(!this.disabled);
         }
     };
-</script>
-
-
-
-<script>
+</script><script>
     Polymer.XPTargeterBehavior = {
 
         /**
@@ -12683,9 +12097,7 @@ element.
             }
         }
     };
-</script>
-
-<script>
+</script><script>
     Polymer.XPPressedBehaviorImp = {
 
         /**
@@ -12839,11 +12251,7 @@ element.
         Polymer.XPTargeterBehavior,
         Polymer.XPPressedBehaviorImp
     ];
-</script>
-
-
-
-<script>
+</script><script>
     Polymer.XPReferralBehavior = {
 
         // PROPERTIES
@@ -12862,30 +12270,7 @@ element.
             }
         }
     };
-</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<style is="custom-style">
+</script><style is="custom-style">
     :root {
 
         --mat-shadow-z1: {
@@ -13033,13 +12418,7 @@ element.
         };
 
     }
-</style>
-
-
-
-
-
-<script>
+</style><script>
     Polymer({
 
         // ELEMENT
@@ -13157,16 +12536,7 @@ element.
             event.stopPropagation();
         }
     });
-</script>
-
-
-
-
-
-
-
-
-<script>
+</script><script>
     Polymer.XPInputBehaviorImp = {
 
         /**
@@ -13904,471 +13274,12 @@ element.
         Polymer.XPAdapterBehavior,
         Polymer.XPInputBehaviorImp
     ];
-</script>
-<style>/* BASICS */
+</script><link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="bower_components/codemirror/theme/ambiance.css">
 
-.CodeMirror {
-  /* Set height, width, borders, and global font properties here */
-  font-family: monospace;
-  height: 300px;
-  color: black;
-}
-
-/* PADDING */
-
-.CodeMirror-lines {
-  padding: 4px 0; /* Vertical padding around content */
-}
-.CodeMirror pre {
-  padding: 0 4px; /* Horizontal padding of content */
-}
-
-.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
-  background-color: white; /* The little square between H and V scrollbars */
-}
-
-/* GUTTER */
-
-.CodeMirror-gutters {
-  border-right: 1px solid #ddd;
-  background-color: #f7f7f7;
-  white-space: nowrap;
-}
-.CodeMirror-linenumbers {}
-.CodeMirror-linenumber {
-  padding: 0 3px 0 5px;
-  min-width: 20px;
-  text-align: right;
-  color: #999;
-  white-space: nowrap;
-}
-
-.CodeMirror-guttermarker { color: black; }
-.CodeMirror-guttermarker-subtle { color: #999; }
-
-/* CURSOR */
-
-.CodeMirror div.CodeMirror-cursor {
-  border-left: 1px solid black;
-}
-/* Shown when moving in bi-directional text */
-.CodeMirror div.CodeMirror-secondarycursor {
-  border-left: 1px solid silver;
-}
-.CodeMirror.cm-fat-cursor div.CodeMirror-cursor {
-  width: auto;
-  border: 0;
-  background: #7e7;
-}
-.CodeMirror.cm-fat-cursor div.CodeMirror-cursors {
-  z-index: 1;
-}
-
-.cm-animate-fat-cursor {
-  width: auto;
-  border: 0;
-  -webkit-animation: blink 1.06s steps(1) infinite;
-  -moz-animation: blink 1.06s steps(1) infinite;
-  animation: blink 1.06s steps(1) infinite;
-  background-color: #7e7;
-}
-@-moz-keyframes blink {
-  0% {}
-  50% { background-color: transparent; }
-  100% {}
-}
-@-webkit-keyframes blink {
-  0% {}
-  50% { background-color: transparent; }
-  100% {}
-}
-@keyframes blink {
-  0% {}
-  50% { background-color: transparent; }
-  100% {}
-}
-
-/* Can style cursor different in overwrite (non-insert) mode */
-div.CodeMirror-overwrite div.CodeMirror-cursor {}
-
-.cm-tab { display: inline-block; text-decoration: inherit; }
-
-.CodeMirror-ruler {
-  border-left: 1px solid #ccc;
-  position: absolute;
-}
-
-/* DEFAULT THEME */
-
-.cm-s-default .cm-header {color: blue;}
-.cm-s-default .cm-quote {color: #090;}
-.cm-negative {color: #d44;}
-.cm-positive {color: #292;}
-.cm-header, .cm-strong {font-weight: bold;}
-.cm-em {font-style: italic;}
-.cm-link {text-decoration: underline;}
-.cm-strikethrough {text-decoration: line-through;}
-
-.cm-s-default .cm-keyword {color: #708;}
-.cm-s-default .cm-atom {color: #219;}
-.cm-s-default .cm-number {color: #164;}
-.cm-s-default .cm-def {color: #00f;}
-.cm-s-default .cm-variable,
-.cm-s-default .cm-punctuation,
-.cm-s-default .cm-property,
-.cm-s-default .cm-operator {}
-.cm-s-default .cm-variable-2 {color: #05a;}
-.cm-s-default .cm-variable-3 {color: #085;}
-.cm-s-default .cm-comment {color: #a50;}
-.cm-s-default .cm-string {color: #a11;}
-.cm-s-default .cm-string-2 {color: #f50;}
-.cm-s-default .cm-meta {color: #555;}
-.cm-s-default .cm-qualifier {color: #555;}
-.cm-s-default .cm-builtin {color: #30a;}
-.cm-s-default .cm-bracket {color: #997;}
-.cm-s-default .cm-tag {color: #170;}
-.cm-s-default .cm-attribute {color: #00c;}
-.cm-s-default .cm-hr {color: #999;}
-.cm-s-default .cm-link {color: #00c;}
-
-.cm-s-default .cm-error {color: #f00;}
-.cm-invalidchar {color: #f00;}
-
-.CodeMirror-composing { border-bottom: 2px solid; }
-
-/* Default styles for common addons */
-
-div.CodeMirror span.CodeMirror-matchingbracket {color: #0f0;}
-div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
-.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }
-.CodeMirror-activeline-background {background: #e8f2ff;}
-
-/* STOP */
-
-/* The rest of this file contains styles related to the mechanics of
-   the editor. You probably shouldn't touch them. */
-
-.CodeMirror {
-  position: relative;
-  overflow: hidden;
-  background: white;
-}
-
-.CodeMirror-scroll {
-  overflow: scroll !important; /* Things will break if this is overridden */
-  /* 30px is the magic margin used to hide the element's real scrollbars */
-  /* See overflow: hidden in .CodeMirror */
-  margin-bottom: -30px; margin-right: -30px;
-  padding-bottom: 30px;
-  height: 100%;
-  outline: none; /* Prevent dragging from highlighting the element */
-  position: relative;
-}
-.CodeMirror-sizer {
-  position: relative;
-  border-right: 30px solid transparent;
-}
-
-/* The fake, visible scrollbars. Used to force redraw during scrolling
-   before actuall scrolling happens, thus preventing shaking and
-   flickering artifacts. */
-.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
-  position: absolute;
-  z-index: 6;
-  display: none;
-}
-.CodeMirror-vscrollbar {
-  right: 0; top: 0;
-  overflow-x: hidden;
-  overflow-y: scroll;
-}
-.CodeMirror-hscrollbar {
-  bottom: 0; left: 0;
-  overflow-y: hidden;
-  overflow-x: scroll;
-}
-.CodeMirror-scrollbar-filler {
-  right: 0; bottom: 0;
-}
-.CodeMirror-gutter-filler {
-  left: 0; bottom: 0;
-}
-
-.CodeMirror-gutters {
-  position: absolute; left: 0; top: 0;
-  z-index: 3;
-}
-.CodeMirror-gutter {
-  white-space: normal;
-  height: 100%;
-  display: inline-block;
-  margin-bottom: -30px;
-  /* Hack to make IE7 behave */
-  *zoom:1;
-  *display:inline;
-}
-.CodeMirror-gutter-wrapper {
-  position: absolute;
-  z-index: 4;
-  background: none !important;
-  border: none !important;
-}
-.CodeMirror-gutter-background {
-  position: absolute;
-  top: 0; bottom: 0;
-  z-index: 4;
-}
-.CodeMirror-gutter-elt {
-  position: absolute;
-  cursor: default;
-  z-index: 4;
-}
-.CodeMirror-gutter-wrapper {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-}
-
-.CodeMirror-lines {
-  cursor: text;
-  min-height: 1px; /* prevents collapsing before first draw */
-}
-.CodeMirror pre {
-  /* Reset some styles that the rest of the page might have set */
-  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;
-  border-width: 0;
-  background: transparent;
-  font-family: inherit;
-  font-size: inherit;
-  margin: 0;
-  white-space: pre;
-  word-wrap: normal;
-  line-height: inherit;
-  color: inherit;
-  z-index: 2;
-  position: relative;
-  overflow: visible;
-  -webkit-tap-highlight-color: transparent;
-}
-.CodeMirror-wrap pre {
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  word-break: normal;
-}
-
-.CodeMirror-linebackground {
-  position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
-  z-index: 0;
-}
-
-.CodeMirror-linewidget {
-  position: relative;
-  z-index: 2;
-  overflow: auto;
-}
-
-.CodeMirror-widget {}
-
-.CodeMirror-code {
-  outline: none;
-}
-
-/* Force content-box sizing for the elements where we expect it */
-.CodeMirror-scroll,
-.CodeMirror-sizer,
-.CodeMirror-gutter,
-.CodeMirror-gutters,
-.CodeMirror-linenumber {
-  -moz-box-sizing: content-box;
-  box-sizing: content-box;
-}
-
-.CodeMirror-measure {
-  position: absolute;
-  width: 100%;
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
-}
-.CodeMirror-measure pre { position: static; }
-
-.CodeMirror div.CodeMirror-cursor {
-  position: absolute;
-  border-right: none;
-  width: 0;
-}
-
-div.CodeMirror-cursors {
-  visibility: hidden;
-  position: relative;
-  z-index: 3;
-}
-.CodeMirror-focused div.CodeMirror-cursors {
-  visibility: visible;
-}
-
-.CodeMirror-selected { background: #d9d9d9; }
-.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }
-.CodeMirror-crosshair { cursor: crosshair; }
-.CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: #d7d4f0; }
-.CodeMirror-line::-moz-selection, .CodeMirror-line > span::-moz-selection, .CodeMirror-line > span > span::-moz-selection { background: #d7d4f0; }
-
-.cm-searching {
-  background: #ffa;
-  background: rgba(255, 255, 0, .4);
-}
-
-/* IE7 hack to prevent it from returning funny offsetTops on the spans */
-.CodeMirror span { *vertical-align: text-bottom; }
-
-/* Used to force a border model for a node */
-.cm-force-border { padding-right: .1px; }
-
-@media print {
-  /* Hide the cursor when printing */
-  .CodeMirror div.CodeMirror-cursors {
-    visibility: hidden;
-  }
-}
-
-/* See issue #2901 */
-.cm-tab-wrap-hack:after { content: ''; }
-
-/* Help users use markselection to safely style text background */
-span.CodeMirror-selectedtext { background: none; }
-</style>
-<style>/* ambiance theme for codemirror */
-
-/* Color scheme */
-
-.cm-s-ambiance .cm-header {color: blue;}
-.cm-s-ambiance .cm-quote { color: #24C2C7; }
-
-.cm-s-ambiance .cm-keyword { color: #cda869; }
-.cm-s-ambiance .cm-atom { color: #CF7EA9; }
-.cm-s-ambiance .cm-number { color: #78CF8A; }
-.cm-s-ambiance .cm-def { color: #aac6e3; }
-.cm-s-ambiance .cm-variable { color: #ffb795; }
-.cm-s-ambiance .cm-variable-2 { color: #eed1b3; }
-.cm-s-ambiance .cm-variable-3 { color: #faded3; }
-.cm-s-ambiance .cm-property { color: #eed1b3; }
-.cm-s-ambiance .cm-operator {color: #fa8d6a;}
-.cm-s-ambiance .cm-comment { color: #555; font-style:italic; }
-.cm-s-ambiance .cm-string { color: #8f9d6a; }
-.cm-s-ambiance .cm-string-2 { color: #9d937c; }
-.cm-s-ambiance .cm-meta { color: #D2A8A1; }
-.cm-s-ambiance .cm-qualifier { color: yellow; }
-.cm-s-ambiance .cm-builtin { color: #9999cc; }
-.cm-s-ambiance .cm-bracket { color: #24C2C7; }
-.cm-s-ambiance .cm-tag { color: #fee4ff }
-.cm-s-ambiance .cm-attribute {  color: #9B859D; }
-.cm-s-ambiance .cm-hr { color: pink; }
-.cm-s-ambiance .cm-link { color: #F4C20B; }
-.cm-s-ambiance .cm-special { color: #FF9D00; }
-.cm-s-ambiance .cm-error { color: #AF2018; }
-
-.cm-s-ambiance .CodeMirror-matchingbracket { color: #0f0; }
-.cm-s-ambiance .CodeMirror-nonmatchingbracket { color: #f22; }
-
-.cm-s-ambiance .CodeMirror-selected { background: rgba(255, 255, 255, 0.15); }
-.cm-s-ambiance.CodeMirror-focused .CodeMirror-selected { background: rgba(255, 255, 255, 0.10); }
-.cm-s-ambiance .CodeMirror-line::selection, .cm-s-ambiance .CodeMirror-line > span::selection, .cm-s-ambiance .CodeMirror-line > span > span::selection { background: rgba(255, 255, 255, 0.10); }
-.cm-s-ambiance .CodeMirror-line::-moz-selection, .cm-s-ambiance .CodeMirror-line > span::-moz-selection, .cm-s-ambiance .CodeMirror-line > span > span::-moz-selection { background: rgba(255, 255, 255, 0.10); }
-
-/* Editor styling */
-
-.cm-s-ambiance.CodeMirror {
-  line-height: 1.40em;
-  color: #E6E1DC;
-  background-color: #202020;
-  -webkit-box-shadow: inset 0 0 10px black;
-  -moz-box-shadow: inset 0 0 10px black;
-  box-shadow: inset 0 0 10px black;
-}
-
-.cm-s-ambiance .CodeMirror-gutters {
-  background: #3D3D3D;
-  border-right: 1px solid #4D4D4D;
-  box-shadow: 0 10px 20px black;
-}
-
-.cm-s-ambiance .CodeMirror-linenumber {
-  text-shadow: 0px 1px 1px #4d4d4d;
-  color: #111;
-  padding: 0 5px;
-}
-
-.cm-s-ambiance .CodeMirror-guttermarker { color: #aaa; }
-.cm-s-ambiance .CodeMirror-guttermarker-subtle { color: #111; }
-
-.cm-s-ambiance .CodeMirror-lines .CodeMirror-cursor {
-  border-left: 1px solid #7991E8;
-}
-
-.cm-s-ambiance .CodeMirror-activeline-background {
-  background: none repeat scroll 0% 0% rgba(255, 255, 255, 0.031);
-}
-
-.cm-s-ambiance.CodeMirror,
-.cm-s-ambiance .CodeMirror-gutters {
-  background-image: url("data:image/png;base64,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");
-}
-</style>
-
-
+<script src="bower_components/codemirror/mode/clike/clike.js"></script>
+    <script src="bower_components/codemirror/mode/markdown/markdown.js"></script>
     
-    
-
-
-    
-
-
-<!--
-Material Design: <a href="http://www.google.com/design/spec/components/card.html">Cards</a>
-
-`paper-card` is a container with a drop shadow.
-
-Example:
-
-    <paper-card heading="Card Title">
-      <div class="card-content">Some content</div>
-      <div class="card-actions">
-        <paper-button>Some action</paper-button>
-      </div>
-    </paper-card>
-
-### Accessibility
-
-By default, the `aria-label` will be set to the value of the `heading` attribute.
-
-### Styling
-
-The following custom properties and mixins are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-card-header-color` | The color of the header text | `#000`
-`--paper-card-header` | Mixin applied to the card header section | `{}`
-`--paper-card-content` | Mixin applied to the card content section| `{}`
-`--paper-card-actions` | Mixin applied to the card action section | `{}`
-`--paper-card` | Mixin applied to the card | `{}`
-
-@group Paper Elements
-@element paper-card
-@demo demo/index.html
--->
-
-
-    
-
-
-
-
-
-
-
-
 
 <script>
 
@@ -14473,8 +13384,6 @@ Custom property | Description | Default
   };
 
 </script>
-
-
 <script>
 
   /** @polymerBehavior */
@@ -14770,8 +13679,6 @@ Custom property | Description | Default
   };
 
 </script>
-
-
 <script>
   /** @polymerBehavior Polymer.IronMultiSelectableBehavior */
   Polymer.IronMultiSelectableBehaviorImpl = {
@@ -14879,9 +13786,6 @@ Custom property | Description | Default
   ];
 
 </script>
-
-
-
 <script>
 
   /**
@@ -15082,8 +13986,6 @@ Custom property | Description | Default
   ];
 
 </script>
-
-
 <script>
 
   /**
@@ -15136,16 +14038,6 @@ Custom property | Description | Default
   ];
 
 </script>
-
-
-
-
-
-
-
-
-
-
 <script>
 
   /**
@@ -15180,230 +14072,14 @@ Custom property | Description | Default
 
 
 
-<!--
-Material Design: <a href="http://www.google.com/design/spec/components/buttons.html">Buttons</a>
-
-`paper-icon-button` is a button with an image placed at the center. When the user touches
-the button, a ripple effect emanates from the center of the button.
-
-`paper-icon-button` includes a default icon set.  Use `icon` to specify which icon
-from the icon set to use.
-
-    <paper-icon-button icon="menu"></paper-icon-button>
-
-See [`iron-iconset`](#iron-iconset) for more information about
-how to use a custom icon set.
-
-Example:
-
-    <link href="path/to/iron-icons/iron-icons.html" rel="import">
-
-    <paper-icon-button icon="favorite"></paper-icon-button>
-    <paper-icon-button src="star.png"></paper-icon-button>
-
-###Styling
-
-Style the button with CSS as you would a normal DOM element. If you are using the icons
-provided by `iron-icons`, they will inherit the foreground color of the button.
-
-    /* make a red "favorite" button */
-    <paper-icon-button icon="favorite" style="color: red;"></paper-icon-button>
-
-By default, the ripple is the same color as the foreground at 25% opacity. You may
-customize the color using this selector:
-
-    /* make #my-button use a blue ripple instead of foreground color */
-    #my-button::shadow #ripple {
-      color: blue;
-    }
-
-The opacity of the ripple is not customizable via CSS.
-
-The following custom properties and mixins are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-icon-button-disabled-text` | The color of the disabled button | `--primary-text-color`
-`--paper-icon-button-ink-color` | Selected/focus ripple color | `--default-primary-color`
-`--paper-icon-button` | Mixin for a button | `{}`
-`--paper-icon-button-disabled` | Mixin for a disabled button | `{}`
-
-@group Paper Elements
-@element paper-icon-button
-@demo demo/index.html
--->
 
 
 
 
 
-
-
-
-
-
-
-
-<!--
-`paper-tab` is styled to look like a tab.  It should be used in conjunction with
-`paper-tabs`.
-
-Example:
-
-    <paper-tabs selected="0">
-      <paper-tab>TAB 1</paper-tab>
-      <paper-tab>TAB 2</paper-tab>
-      <paper-tab>TAB 3</paper-tab>
-    </paper-tabs>
-
-### Styling
-
-The following custom properties and mixins are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-tab-ink` | Ink color | `--paper-yellow-a100`
-`--paper-tab` | Mixin applied to the tab | `{}`
-`--paper-tab-content` | Mixin applied to the tab content | `{}`
-
--->
-
-
-
-<!--
-`paper-tabs` makes it easy to explore and switch between different views or functional aspects of
-an app, or to browse categorized data sets.
-
-Use `selected` property to get or set the selected tab.
-
-Example:
-
-    <paper-tabs selected="0">
-      <paper-tab>TAB 1</paper-tab>
-      <paper-tab>TAB 2</paper-tab>
-      <paper-tab>TAB 3</paper-tab>
-    </paper-tabs>
-
-See <a href="#paper-tab">paper-tab</a> for more information about
-`paper-tab`.
-
-A common usage for `paper-tabs` is to use it along with `iron-pages` to switch
-between different views.
-
-    <paper-tabs selected="{{selected}}">
-      <paper-tab>Tab 1</paper-tab>
-      <paper-tab>Tab 2</paper-tab>
-      <paper-tab>Tab 3</paper-tab>
-    </paper-tabs>
-
-    <iron-pages selected="{{selected}}">
-      <div>Page 1</div>
-      <div>Page 2</div>
-      <div>Page 3</div>
-    </iron-pages>
-
-
-To use links in tabs, add `link` attribute to `paper-tab` and put an `<a>`
-element in `paper-tab`.
-
-Example:
-
-    <paper-tabs selected="0">
-      <paper-tab link>
-        <a href="#link1" class="horizontal center-center layout">TAB ONE</a>
-      </paper-tab>
-      <paper-tab link>
-        <a href="#link2" class="horizontal center-center layout">TAB TWO</a>
-      </paper-tab>
-      <paper-tab link>
-        <a href="#link3" class="horizontal center-center layout">TAB THREE</a>
-      </paper-tab>
-    </paper-tabs>
-
-### Styling
-
-The following custom properties and mixins are available for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--paper-tabs-selection-bar-color` | Color for the selection bar | `--paper-yellow-a100`
-`--paper-tabs` | Mixin applied to the tabs | `{}`
-
-@hero hero.svg
-@demo demo/index.html
--->
-
-
-    
-    
-
-
-
-<!--
-`iron-pages` is used to select one of its children to show. One use is to cycle through a list of
-children "pages".
-
-Example:
-
-    <iron-pages selected="0">
-      <div>One</div>
-      <div>Two</div>
-      <div>Three</div>
-    </iron-pages>
-
-    <script>
-      document.addEventListener('click', function(e) {
-        var pages = document.querySelector('iron-pages');
-        pages.selectNext();
-      });
-    </script>
-
-@group Iron Elements
-@class iron-pages
-@hero hero.svg
-@demo demo/index.html
-@extends iron-selector
--->
-
-
-    
 <script src="bower_components/marked/lib/marked.js"></script>
 
-
-<!--
-Element wrapper for the [marked](http://marked.org/) library.
-
-`<marked-element>` accepts Markdown source either via its `markdown` attribute:
-
-    <marked-element markdown="`Markdown` is _awesome_!"></marked-element>
-
-Or, you can provide it via a `<script type="text/markdown">` element child:
-
-    <marked-element>
-      <script type="text/markdown">
-        Check out my markdown!
-
-        We can even embed elements without fear of the HTML parser mucking up their
-        textual representation:
-
-        ```html
-        <awesome-sauce>
-          <div>Oops, I'm about to forget to close this div.
-        </awesome-sauce>
-        ```
-      </script>
-    </marked-element>
-
-Note that the `<script type="text/markdown">` approach is _static_. Changes to
-the script content will _not_ update the rendered markdown!
-@element marked-element
-@group Molecules
-@hero hero.svg
-@demo demo/index.html
--->
-
-    
-    <title>sample [Venomous Explorer]</title>
+<title>sample [Venomous Explorer]</title>
   
   <style type="text/css">
   #the_toast{
@@ -15464,10 +14140,7 @@ the script content will _not_ update the rendered markdown!
   </style>
   </head>
   
-  <body style="height:100%;margin:0;"><div hidden="">
-
-
-<dom-module id="iron-a11y-announcer">
+  <body style="height:100%;margin:0;"><div hidden="" by-vulcanize=""><dom-module id="iron-a11y-announcer" assetpath="bower_components/iron-a11y-announcer/">
   <style>
     :host {
       display: inline-block;
@@ -15546,7 +14219,7 @@ the script content will _not_ update the rendered markdown!
 
   </script>
 </dom-module>
-<dom-module id="paper-toast">
+<dom-module id="paper-toast" assetpath="bower_components/paper-toast/">
   <style>
     :host {
       display: inline-block;
@@ -15688,8 +14361,7 @@ the script content will _not_ update the rendered markdown!
 
 })();
 </script>
-
-<dom-module id="paper-material">
+<dom-module id="paper-material" assetpath="bower_components/paper-material/">
   <style>
     :host {
       display: block;
@@ -15758,17 +14430,9 @@ the script content will _not_ update the rendered markdown!
     }
   });
 </script>
+<dom-module id="paper-ripple" assetpath="bower_components/paper-ripple/">
 
-<dom-module id="paper-ripple">
-
-  <!--
-  Fired when the animation finishes. This is useful if you want to wait until the ripple
-  animation finishes to perform some action.
-
-  @event transitionend
-  @param {Object} detail
-  @param {Object} detail.node The animated node
-  -->
+  
 
   <style>
     :host {
@@ -16407,8 +15071,7 @@ the script content will _not_ update the rendered markdown!
     });
   })();
 </script>
-
-<dom-module id="paper-button">
+<dom-module id="paper-button" assetpath="bower_components/paper-button/">
 
   <style>
 
@@ -16517,9 +15180,7 @@ the script content will _not_ update the rendered markdown!
   });
 
 </script>
-
-
-<dom-module id="iron-icon">
+<dom-module id="iron-icon" assetpath="bower_components/iron-icon/">
 
   <style>
     :host {
@@ -16621,7 +15282,6 @@ the script content will _not_ update the rendered markdown!
   </script>
 
 </dom-module>
-
 <iron-iconset-svg name="icons" size="24">
 <svg><defs>
 <g id="3d-rotation"><path d="M7.52 21.48C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32zm.89-6.52c-.19 0-.37-.03-.52-.08-.16-.06-.29-.13-.4-.24-.11-.1-.2-.22-.26-.37-.06-.14-.09-.3-.09-.47h-1.3c0 .36.07.68.21.95.14.27.33.5.56.69.24.18.51.32.82.41.3.1.62.15.96.15.37 0 .72-.05 1.03-.15.32-.1.6-.25.83-.44s.42-.43.55-.72c.13-.29.2-.61.2-.97 0-.19-.02-.38-.07-.56-.05-.18-.12-.35-.23-.51-.1-.16-.24-.3-.4-.43-.17-.13-.37-.23-.61-.31.2-.09.37-.2.52-.33.15-.13.27-.27.37-.42.1-.15.17-.3.22-.46.05-.16.07-.32.07-.48 0-.36-.06-.68-.18-.96-.12-.28-.29-.51-.51-.69-.2-.19-.47-.33-.77-.43C9.1 8.05 8.76 8 8.39 8c-.36 0-.69.05-1 .16-.3.11-.57.26-.79.45-.21.19-.38.41-.51.67-.12.26-.18.54-.18.85h1.3c0-.17.03-.32.09-.45s.14-.25.25-.34c.11-.09.23-.17.38-.22.15-.05.3-.08.48-.08.4 0 .7.1.89.31.19.2.29.49.29.86 0 .18-.03.34-.08.49-.05.15-.14.27-.25.37-.11.1-.25.18-.41.24-.16.06-.36.09-.58.09H7.5v1.03h.77c.22 0 .42.02.6.07s.33.13.45.23c.12.11.22.24.29.4.07.16.1.35.1.57 0 .41-.12.72-.35.93-.23.23-.55.33-.95.33zm8.55-5.92c-.32-.33-.7-.59-1.14-.77-.43-.18-.92-.27-1.46-.27H12v8h2.3c.55 0 1.06-.09 1.51-.27.45-.18.84-.43 1.16-.76.32-.33.57-.73.74-1.19.17-.47.26-.99.26-1.57v-.4c0-.58-.09-1.1-.26-1.57-.18-.47-.43-.87-.75-1.2zm-.39 3.16c0 .42-.05.79-.14 1.13-.1.33-.24.62-.43.85-.19.23-.43.41-.71.53-.29.12-.62.18-.99.18h-.91V9.12h.97c.72 0 1.27.23 1.64.69.38.46.57 1.12.57 1.99v.4zM12 0l-.66.03 3.81 3.81 1.33-1.33c3.27 1.55 5.61 4.72 5.96 8.48h1.5C23.44 4.84 18.29 0 12 0z"></path></g>
@@ -16890,10 +15550,7 @@ the script content will _not_ update the rendered markdown!
 <g id="zoom-out"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"></path></g>
 </defs></svg>
 </iron-iconset-svg>
-
-
-
-<dom-module id="paper-fab">
+<dom-module id="paper-fab" assetpath="bower_components/paper-fab/">
   <style>
 
     :host {
@@ -16948,7 +15605,7 @@ the script content will _not_ update the rendered markdown!
   <template>
     <paper-ripple></paper-ripple>
     <paper-material class$="[[_computeContentClass(receivedFocusFromKeyboard)]]" elevation="[[_elevation]]" animated="">
-      <iron-icon id="icon" src="bower_components/paper-fab/[[src]]" icon="[[icon]]"></iron-icon>
+      <iron-icon id="icon" src="[[src]]" icon="[[icon]]"></iron-icon>
     </paper-material>
   </template>
 </dom-module>
@@ -17011,12 +15668,7 @@ the script content will _not_ update the rendered markdown!
 
   });
 </script>
-
-
-
-
-
-<dom-module id="iron-overlay-backdrop">
+<dom-module id="iron-overlay-backdrop" assetpath="bower_components/iron-overlay-behavior/">
 
   <style>
 
@@ -17119,69 +15771,9 @@ the script content will _not_ update the rendered markdown!
 })();
 
 </script>
+<dom-module id="paper-dialog" assetpath="bower_components/paper-dialog/">
 
-
-/*
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
-*/
-
-:host {
-  display: block;
-  margin: 24px 40px;
-
-  background: var(--paper-dialog-background-color, --primary-background-color);
-  color: var(--paper-dialog-color, --primary-text-color);
-
-  @apply(--layout-scroll);
-  @apply(--paper-font-body1);
-  @apply(--shadow-elevation-16dp);
-  @apply(--paper-dialog);
-}
-
-:host &gt; ::content &gt; * {
-  margin-top: 20px;
-  padding: 0 24px;
-}
-
-:host &gt; ::content &gt; .no-padding {
-  padding: 0;
-}
-
-:host &gt; ::content &gt; *:first-child {
-  margin-top: 24px;
-}
-
-:host &gt; ::content &gt; *:last-child {
-  margin-bottom: 24px;
-}
-
-:host &gt; ::content h2 {
-  position: relative;
-  margin: 0;
-  @apply(--paper-font-title);
-
-  @apply(--paper-dialog-title);
-}
-
-:host &gt; ::content .buttons {
-  position: relative;
-  padding: 8px 8px 8px 24px;
-  margin: 0;
-
-  color: var(--paper-dialog-button-color, --default-primary-color);
-
-  @apply(--layout-horizontal);
-  @apply(--layout-end-justified);
-}
-<dom-module id="paper-dialog">
-
-  
+  <link rel="import" type="css" href="bower_components/paper-dialog-behavior/paper-dialog-common.css">
 
   <template>
     <content></content>
@@ -17233,12 +15825,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 })();
 
 </script>
-
-
-
-
-
-<dom-module id="mat-ink">
+<dom-module id="mat-ink" assetpath="bower_components/mat-ink/">
 
     <style>
         :host {
@@ -17414,9 +16001,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
-
-<dom-module id="xp-iconset">
+</dom-module><dom-module id="xp-iconset" assetpath="bower_components/xp-iconset/">
 
     <style>
         :host {
@@ -17547,7 +16132,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module><dom-module id="xp-icon">
+</dom-module><dom-module id="xp-icon" assetpath="bower_components/xp-icon/">
 
     <style>
         :host {
@@ -17767,7 +16352,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </script>
 
 </dom-module>
-<dom-module id="mat-icon">
+<dom-module id="mat-icon" assetpath="bower_components/mat-icon/">
 
     <style>
         :host {
@@ -17792,7 +16377,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template>
         <mat-ink id="matIconWrapper" color="[[color]]" disabled="[[disabled]]" opacity="[[_computeOpacity(opacity, raster)]]">
-            <xp-icon id="matIconAdaptee" empty="{{empty}}" name="[[name]]" raster="{{raster}}" src="bower_components/mat-icon/[[src]]"></xp-icon>
+            <xp-icon id="matIconAdaptee" empty="{{empty}}" name="[[name]]" raster="{{raster}}" src="[[src]]"></xp-icon>
         </mat-ink>
     </template>
 
@@ -17918,8 +16503,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </script>
 
 </dom-module>
-
-<dom-module id="mat-ripple">
+<dom-module id="mat-ripple" assetpath="bower_components/mat-ripple/">
 
     <style>
         :host {
@@ -18255,31 +16839,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
+</dom-module><dom-module id="mat-icon-button" assetpath="bower_components/mat-icon-button/">
 
-
-
-
-:host {
-    cursor: pointer;
-    display: inline-block;
-    outline: 0;
-    overflow: visible;
-    position: relative;
-    text-align: left;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-:host([disabled]) {
-    cursor: not-allowed !important;
-    pointer-events: none !important;
-}<dom-module id="mat-icon-button">
-
-    
+    <link rel="import" type="css" href="bower_components/xp-pressed-behavior/xp-pressed-behavior.css">
 
     <style>
         :host {
@@ -18371,8 +16933,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <a id="matIconButtonAnchor" tabindex="-1">
                 <div id="matIconButtonMain">
                     <div id="matIconButtonIcons">
-                        <mat-icon id="matIconButtonIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[icon]]" opacity="[[_computeOpacity(active, dimmed)]]" raster="{{raster}}" src="bower_components/mat-icon-button/[[iconSrc]]"></mat-icon>
-                        <mat-icon id="matIconButtonActiveIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[activeIcon]]" raster="{{activeRaster}}" src="bower_components/mat-icon-button/[[activeIconSrc]]"></mat-icon>
+                        <mat-icon id="matIconButtonIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[icon]]" opacity="[[_computeOpacity(active, dimmed)]]" raster="{{raster}}" src="[[iconSrc]]"></mat-icon>
+                        <mat-icon id="matIconButtonActiveIcon" color="[[_computeColor(active, activeColor, color)]]" disabled="[[disabled]]" name="[[activeIcon]]" raster="{{activeRaster}}" src="[[activeIconSrc]]"></mat-icon>
                     </div>
                 </div>
             </a>
@@ -18583,8 +17145,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
-<xp-iconset name="navigation">
+</dom-module><xp-iconset name="navigation">
     <svg>
         <defs>
             <g id="apps"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"></path></g>
@@ -18610,8 +17171,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <g id="unfold-more"><path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"></path></g>
         </defs>
     </svg>
-</xp-iconset>
-<dom-module id="xp-label">
+</xp-iconset><dom-module id="xp-label" assetpath="bower_components/xp-label/">
 
     <style>
         :host {
@@ -18698,7 +17258,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module><dom-module id="mat-label">
+</dom-module><dom-module id="mat-label" assetpath="bower_components/mat-label/">
 
     <style>
         :host {
@@ -18796,9 +17356,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
-
-<dom-module id="mat-paper">
+</dom-module><dom-module id="mat-paper" assetpath="bower_components/mat-paper/">
 
     <style>
         :host {
@@ -19273,8 +17831,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
-<dom-module id="mat-editor">
+</dom-module><dom-module id="mat-editor" assetpath="bower_components/mat-editor/">
 
     <style>
         :host {
@@ -19651,8 +18208,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
     </script>
 
-</dom-module>
-<iron-iconset-svg name="hardware" size="24">
+</dom-module><iron-iconset-svg name="hardware" size="24">
 <svg><defs>
 <g id="cast"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"></path></g>
 <g id="cast-connected"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm18-7H5v1.63c3.96 1.28 7.09 4.41 8.37 8.37H19V7zM1 10v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"></path></g>
@@ -19702,8 +18258,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <g id="watch"><path d="M20 12c0-2.54-1.19-4.81-3.04-6.27L16 0H8l-.95 5.73C5.19 7.19 4 9.45 4 12s1.19 4.81 3.05 6.27L8 24h8l.96-5.73C18.81 16.81 20 14.54 20 12zM6 12c0-3.31 2.69-6 6-6s6 2.69 6 6-2.69 6-6 6-6-2.69-6-6z"></path></g>
 </defs></svg>
 </iron-iconset-svg>
-
-<dom-module id="paper-card">
+<dom-module id="paper-card" assetpath="bower_components/paper-card/">
   <style>
   :host {
     display: inline-block;
@@ -19761,7 +18316,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <paper-material id="shadow" animated$="[[animatedShadow]]" elevation="[[elevation]]">
       <div class="header">
-        <img hidden$="[[!image]]" src="bower_components/paper-card/[[image]]">
+        <img hidden$="[[!image]]" src="[[image]]">
         <div hidden$="[[!heading]]" class$="[[_computeHeadingClass(image)]]">[[heading]]</div>
       </div>
 
@@ -19829,9 +18384,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   });
 </script>
-
-
-<dom-module id="paper-icon-button">
+<dom-module id="paper-icon-button" assetpath="bower_components/paper-icon-button/">
   <style>
 
     :host {
@@ -19864,7 +18417,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </style>
   <template>
     <paper-ripple id="ink" class="circle" center=""></paper-ripple>
-    <iron-icon id="icon" src="bower_components/paper-icon-button/[[src]]" icon="[[icon]]" alt$="[[alt]]"></iron-icon>
+    <iron-icon id="icon" src="[[src]]" icon="[[icon]]" alt$="[[alt]]"></iron-icon>
   </template>
 </dom-module>
 <script>
@@ -19917,15 +18470,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   });
 </script>
-
 <iron-iconset-svg name="paper-tabs" size="24">
 <svg><defs>
 <g id="chevron-left"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></g>
 <g id="chevron-right"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></g>
 </defs></svg>
 </iron-iconset-svg>
-
-<dom-module id="paper-tab">
+<dom-module id="paper-tab" assetpath="bower_components/paper-tabs/">
 
   <style>
 
@@ -20043,7 +18594,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
 </script>
-<dom-module id="paper-tabs">
+<dom-module id="paper-tabs" assetpath="bower_components/paper-tabs/">
 
   <style>
 
@@ -20444,8 +18995,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
 </script>
-
-<dom-module id="iron-pages">
+<dom-module id="iron-pages" assetpath="bower_components/iron-pages/">
 
   <style>
 
@@ -20501,8 +19051,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
 </script>
-
-<dom-module id="marked-element">
+<dom-module id="marked-element" assetpath="bower_components/marked-element/">
 
   <template>
     <div id="content"></div>
@@ -20604,7 +19153,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
 </script>
-
 <iron-iconset-svg name="device" size="24">
 <svg><defs>
 <g id="access-alarm"><path d="M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37V8zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"></path></g>
@@ -20688,14 +19236,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <g id="wifi-tethering"><path d="M12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 2c0-3.31-2.69-6-6-6s-6 2.69-6 6c0 2.22 1.21 4.15 3 5.19l1-1.74c-1.19-.7-2-1.97-2-3.45 0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.48-.81 2.75-2 3.45l1 1.74c1.79-1.04 3-2.97 3-5.19zM12 3C6.48 3 2 7.48 2 13c0 3.7 2.01 6.92 4.99 8.65l1-1.73C5.61 18.53 4 15.96 4 13c0-4.42 3.58-8 8-8s8 3.58 8 8c0 2.96-1.61 5.53-4 6.92l1 1.73c2.99-1.73 5-4.95 5-8.65 0-5.52-4.48-10-10-10z"></path></g>
 </defs></svg>
 </iron-iconset-svg>
-<dom-module id="venomous-node">
-   
-   
-   
-
-
-   
-
+<dom-module id="venomous-node" assetpath="/">
    <style>
     :host{
    		position: absolute;
@@ -20812,9 +19353,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 	</script>
 </dom-module>
 
-<dom-module id="venomous-explorer">
-   
-  <style>
+<dom-module id="venomous-explorer" assetpath="/">
+   <style>
 
 	#main_zone{
 	overflow-x: hidden;
@@ -20887,7 +19427,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   		<div id="about">venomous explorer</div>
 	    <div id="main_zone" class="noselect" on-track="main_zone_on_track" on-tap="main_zone_on_click" nodrag="">	
 
-	    	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
+	    	
 	    	<template is="dom-repeat" items="[[vedges]]">    	
 		    	<svg class="edge">
 		    	  <defs>
@@ -21256,7 +19796,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 </div>
 
-  <template id="x_main" is="dom-bind"> <!-- means we can use polymer binding magic within this block -->
+  <template id="x_main" is="dom-bind"> 
   
   <iron-ajax id="ajax_load" url="sample.xml" handle-as="document"></iron-ajax>
   
@@ -21275,12 +19815,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       
       <div class="flex_inner" id="dialog_node_summary">
         <h2>[[active_node_name]]</h2>
-        <!-- TODO: provide args, return types, hints, alias info, and links to afters -->
+        
         <br>
         <marked-element markdown="[[active_node_description]]"></marked-element>
       </div>
 
-      <mat-editor class="flex_inner" mode="c_cpp" line-numbers="true" value="[[active_node_code]]"></mat-editor>
+      <mat-editor class="flex_inner" mode="clike" line-numbers="true" value="[[active_node_code]]"></mat-editor>
 
       <mat-editor class="flex_inner" mode="markdown" line-numbers="true" value="[[active_node_description]]"></mat-editor>
 
