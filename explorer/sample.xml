@@ -611,7 +611,7 @@
     <box name="xy" left="353" top ="219" />
     <box name="dir" left="447" top ="326" />
     <box name="speed" left="584" top ="319" />
-    <box name="group_num" left="996" top ="528" />
+    <box name="group_num" left="850" top ="572" />
     <box name="trial_time_slice" left="970" top ="225" />
     <box name="directional_slice" left="1136" top ="289" />
     <box name="spatial_mask" left="1134" top ="234" />
@@ -627,7 +627,8 @@
     <box name="spike_pos_inds" left="1328" top ="202" />
     <box name="spike_mask" left="1343" top ="429" />
     <box name="cut_file" left="1283" top ="-43" />
-    <box name="tac_window_secs" left="978" top ="643" />
-    <offset left="5042" top="4761" />
+    <box name="tac_window_secs" left="800" top ="727" />
+    <box name="cut_changes_loop" left="1002" top="496" width ="772" height="474" />
+    <offset left="5032" top="4760" />
   </layout>
 </document>
