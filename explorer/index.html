@@ -36001,46 +36001,75 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <style type="text/css">
 	:host{
 		position: absolute;
-	    background-color: rgba(0,255,0,0.1);
+		box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-webkit-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-moz-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-o-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
 	    overflow: hidden;
+	    border: 1px solid #1FB31F;
 	}
 	:host[is_moving]{
 		cursor: move;
 	}
-	.bar{
-		background-color: #0f0;
-		position: absolute;
+	:host[is_selected]{
+		box-shadow: none;
+		-webkit-box-shadow: none;
+		-moz-box-shadow: none;
+		-o-box-shadow: none;
+		box-shadow: inset 0px 0px 80px 80px #ffc;
+		-webkit-box-shadow: inset 0px 0px 80px 80px #ffc;
+		-moz-box-shadow: inset 0px 0px 80px 80px #ffc;
+		-o-box-shadow: inset 0px 0px 80px 80px #ffc;
 	}
-	.left_bar{
+	.bar{
+		background-color: #1FB31F;
+		position: absolute;
+		display: none;
+	}
+	.zone{
+		position: absolute;
+		cursor: move;
+	}
+	:host[is_selected] .bar{
+		display: block;
+	}
+	.left.bar,
+	.right.bar{
+		width: 5px;
+		cursor: ew-resize;
+	}
+	.top.bar,
+	.bottom.bar{
+		height: 5px;
+		cursor: ns-resize;
+	}
+	.left.zone,
+	.right.zone{
+		width: 50px;
+	}
+	.top.zone,
+	.bottom.zone{
+		height: 50px;
+	}
+	.left{
 		left: 0px;
 		top: 0px;
-		width: 5px;
 		height: 100%;
-		cursor: ew-resize;
 	}
-	.right_bar{
+	.right{
 		right: 0px;
 		top: 0px;
-		width: 5px;
 		height: 100%;
-		cursor: ew-resize;
 	}
-	.top_bar{
+	.top{
+		left: 0px;
 		top: 0px;
-		height: 5px;
 		width: 100%;
-		cursor: ns-resize;
 	}
-	.bottom_bar{
+	.bottom{
 		bottom: 0px;
-		height: 5px;
 		width: 100%;
-		cursor: ns-resize;
-	}
-	.back_bar{
-		position: absolute;
-		width: 100%;
-		height: 100%;
+		left: 0px;	
 	}
 	.name_text{
 		color: #1FB31F;
@@ -36053,15 +36082,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 	}
 </style>
 <template>
-	<div class="back_bar" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="left zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="right zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="top zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="bottom zone" on-track="_on_drag" bar_duty="centre"></div>
+
 	<div class="name_text">[[name]]</div>
 	<content>
 		
 	</content>	
-	<div class="left_bar bar" on-track="_on_drag" bar_duty="left"></div>
-	<div class="right_bar bar" on-track="_on_drag" bar_duty="right"></div>
-	<div class="top_bar bar" on-track="_on_drag" bar_duty="top"></div>
-	<div class="bottom_bar bar" on-track="_on_drag" bar_duty="bottom"></div>
+	<div class="left bar" on-track="_on_drag" bar_duty="left"></div>
+	<div class="right bar" on-track="_on_drag" bar_duty="right"></div>
+	<div class="top bar" on-track="_on_drag" bar_duty="top"></div>
+	<div class="bottom bar" on-track="_on_drag" bar_duty="bottom"></div>
 
 </template>
 <script>
@@ -36102,6 +36135,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 			},
 			name: {
 				type: String
+			},
+			is_selected: {
+				type: Boolean,
+				notify: true,
+				reflectToAttribute: true,
+				default: false
 			}
 		},
 		_sizeChanged: function(e){
@@ -36218,7 +36257,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   	<div id="container" class="layout vertical" style="height:100%;">
   		<div id="grid_pattern"></div>
   		<div id="about">venomous explorer</div>
-	    <div id="main_zone" class="noselect" on-track="main_zone_on_track" on-tap="main_zone_on_click" nodrag="">	
+	    <div id="main_zone" class="noselect" on-track="main_zone_on_track" on-tap="node_on_click" nodrag="">	
 
 	     	
 	    	<template is="dom-repeat" items="[[vedges]]">    	
@@ -36238,7 +36277,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 			</template>
 
 			<template is="dom-repeat" items="[[vloops]]">
-			<venomous-loop index$="[[index]]" name="[[item.name]]" left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}">
+			<venomous-loop index$="[[index]]" name="[[item.name]]" left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}" on-tap="node_on_click" is_selected="[[item.is_selected]]">
 			</venomous-loop>
 	    	</template>
 
@@ -36508,11 +36547,15 @@ if (!Array.prototype.findIndex) {
   }
 
     // element registration
+    // TODO: loops and nodes should be abastracted into a common "base class"-ish thing.....current setup is very messy.
     Polymer({
       is: "venomous-explorer",
       _vnode_idx_from_name: function(n){
       	// it would be easier to store vnodes in a key-value object rather than an array but I don't think you can for template usage
       	return this.vnodes.findIndex(function(v){return v.name == n;});
+      },
+      _vloop_idx_from_name: function(n){
+      	return this.vloops.findIndex(function(v){return v.name == n;});
       },
       get_edge_xy(coord_type, edge){
       		edge = edge.base;
@@ -36525,21 +36568,27 @@ if (!Array.prototype.findIndex) {
       		else
       			return edge.node2_top + origin.y;
       },
-      main_zone_on_click: function(e){
-		if(this.active_name){
-			var old_idx = this._vnode_idx_from_name(this.active_name);
-			this.set('vnodes.' + old_idx + ".is_selected", false);
-		}		
-		this.set('active_name', "");
-      },
       node_on_click: function(e){
 		var idx = e.currentTarget.index;
+		var clicked_type = e.currentTarget.tagName.toLowerCase() == "venomous-loop" ? "vloop" : "vnode"; // could also be main div (if idx===undefined)
+
 		if(this.active_name){
-			var old_idx = this._vnode_idx_from_name(this.active_name);
-			this.set('vnodes.' + old_idx + ".is_selected", false);			
+			var old_idx = this.active_kind == "vnode" ?
+							 this._vnode_idx_from_name(this.active_name)
+						   : this._vloop_idx_from_name(this.active_name);
+			this.set(this.active_kind + 's.' + old_idx + ".is_selected", false);			
 		}
-		this.set('vnodes.' + idx + ".is_selected", true);
-		this.set('active_name', this.vnodes[idx].name);
+
+		if(idx !== undefined){
+			this.set('active_kind', clicked_type)
+			this.set(clicked_type + 's.' + idx + ".is_selected", true);
+			this.set('active_name', clicked_type == 'vnode' ?
+										this.vnodes[idx].name
+									  : this.vloops[idx].name);
+		}else{
+			this.set('active_name', '');
+			this.set('active_kind', '');
+		}
 		e.stopPropagation(); // prevent click on main zone too.
       },
       main_zone_on_track: function(e){
@@ -36724,8 +36773,16 @@ if (!Array.prototype.findIndex) {
 							 top: 0,
 							 left: 0,
 							 width: 100,
-							 height: 100
+							 height: 100,
+							 description: '',
 							};
+					for(var j=0;j<node.childNodes.length; j++){
+						var node_j = node.childNodes[j];
+						var node_j_name = node_j.nodeName.toLowerCase()
+					    if(node_j_name == "description"){
+							v.description = remove_common_indent(node_j.innerHTML).trim();
+						}
+					}
 					loops[v.name] = v;
 				}
 			}	
@@ -36807,8 +36864,11 @@ if (!Array.prototype.findIndex) {
 	 is_falsy: function(x){
 	 	return !x;
 	 },
-	 lookup_node_key: function(node_name, key){
-	 	var v = this.vnodes[this._vnode_idx_from_name(node_name)]
+	 lookup_node_key: function(node_name, node_kind, key){
+	 	var v = node_kind == "vnode" ? 
+	 			 this.vnodes[this._vnode_idx_from_name(node_name)]
+	 		   : this.vloops[this._vloop_idx_from_name(node_name)];
+
 	 	return v ? v[key] : "";
 	 },
       observers: [
@@ -36843,12 +36903,15 @@ if (!Array.prototype.findIndex) {
       		active_name: {type: String,
       					value: "",
       					notify: true},
+      		active_kind: {type: String,
+      					value: '',
+      					notify: true},
       		active_code: {type: String,
-      					computed: "lookup_node_key(active_name,'code')",
+      					computed: "lookup_node_key(active_name, active_kind, 'code')",
       					value: "",
       					notify: true},
       		active_description: {type: String,
-      					computed: "lookup_node_key(active_name,'description')",
+      					computed: "lookup_node_key(active_name, active_kind, 'description')",
       					value: "",
       					notify: true}
 

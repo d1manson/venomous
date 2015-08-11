@@ -434,6 +434,17 @@
 	<input name="tac_window_secs" type="float"/>
 
 	<loop name="cut_changes_loop">
+		<description>
+			One of the main usage cases of the program is to modify the cluster assignments, which can be thought of as a bit like
+			drawing stuff in Paint in so far as you use one or more tools to modify a "canvas" and expect to see the changes reflected
+			in that canvas.  You also want to be able to undo your actions (with ideally a long undo-stack, rather than just a single
+			stored previous state).
+
+			Here, we start with either a blank cut or a cut loaded from file. Each "iteration" of the loop then consits of a "delta"
+			which provides the modification information which could be a swap, or merge, or split, or transfer.
+
+			 
+		</description>
 		<raw><![CDATA[
 			struct cut_delta_enum{
 				split_v_t;
