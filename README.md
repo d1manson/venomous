@@ -1,7 +1,9 @@
  ![venomous logo](/img/logo.png)    
 data analytics and simulation engine
 
-**This project is still in very early development.**  So far the only tool that even vaguely works is the Venomous Explorer - [click here](http://d1manson.github.io/venomous/explorer/) to open the sample document.
+**This project is still in very early development.**
+
+So far the only tool that even vaguely works is the Venomous Explorer - [click here](http://d1manson.github.io/venomous/explorer/) to open the sample document.
 
 ### What is Venomous?   [wishful thinking...]
 Venomous is a C++ framework that lets you build highly interactive applications focused around a complex, but essentially static, data analysis pipeline.  The programmer defines a set of input and compute nodes using C++ embedded in an XML tree. Then, using Venomous, this XML document is compiled into a data analysis engine in pure C++.  Once converted to standard C++, the custom-designed analysis engine can be integrated into a regular application, or turned into a library for Matlab/Python users. You could also transpile to JavaScript for use in modern browsers.    
