@@ -1,402 +1,15 @@
 <!--
-CUSTOM ELEMENT: venomous-explorer
-BY: DM, but all the hard work is from [github.com/cpettitt/dagre-d3]
 
+venomous explorer: see index_full.html for demo.
 
-There are two main psuedo-classes in use here: vnodes and vedges.
-vnode:
-	name - string, is the text displayed
-	left, top - raw values in svg pixels
-	node_type - string such as "input" or "compute"
-	edges_before, edges_after - arrays, with references to vedges
-
-vedge:
-	node1_name, node2_name - strings matching vnode.name
-	node1_left, node1_top, node2_left, node2_top - values in svg pixels kept up to date by _vnodes_changed listener
-
-
-USEAGE:
-    <venomous-explorer id="my_graph"></venomous-explorer>
-    <script>
-        document.getElementById('my_graph').Render(nodeList);
-	</script>
-
-
-	Some things I had to consult for various not-so-obvious bits and bobs...
-
-	repating template details..
-	https://github.com/Polymer/polymer/issues/1758 
-
-	css binding...
-	http://stackoverflow.com/a/30541458/2399799
-
-	svg/template...
-	http://stackoverflow.com/a/30821159/2399799
 -->
-
-
-
-<dom-module id="venomous-node">
-   <link rel="import" href="bower_components/paper-card/paper-card.html">
-   <link rel="import" href="bower_components/iron-icons/iron-icons.html">
-   <link rel="import" href="bower_components/iron-icons/device-icons.html">
-   <link rel="import" href="bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
-
-   <style>
-    :host{
-   		position: absolute;
-   	}
-	.card{
-		min-width: 80px;
-		padding: 4px;
-		font-family: 'Roboto', 'Noto', sans-serif;
-		background-color: #fff;
-	}
-	:host[is_moving] .card{
-		cursor: move;
-	}
-	:host[is_selected] .card{
-		background-color: #ffc;
-	}
-	.node_name{	
-		vertical-align: bottom;
-    	font-weight: bold;
-	}
-	.card_name{
-		text-align: center;
-	}
-	ul{
-		margin: 0px;
-		list-style-position: inside;
-		font-size: 0.8em;
-		line-height: initial;
-    	padding-left: 0px;
-	    list-style-type: none;
-	}
-	li{
-		border: 1px solid #ccc;
-		margin-bottom: 2px;
-		padding-left: 4px;
-		padding-right: 4px;
-	}
-   </style>
-
-	<template>
-	<paper-material class="card" style$="[[node_type_to_css(node_type)]]" elevation$="[[elevation]]">
-		<div class="card_top">
-		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
-		<span class="node_name">[[name]]</span>
-		</div>
-		<ul><template is="dom-repeat" items="{{aliases}}">
-			<li class="alias_name">{{item.name}}</li>
-		</template></ul>
-	</paper-material>
-	</template>
-
-	<script>
-	"use strict";
-  	
-	var node_type_to_icon_mapping = {
-  	input: 'icons:system-update-alt',
-  	compute: 'hardware:laptop',
-  	loop: 'icons:autorenew'
-	}
-	var node_type_to_css_mapping = {
-	  	input: 'color:#99f',
-	  	compute: 'color:#cc7',
-	  	loop: 'color:#1FB31F'
-	}
-
-	// element registration
-    Polymer({
-      is: "venomous-node",
-      get_elevation: function(is_selected){
-      	return is_selected  ? 5 : 2;
-      },
-      behaviors: [
-      	Polymer.IronResizableBehavior
-      ],
-      listeners: {
-      	track: '_on_track',
-      	'iron-resize': '_on_resize'
-      },
-      properties: {
-  		name: {type: String,
-  			observer: '_contents_changed'},
-  		node_type: {type: String,
-  			observer: '_contents_changed'},
-  		is_moving: {type: Boolean,
-  				value: false,
-  				reflectToAttribute: true,
-  				notify: true},
-  		is_selected: {type: Boolean,
-  			value: false,
-  			reflectToAttribute: true},
-  		left: {type: Number,
-  				value: 0,
-  				observer: '_pos_changed',
-  				notify: true},
-  		top: {type: Number,
-  			  value: 0,
-   			  observer: '_pos_changed',
-   			  notify: true},
-   		origin_x: {type: Number,
-   					value: 0,
-	   				observer: '_pos_changed',},
-   		origin_y: {type: Number,
-   					value: 0,
-   					observer: '_pos_changed',},
-   		width: {type: Number,
-   				value: 0,
-   				notify: true,
-   				readOnly: true},
-   		height: {type: Number,
-   				value: 0,
-   				notify: true,
-   				readOnly: true},
-   		aliases: {type: Array,
-   				  value: function(){return [];},
-   			      observer: '_contents_changed'},
-   	    elevation: {type: Number,
-   	    		value: 2,
-   	    	    computed: 'get_elevation(is_selected)',
-   	    		notify: true}
-      },
-      _on_resize: function(e){
-		// I'm not sure why this has to be async
-		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
-      	var el = e.currentTarget;
-      	this.debounce('update_size', function(){
-	      	this._setWidth(el.clientWidth);
-	      	this._setHeight(el.clientHeight);
-	    }, 1)
-      },
-      _on_track: function(e){
-        switch(e.detail.state) {
-          case 'start':
-            this.set("is_moving",true)
-            break;
-          case 'track':
-            this.set('left',this.left + e.detail.ddx);
-            this.set('top', this.top + e.detail.ddy);
-            break;
-          case 'end':
-            this.set("is_moving",false)
-            break;
-        }
-        e.stopPropagation(); // prevent dragging on main zone too.
-      },
-      _contents_changed: function(){
-      	this.notifyResize();
-      },
-      _pos_changed: function(){
-      	this.style.left = (this.left + this.origin_x) + "px";
-      	this.style.top = (this.top + this.origin_y) + "px";
-		this.notifyResize();
-      },
-      node_type_to_icon(node_type){
-      	return node_type_to_icon_mapping[node_type];
-      },
-      node_type_to_css(node_type){
-		return node_type_to_css_mapping[node_type];
-      }
-    });
-	</script>
-</dom-module>
-
-<dom-module id="venomous-loop">
-<style type="text/css">
-	:host{
-		position: absolute;
-		box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-webkit-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-moz-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-o-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-	    overflow: hidden;
-	    border: 1px solid #1FB31F;
-	}
-	:host[is_moving]{
-		cursor: move;
-	}
-	:host[is_selected]{
-		box-shadow: none;
-		-webkit-box-shadow: none;
-		-moz-box-shadow: none;
-		-o-box-shadow: none;
-		box-shadow: inset 0px 0px 80px 80px #ffc;
-		-webkit-box-shadow: inset 0px 0px 80px 80px #ffc;
-		-moz-box-shadow: inset 0px 0px 80px 80px #ffc;
-		-o-box-shadow: inset 0px 0px 80px 80px #ffc;
-	}
-	.bar{
-		background-color: #1FB31F;
-		position: absolute;
-		display: none;
-	}
-	.zone{
-		position: absolute;
-		cursor: move;
-	}
-	:host[is_selected] .bar{
-		display: block;
-	}
-	.left.bar,
-	.right.bar{
-		width: 5px;
-		cursor: ew-resize;
-	}
-	.top.bar,
-	.bottom.bar{
-		height: 5px;
-		cursor: ns-resize;
-	}
-	.left.zone,
-	.right.zone{
-		width: 50px;
-	}
-	.top.zone,
-	.bottom.zone{
-		height: 50px;
-	}
-	.left{
-		left: 0px;
-		top: 0px;
-		height: 100%;
-	}
-	.right{
-		right: 0px;
-		top: 0px;
-		height: 100%;
-	}
-	.top{
-		left: 0px;
-		top: 0px;
-		width: 100%;
-	}
-	.bottom{
-		bottom: 0px;
-		width: 100%;
-		left: 0px;	
-	}
-	.name_text{
-		color: #1FB31F;
-		font-weight: bold;
-		font-family: 'Roboto', 'Noto', sans-serif;
-		position: absolute;
-		text-align: left;
-		top: 10px;
-		left: 10px;
-	}
-</style>
-<template>
-	<div class="left zone" on-track="_on_drag" bar_duty="centre"></div>
-	<div class="right zone" on-track="_on_drag" bar_duty="centre"></div>
-	<div class="top zone" on-track="_on_drag" bar_duty="centre"></div>
-	<div class="bottom zone" on-track="_on_drag" bar_duty="centre"></div>
-
-	<content>
-		
-	</content>	
-	<div class="left bar" on-track="_on_drag" bar_duty="left"></div>
-	<div class="right bar" on-track="_on_drag" bar_duty="right"></div>
-	<div class="top bar" on-track="_on_drag" bar_duty="top"></div>
-	<div class="bottom bar" on-track="_on_drag" bar_duty="bottom"></div>
-
-</template>
-<script>
-
-	Polymer({
-		is: 'venomous-loop',
-		properties: {
-			width: {
-				type: Number,
-				notify: true,
-				value: 100,
-				observer: '_sizeChanged'
-			},
-			height: {
-				type: Number,
-				notify: true,
-				value: 100,
-				observer: '_sizeChanged'
-			},
-			left: {
-				type: Number,
-				notify: true,
-				value: 0,
-				observer: '_sizeChanged'
-			},
-			top: {
-				type: Number,
-				notify: true,
-				value: 0,
-				observer: '_sizeChanged'
-			},
-			origin_x: {type: Number,
-   					value: 0,
-				observer: '_sizeChanged'},
-   			origin_y: {type: Number,
-   					value: 0,
-				observer: '_sizeChanged'},
-			is_moving:{
-				type: Boolean,
-				reflectToAttribute: true,
-				default: false,
-				notify: true
-			},
-			name: {
-				type: String
-			},
-			is_selected: {
-				type: Boolean,
-				notify: true,
-				reflectToAttribute: true,
-				default: false
-			}
-		},
-		_sizeChanged: function(e){
-			this.style.width = this.width + "px";
-			this.style.height = this.height + "px";
-			this.style.left = (this.left + this.origin_x) + "px";
-			this.style.top = (this.top + this.origin_y) + "px";
-		},
-		_on_drag: function(e){
-			var duty = e.currentTarget.getAttribute('bar_duty');
-			switch(e.detail.state) {
-	          case 'start':
-	          	if(duty == "centre")
-	          		this.set('is_moving', true)
-	            break;
-	          case 'track':
-	          	if(duty == 'right'){
-	          		this.set('width', this.width + e.detail.ddx);
-	          	}else if(duty == 'bottom'){
-	          		this.set('height', this.height + e.detail.ddy);
-	          	}else if(duty == 'left'){
-	          		this.set('width', this.width - e.detail.ddx);
-	          		this.set('left', this.left + e.detail.ddx);
-	          	}else if(duty == 'top'){
-	          		this.set('height', this.height - e.detail.ddy);
-	          		this.set('top', this.top + e.detail.ddy);
-	          	}else{ //centre
-	          		this.set('left', this.left + e.detail.ddx);
-	          		this.set('top', this.top + e.detail.ddy);
-	          	}
-	            break;
-	          case 'end':
-  	          	if(duty == "centre")
-	          		this.set('is_moving', false)
-	            break;
-	        }
-	        e.stopPropagation(); // prevent dragging on main zone too.
-		}
-
-	});
-</script>
-</dom-module>
 
 <dom-module id="venomous-explorer">
    <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+   <link rel="import" href="venomous_node.html">
+   <link rel="import" href="venomous_loop.html">
+   <link rel="import" href="venomous_edges.html">
+
   <style>
 
 	#main_zone{
@@ -437,13 +50,6 @@ USEAGE:
 	background-color: rgba(0,0,0,0.2);
 	-webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
 	}
-	.edge{
-		position: absolute;
-		top: 0px;
-		left: 0px;
-		width: 100%;
-		height: 100%;
-	}
 	.noselect {
 	  -webkit-touch-callout: none;
 	  -webkit-user-select: none;
@@ -470,38 +76,26 @@ USEAGE:
   		<div id="grid_pattern"></div>
   		<div id="about" class="noselect">venomous explorer</div>
 	    <div id='main_zone' class="noselect"
-	     on-track="main_zone_on_track" 
-	     on-tap="node_on_click" nodrag>	
-
-	     	<!-- it would  be nice to have on svg node, and put the template inside it, but this is only possible with Polymer 0.5 not 1.0-->
-	    	<template is="dom-repeat" items="[[vedges]]">    	
-		    	<svg class="edge">
-		    	  <defs>
-				    <marker id="arrow" markerWidth="10" markerHeight="10" refx="9" refy="3" orient="auto" markerUnits="strokeWidth">
-				      <path d="M0,0 L0,6 L9,3 z" fill="#000" />
-				    </marker>
-				  </defs>
-
-		    		<line x1$="[[get_edge_xy('x1', item.*)]]" x2$="[[get_edge_xy('x2', item.*)]]" 
-		    		  y1$="[[get_edge_xy('y1', item.*)]]" y2$="[[get_edge_xy('y2', item.*)]]"
-		    		  style="stroke:rgb(0,0,0);stroke-width:1" marker-end="url(#arrow)"/>
-		    	</svg>
-	    	</template>
+		     on-track="main_zone_on_track" 
+		     on-tap="node_on_click" nodrag>	
+	
+	    <venomous-edges edges="[[vedges]]" 
+	    	origin_x="[[origin_x]]" origin_y="[[origin_y]]"></venomous-edges>
 	    	
-	    	<template is="dom-repeat" items="{{vnodes}}">
-				<venomous-node 
-				   index$="[[index]]" 
-				   on-tap="node_on_click"
-				   is_moving="{{item.is_moving}}"
-				   origin_x="[[origin_x]]" origin_y="[[origin_y]]"
-				   left="{{item.left}}" top="{{item.top}}"
-				   width="{{item.width}}" height="{{item.height}}"
-				   name="[[item.name]]" node_type="[[item.node_type]]"
-				   aliases="[[item.aliases]]"
-				   is_selected="[[item.is_selected]]"></venomous-node>
-			</template>
+    	<template is="dom-repeat" items="{{vnodes}}">
+			<venomous-node 
+			   index$="[[index]]" 
+			   on-tap="node_on_click"
+			   is_moving="{{item.is_moving}}"
+			   origin_x="[[origin_x]]" origin_y="[[origin_y]]"
+			   left="{{item.left}}" top="{{item.top}}"
+			   width="{{item.width}}" height="{{item.height}}"
+			   name="[[item.name]]" node_type="[[item.node_type]]"
+			   aliases="[[item.aliases]]"
+			   is_selected="[[item.is_selected]]"></venomous-node>
+		</template>
 
-			<template is="dom-repeat" items="{{vloops}}">
+		<template is="dom-repeat" items="{{vloops}}">
 			<venomous-loop index$="[[index]]" name="[[item.name]]" 
   			    origin_x="[[origin_x]]" origin_y="[[origin_y]]"
 				left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}"
@@ -509,19 +103,17 @@ USEAGE:
 
 		    	<template is="dom-repeat" items="{{item.vnodes}}" as="jtem">
 					<venomous-node
-					   index$="[[index]]" 
-					   on-tap="node_on_click"
-					   is_moving="{{jtem.is_moving}}"
-					   left="{{jtem.left}}" top="{{jtem.top}}"
-					   width="{{jtem.width}}" height="{{jtem.height}}"
-					   name="[[jtem.name]]" node_type="[[jtem.node_type]]"
-					   aliases="[[jtem.aliases]]"
-					   is_selected="[[jtem.is_selected]]"></venomous-node>
+						   index$="[[index]]" 
+						   on-tap="node_on_click"
+						   is_moving="{{jtem.is_moving}}"
+						   left="{{jtem.left}}" top="{{jtem.top}}"
+						   width="{{jtem.width}}" height="{{jtem.height}}"
+						   name="[[jtem.name]]" node_type="[[jtem.node_type]]"
+						   aliases="[[jtem.aliases]]"
+						   is_selected="[[jtem.is_selected]]"></venomous-node>
 				</template>
-
-
 			</venomous-loop>
-	    	</template>
+    	</template>
 
 	    </div>
 	</div>
@@ -568,17 +160,6 @@ USEAGE:
       },
       _vloop_idx_from_name: function(n){
       	return this.vloops.findIndex(function(v){return v.name == n;});
-      },
-      get_edge_xy(coord_type, edge){
-      		edge = edge.base;
-      		if(coord_type == 'x1')
-      			return edge.node1_left + 0.5*(edge.node1_width || 0) + this.origin_x;
-      		else if(coord_type == 'x2')
-      			return edge.node2_left + 0.5*(edge.node2_width || 0) + this.origin_x;
-      		else if(coord_type == 'y1')
-      			return edge.node1_top + (edge.node1_height || 0) + this.origin_y;
-      		else
-      			return edge.node2_top + this.origin_y;
       },
       node_on_click: function(e){
 		var idx = e.currentTarget.index;

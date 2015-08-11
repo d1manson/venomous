@@ -1,0 +1,77 @@
+
+<!---
+This is a private dependancy of venomous_explorer.
+
+Note that unlike node and loop, an *ARRAY* of edges are contained in a single element.  The reason being that
+hopefully at some point it will be possible to put multiple edges inside one svg block rather than putitng each in its own block.
+(this is only possible with Polymer 0.5 not 1.0 - see http://stackoverflow.com/a/30821159/2399799).
+
+Each edge in the array must have its _left _right _width and _height set for node1 and node2, i.e. node1_left etc.
+The edges are simply rendered as read-only arrows from 1 to 2.
+-->
+
+<dom-module id="venomous-edges">
+   
+   <style>
+    :host{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+   	}
+    .edge{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+   }
+   </style>
+
+	<template>
+    <template is="dom-repeat" items="[[edges]]">     
+      <svg class="edge">
+        <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refx="9" refy="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+        </marker>
+      </defs>
+
+        <line x1$="[[get_edge_xy('x1', item.*, origin_x, origin_y)]]" x2$="[[get_edge_xy('x2', item.*, origin_x, origin_y)]]" 
+          y1$="[[get_edge_xy('y1', item.*, origin_x, origin_y)]]" y2$="[[get_edge_xy('y2', item.*, origin_x, origin_y)]]"
+          style="stroke:rgb(0,0,0);stroke-width:1" marker-end="url(#arrow)"/>
+      </svg>
+    </template>
+        
+	</template>
+
+	<script>
+	"use strict";
+  	
+  Polymer({
+      is: "venomous-edges",
+      get_edge_xy(coord_type, edge, origin_x, origin_y){
+          edge = edge.base;
+          if(coord_type == 'x1')
+            return edge.node1_left + 0.5*(edge.node1_width || 0) + origin_x;
+          else if(coord_type == 'x2')
+            return edge.node2_left + 0.5*(edge.node2_width || 0) + origin_x;
+          else if(coord_type == 'y1')
+            return edge.node1_top + (edge.node1_height || 0) + origin_y;
+          else
+            return edge.node2_top + origin_y;
+      },
+      properties: {
+        edges: {type: Array,
+               value: function(){return [];}},
+        origin_x: {type: Number,
+            value: 0},
+        origin_y: {type: Number,
+            value: 0}
+      }
+  
+  }); // Polymer
+
+	</script>
+</dom-module>

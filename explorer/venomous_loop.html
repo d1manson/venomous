@@ -1,0 +1,199 @@
+<!---
+This is a private dependancy of venomous_explorer.
+
+The loop is an absolutely positioned resiavble box, with left/top/wdith/height properties.
+It is a contianer for other stuff.
+-->
+
+<dom-module id="venomous-loop">
+
+<style type="text/css">
+	:host{
+		position: absolute;
+		box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-webkit-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-moz-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+		-o-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
+	    overflow: hidden;
+	    border: 1px solid #1FB31F;
+	}
+	:host[is_moving]{
+		cursor: move;
+	}
+	:host[is_selected]{
+		box-shadow: none;
+		-webkit-box-shadow: none;
+		-moz-box-shadow: none;
+		-o-box-shadow: none;
+		box-shadow: inset 0px 0px 80px 80px #ffc;
+		-webkit-box-shadow: inset 0px 0px 80px 80px #ffc;
+		-moz-box-shadow: inset 0px 0px 80px 80px #ffc;
+		-o-box-shadow: inset 0px 0px 80px 80px #ffc;
+	}
+	.bar{
+		background-color: #1FB31F;
+		position: absolute;
+		display: none;
+	}
+	.zone{
+		position: absolute;
+		cursor: move;
+	}
+	:host[is_selected] .bar{
+		display: block;
+	}
+	.left.bar,
+	.right.bar{
+		width: 5px;
+		cursor: ew-resize;
+	}
+	.top.bar,
+	.bottom.bar{
+		height: 5px;
+		cursor: ns-resize;
+	}
+	.left.zone,
+	.right.zone{
+		width: 50px;
+	}
+	.top.zone,
+	.bottom.zone{
+		height: 50px;
+	}
+	.left{
+		left: 0px;
+		top: 0px;
+		height: 100%;
+	}
+	.right{
+		right: 0px;
+		top: 0px;
+		height: 100%;
+	}
+	.top{
+		left: 0px;
+		top: 0px;
+		width: 100%;
+	}
+	.bottom{
+		bottom: 0px;
+		width: 100%;
+		left: 0px;	
+	}
+	.name_text{
+		color: #1FB31F;
+		font-weight: bold;
+		font-family: 'Roboto', 'Noto', sans-serif;
+		position: absolute;
+		text-align: left;
+		top: 10px;
+		left: 10px;
+	}
+</style>
+<template>
+	<div class="left zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="right zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="top zone" on-track="_on_drag" bar_duty="centre"></div>
+	<div class="bottom zone" on-track="_on_drag" bar_duty="centre"></div>
+
+	<content>
+		
+	</content>	
+	<div class="left bar" on-track="_on_drag" bar_duty="left"></div>
+	<div class="right bar" on-track="_on_drag" bar_duty="right"></div>
+	<div class="top bar" on-track="_on_drag" bar_duty="top"></div>
+	<div class="bottom bar" on-track="_on_drag" bar_duty="bottom"></div>
+
+</template>
+<script>
+	"use strict";
+
+	Polymer({
+		is: 'venomous-loop',
+		properties: {
+			width: {
+				type: Number,
+				notify: true,
+				value: 100,
+				observer: '_sizeChanged'
+			},
+			height: {
+				type: Number,
+				notify: true,
+				value: 100,
+				observer: '_sizeChanged'
+			},
+			left: {
+				type: Number,
+				notify: true,
+				value: 0,
+				observer: '_sizeChanged'
+			},
+			top: {
+				type: Number,
+				notify: true,
+				value: 0,
+				observer: '_sizeChanged'
+			},
+			origin_x: {type: Number,
+						value: 0,
+				observer: '_sizeChanged'},
+				origin_y: {type: Number,
+						value: 0,
+				observer: '_sizeChanged'},
+			is_moving:{
+				type: Boolean,
+				reflectToAttribute: true,
+				default: false,
+				notify: true
+			},
+			name: {
+				type: String
+			},
+			is_selected: {
+				type: Boolean,
+				notify: true,
+				reflectToAttribute: true,
+				default: false
+			}
+		},
+		_sizeChanged: function(e){
+			this.style.width = this.width + "px";
+			this.style.height = this.height + "px";
+			this.style.left = (this.left + this.origin_x) + "px";
+			this.style.top = (this.top + this.origin_y) + "px";
+		},
+		_on_drag: function(e){
+			var duty = e.currentTarget.getAttribute('bar_duty');
+			switch(e.detail.state) {
+	          case 'start':
+	          	if(duty == "centre")
+	          		this.set('is_moving', true)
+	            break;
+	          case 'track':
+	          	if(duty == 'right'){
+	          		this.set('width', this.width + e.detail.ddx);
+	          	}else if(duty == 'bottom'){
+	          		this.set('height', this.height + e.detail.ddy);
+	          	}else if(duty == 'left'){
+	          		this.set('width', this.width - e.detail.ddx);
+	          		this.set('left', this.left + e.detail.ddx);
+	          	}else if(duty == 'top'){
+	          		this.set('height', this.height - e.detail.ddy);
+	          		this.set('top', this.top + e.detail.ddy);
+	          	}else{ //centre
+	          		this.set('left', this.left + e.detail.ddx);
+	          		this.set('top', this.top + e.detail.ddy);
+	          	}
+	            break;
+	          case 'end':
+		          	if(duty == "centre")
+	          		this.set('is_moving', false)
+	            break;
+	        }
+	        e.stopPropagation(); // prevent dragging on main zone too.
+		}
+
+	}); // Polymer
+	</script>
+</dom-module>
