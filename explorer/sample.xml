@@ -617,29 +617,39 @@
 </engine>
   <layout>
     <box name="axona_file_name" left="651" top ="-227" />
-    <box name="axona_file" left="661" top ="-66" />
-    <box name="both_xy" left="442" top ="121" />
-    <box name="xy" left="353" top ="219" />
-    <box name="dir" left="447" top ="326" />
-    <box name="speed" left="584" top ="319" />
     <box name="group_num" left="850" top ="572" />
     <box name="trial_time_slice" left="970" top ="225" />
     <box name="directional_slice" left="1136" top ="289" />
     <box name="spatial_mask" left="1134" top ="234" />
     <box name="boundary_dist_slice" left="1043" top ="182" />
     <box name="boundary_shape" left="746" top ="244" />
+    <box name="speed_bin_size" left="749" top ="381" />
+    <box name="spa_bin_size" left="223" top ="271" />
+    <box name="tac_window_secs" left="800" top ="727" />
+    <box name="axona_file" left="661" top ="-66" />
+    <box name="both_xy" left="442" top ="121" />
+    <box name="xy" left="353" top ="219" />
+    <box name="dir" left="447" top ="326" />
+    <box name="speed" left="584" top ="319" />
     <box name="dist_to_boundary" left="805" top ="305" />
     <box name="pos_mask" left="983" top ="355" />
-    <box name="speed_bin_size" left="749" top ="381" />
     <box name="speed_dwell" left="625" top ="475" />
-    <box name="spa_bin_size" left="223" top ="271" />
     <box name="pos_bin_ind" left="284" top ="331" />
     <box name="spike_times" left="1337" top ="106" />
     <box name="spike_pos_inds" left="1328" top ="202" />
     <box name="spike_mask" left="1343" top ="429" />
     <box name="cut_file" left="1283" top ="-43" />
-    <box name="tac_window_secs" left="800" top ="727" />
-    <box name="cut_changes_loop" left="1002" top="496" width ="546" height="250" />
-    <offset left="5026" top="4913" />
+    <box name="cut_changes_loop" left="1003" top="472" width ="795" height="462">
+      <box name="cut_delta" left="278" top ="38" />
+      <box name="cut_state" left="111" top ="94" />
+      <box name="group_mask" left="640" top ="242" />
+      <box name="group_times_unmaksed" left="451" top ="198" />
+      <box name="group_times" left="402" top ="341" />
+      <box name="group_pos_inds_unmasked" left="346" top ="142" />
+      <box name="group_pos_inds" left="254" top ="292" />
+      <box name="tac" left="531" top ="383" />
+      <box name="group_speed_hist" left="82" top ="358" />
+    </box>
+    <offset left="5016" top="4759" />
   </layout>
 </document>

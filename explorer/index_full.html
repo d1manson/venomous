@@ -100,6 +100,7 @@
 
   <venomous-explorer  id="the_graph" style="height:100%; width: 100%; position:fixed;"
   active_name="{{active_node_name}}"
+  active_loop_name="{{active_loop_name}}"
   active_code="{{active_node_code}}"
   active_description="{{active_node_description}}"
   no_node_is_active="{{no_node_is_active}}"></venomous-explorer>
@@ -115,7 +116,7 @@
     <iron-pages selected="{{tab_selected}}" class="flex">
       
       <div class="flex_inner" id="dialog_node_summary">
-        <h2>[[active_node_name]]</h2>
+        <h2><span>[[active_loop_name]]</span> <span>[[active_node_name]]</span></h2>
         <!-- TODO: provide args, return types, hints, alias info, and links to afters -->
         <br>
         <marked-element markdown="[[active_node_description]]"></marked-element>

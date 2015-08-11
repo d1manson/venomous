@@ -10,25 +10,32 @@ It is a contianer for other stuff.
 <style type="text/css">
 	:host{
 		position: absolute;
-		box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-webkit-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-moz-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
-		-o-box-shadow: inset 0px 0px 80px 80px rgba(0,255,0,0.1);
 	    overflow: hidden;
-	    border: 1px solid #1FB31F;
 	}
 	:host[is_moving]{
 		cursor: move;
 	}
-	:host[is_selected]{
+	.back{
+		position: absolute;
+		left: 15px;
+		top: 15px;
+		bottom: 0px;
+		right: 0px;
+		box-shadow: inset 0px 0px 40px 10px rgba(0,255,0,0.1);
+		-webkit-box-shadow: inset 0px 0px 40px 10px rgba(0,255,0,0.1);
+		-moz-box-shadow: inset 0px 0px 40px 10px rgba(0,255,0,0.1);
+		-o-box-shadow: inset 0px 0px 40px 10px rgba(0,255,0,0.1);
+	    border: 1px solid #1FB31F;
+	}
+	:host[is_selected] .back{
 		box-shadow: none;
 		-webkit-box-shadow: none;
 		-moz-box-shadow: none;
 		-o-box-shadow: none;
-		box-shadow: inset 0px 0px 80px 80px #ffc;
-		-webkit-box-shadow: inset 0px 0px 80px 80px #ffc;
-		-moz-box-shadow: inset 0px 0px 80px 80px #ffc;
-		-o-box-shadow: inset 0px 0px 80px 80px #ffc;
+		box-shadow: inset 0px 0px 40px 10px #ffc;
+		-webkit-box-shadow: inset 0px 0px 40px 10px #ffc;
+		-moz-box-shadow: inset 0px 0px 40px 10px #ffc;
+		-o-box-shadow: inset 0px 0px 40px 10px #ffc;
 	}
 	.bar{
 		background-color: #1FB31F;
@@ -61,24 +68,24 @@ It is a contianer for other stuff.
 		height: 50px;
 	}
 	.left{
-		left: 0px;
-		top: 0px;
-		height: 100%;
+		left: 15px;
+		top: 15px;
+		bottom: 0px;
 	}
 	.right{
 		right: 0px;
-		top: 0px;
-		height: 100%;
+		top: 15px;
+		bottom: 0px;
 	}
 	.top{
 		left: 0px;
-		top: 0px;
-		width: 100%;
+		top: 15px;
+		right: 0px;
 	}
 	.bottom{
 		bottom: 0px;
-		width: 100%;
-		left: 0px;	
+		right: 0px;
+		left: 15px;	
 	}
 	.name_text{
 		color: #1FB31F;
@@ -91,19 +98,18 @@ It is a contianer for other stuff.
 	}
 </style>
 <template>
+	<div class="back"></div>
 	<div class="left zone" on-track="_on_drag" bar_duty="centre"></div>
 	<div class="right zone" on-track="_on_drag" bar_duty="centre"></div>
 	<div class="top zone" on-track="_on_drag" bar_duty="centre"></div>
 	<div class="bottom zone" on-track="_on_drag" bar_duty="centre"></div>
-
-	<content>
-		
-	</content>	
 	<div class="left bar" on-track="_on_drag" bar_duty="left"></div>
 	<div class="right bar" on-track="_on_drag" bar_duty="right"></div>
 	<div class="top bar" on-track="_on_drag" bar_duty="top"></div>
 	<div class="bottom bar" on-track="_on_drag" bar_duty="bottom"></div>
-
+	<content>
+		
+	</content>	
 </template>
 <script>
 	"use strict";

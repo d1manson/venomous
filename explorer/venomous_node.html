@@ -131,7 +131,10 @@ which result in certain rendered output, ie. text and icons etc.
    	    elevation: {type: Number,
    	    		value: 2,
    	    	    computed: 'get_elevation(is_selected)',
-   	    		notify: true}
+   	    		notify: true},
+        no_move: {type: Boolean,
+          value: false,
+              reflectToAttribute: true}
       },
       _on_resize: function(e){
 		// I'm not sure why this has to be async
@@ -143,6 +146,9 @@ which result in certain rendered output, ie. text and icons etc.
 	    }, 1)
       },
       _on_track: function(e){
+        if(this.no_move)
+          return;
+        
         switch(e.detail.state) {
           case 'start':
             this.set("is_moving",true)
@@ -156,6 +162,7 @@ which result in certain rendered output, ie. text and icons etc.
             break;
         }
         e.stopPropagation(); // prevent dragging on main zone too.
+
       },
       _contents_changed: function(){
       	this.notifyResize();
