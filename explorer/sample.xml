@@ -503,153 +503,155 @@
 			]]></code>
 		</compute>
 
-		<compute name="group_mask">
-			<arg name="cut_state" required=".inds_by_group[group_num]"/>
-			<arg name="spike_mask"/>
-			<return name="summary" type="logical_summary"/>
-			<return name="mask" type="bool[]"/>
-			<code><![CDATA[
-				if(!computed(group_mask))
-					group_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
-				if(required(summary))
-					summary = make_logical_summary(group_mask);
-			]]></code>
-		</compute>
-
-		<compute name="group_times_unmaksed">
-			<arg name="group_num"/>
-			<arg name="cut_state" required=".inds_by_group[group_num]"/>
-			<arg name="spike_times"/>	
-			<code><![CDATA[
-				group_times_unmaksed = copy(spike_times.iter_sorted_inds(cut_state.inds_by_group[group_num]));
-			]]></code>
-		</compute>
-
-		<compute name="group_times">
-			<arg name="group_mask"/>
-			<arg name="group_times_unmaksed"/>
-			<return type="uint32[]"/>
-
-			<code><![CDATA[
-				if(group_mask.all)
-					group_times.equals(group_times_unmaksed);
-				if(group_mask.none)
-					group_times = [];
-
-				group_times = group_times_unmaksed[group_mask]; // TODO: implement logical take
-			]]></code>
-		</compute>
-
-		<compute name="group_pos_inds_unmasked">
-			<arg name="group_num"/>
-			<arg name="cut_state" required=".inds_by_group[group_num]"/>
-			<arg name="spike_pos_inds"/>
-			<return type="uint32[]"/>
-			<code><![CDATA[
-				group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
-			]]></code>
-		</compute>
-
-		<compute name="group_pos_inds">
-			<arg name="group_pos_inds_unmasked"/>
-			<arg name="group_mask"/>
-			<return type="uint32[]"/>
-			<code><![CDATA[
-				if(group_mask.all)
-					group_pos_inds.equals(group_pos_inds_unmasked);
-				if(group_mask.none)
-					group_pos_inds = [];
-
-				group_pos_inds = group_pos_inds_unmaksed[group_mask]; // TODO: implement logical take
-			]]></code>
-		</compute>
-
-		<compute name="tac">
-			<arg name="group_times"/>
-			<arg name="tac_window_secs"/>
-			<return name="tac" type="float[]"/>
-			<return name="max" type="uint32"/>
-			<code><![CDATA[
-				N_BINS = 100;
-				uint32[] hist(N_BINS);
-				float f = tac_window_secs * group_times.timebase /N_BINS;
-				auto max_diff = tac_window_secs * group_times.timebase;
-				auto later_time = group_times.times; //iterator
-				for(auto earlier_time : group_times.times){
-					// move the later time until it is one element beyond the end of the window
-					for(;later_time < earlier_time + max_diff && later_time != group_times.times.end(); ++later_time) ;
-					// accumulate a "1" in the histogram for each time in the window, relative to the earlier time.
-					for( auto mid_time = earlier_time; mid_time != later_time; ++mid_time)
-						hist[(mid_time-earlier_time)*f]++;
-				}
-				max = maximum(hist);
-				float[] hist_normed(N_BINS);
-				for(int i=0;i<N_BINS;i++)
-					hist_normed[i] = hist[i] / max;
-				tac = hist_normed;
-			]]></code>
-		</compute>
-
-		<compute name="group_speed_hist">
-			<arg name="group_pos_inds"/>
-			<arg name="speed_bin_size"/>
-			<arg name="speed_dwell"/>
-			<arg name="speed"/>
-			<return type="float[]"/>
-			<return name="max" type="float"/>
-			<description>
-				Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
-			</description>
-			<code><![CDATA[
-				uint32[] spike;
-				for(auto s : speed.iter_sorted(group_pos_inds))
-					spike[speed/speed_bin_size]++;
-				float[] rate = array(spike.length);
-				for(int i=0; i< spike.length; i++)
-					rate[i] = spike[i] / speed_dwell[i];
-				max = maximum(rate);
-				for(int i=0;i<rate.length;i++)
-					rate[i] /= max;
-				group_speed_hist = rate;
-			]]></code>
-		</compute>
 	</loop>
+	
+	<compute name="group_mask">
+		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+		<arg name="spike_mask"/>
+		<return name="summary" type="logical_summary"/>
+		<return name="mask" type="bool[]"/>
+		<code><![CDATA[
+			if(!computed(group_mask))
+				group_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			if(required(summary))
+				summary = make_logical_summary(group_mask);
+		]]></code>
+	</compute>
+
+	<compute name="group_times_unmaksed">
+		<arg name="group_num"/>
+		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+		<arg name="spike_times"/>	
+		<code><![CDATA[
+			group_times_unmaksed = copy(spike_times.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+		]]></code>
+	</compute>
+
+	<compute name="group_times">
+		<arg name="group_mask"/>
+		<arg name="group_times_unmaksed"/>
+		<return type="uint32[]"/>
+
+		<code><![CDATA[
+			if(group_mask.all)
+				group_times.equals(group_times_unmaksed);
+			if(group_mask.none)
+				group_times = [];
+
+			group_times = group_times_unmaksed[group_mask]; // TODO: implement logical take
+		]]></code>
+	</compute>
+
+	<compute name="group_pos_inds_unmasked">
+		<arg name="group_num"/>
+		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+		<arg name="spike_pos_inds"/>
+		<return type="uint32[]"/>
+		<code><![CDATA[
+			group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+		]]></code>
+	</compute>
+
+	<compute name="group_pos_inds">
+		<arg name="group_pos_inds_unmasked"/>
+		<arg name="group_mask"/>
+		<return type="uint32[]"/>
+		<code><![CDATA[
+			if(group_mask.all)
+				group_pos_inds.equals(group_pos_inds_unmasked);
+			if(group_mask.none)
+				group_pos_inds = [];
+
+			group_pos_inds = group_pos_inds_unmaksed[group_mask]; // TODO: implement logical take
+		]]></code>
+	</compute>
+
+	<compute name="tac">
+		<arg name="group_times"/>
+		<arg name="tac_window_secs"/>
+		<return name="tac" type="float[]"/>
+		<return name="max" type="uint32"/>
+		<code><![CDATA[
+			N_BINS = 100;
+			uint32[] hist(N_BINS);
+			float f = tac_window_secs * group_times.timebase /N_BINS;
+			auto max_diff = tac_window_secs * group_times.timebase;
+			auto later_time = group_times.times; //iterator
+			for(auto earlier_time : group_times.times){
+				// move the later time until it is one element beyond the end of the window
+				for(;later_time < earlier_time + max_diff && later_time != group_times.times.end(); ++later_time) ;
+				// accumulate a "1" in the histogram for each time in the window, relative to the earlier time.
+				for( auto mid_time = earlier_time; mid_time != later_time; ++mid_time)
+					hist[(mid_time-earlier_time)*f]++;
+			}
+			max = maximum(hist);
+			float[] hist_normed(N_BINS);
+			for(int i=0;i<N_BINS;i++)
+				hist_normed[i] = hist[i] / max;
+			tac = hist_normed;
+		]]></code>
+	</compute>
+
+	<compute name="group_speed_hist">
+		<arg name="group_pos_inds"/>
+		<arg name="speed_bin_size"/>
+		<arg name="speed_dwell"/>
+		<arg name="speed"/>
+		<return type="float[]"/>
+		<return name="max" type="float"/>
+		<description>
+			Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
+		</description>
+		<code><![CDATA[
+			uint32[] spike;
+			for(auto s : speed.iter_sorted(group_pos_inds))
+				spike[speed/speed_bin_size]++;
+			float[] rate = array(spike.length);
+			for(int i=0; i< spike.length; i++)
+				rate[i] = spike[i] / speed_dwell[i];
+			max = maximum(rate);
+			for(int i=0;i<rate.length;i++)
+				rate[i] /= max;
+			group_speed_hist = rate;
+		]]></code>
+	</compute>
+
 </engine>
   <layout>
     <box name="axona_file_name" left="651" top ="-227" />
-    <box name="group_num" left="850" top ="572" />
+    <box name="group_num" left="1080" top ="567" />
     <box name="trial_time_slice" left="970" top ="225" />
     <box name="directional_slice" left="1136" top ="289" />
     <box name="spatial_mask" left="1134" top ="234" />
     <box name="boundary_dist_slice" left="1043" top ="182" />
     <box name="boundary_shape" left="746" top ="244" />
-    <box name="speed_bin_size" left="749" top ="381" />
+    <box name="speed_bin_size" left="504" top ="550" />
     <box name="spa_bin_size" left="223" top ="271" />
-    <box name="tac_window_secs" left="800" top ="727" />
+    <box name="tac_window_secs" left="1184" top ="981" />
     <box name="axona_file" left="661" top ="-66" />
-    <box name="both_xy" left="442" top ="121" />
+    <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
-    <box name="dir" left="447" top ="326" />
-    <box name="speed" left="584" top ="319" />
+    <box name="dir" left="426" top ="365" />
+    <box name="speed" left="619" top ="321" />
     <box name="dist_to_boundary" left="805" top ="305" />
-    <box name="pos_mask" left="983" top ="355" />
-    <box name="speed_dwell" left="625" top ="475" />
+    <box name="pos_mask" left="993" top ="376" />
+    <box name="speed_dwell" left="648" top ="599" />
     <box name="pos_bin_ind" left="284" top ="331" />
     <box name="spike_times" left="1337" top ="106" />
     <box name="spike_pos_inds" left="1328" top ="202" />
-    <box name="spike_mask" left="1343" top ="429" />
+    <box name="spike_mask" left="1285" top ="459" />
     <box name="cut_file" left="1283" top ="-43" />
-    <box name="cut_changes_loop" left="1003" top="472" width ="795" height="462">
+    <box name="group_mask" left="1271" top ="807" />
+    <box name="group_times_unmaksed" left="895" top ="634" />
+    <box name="group_times" left="1063" top ="923" />
+    <box name="group_pos_inds_unmasked" left="1086" top ="675" />
+    <box name="group_pos_inds" left="1135" top ="735" />
+    <box name="tac" left="1159" top ="1037" />
+    <box name="group_speed_hist" left="855" top ="907" />
+    <box name="cut_changes_loop" left="1383" top="538" width ="419" height="215">
       <box name="cut_delta" left="278" top ="38" />
       <box name="cut_state" left="111" top ="94" />
-      <box name="group_mask" left="640" top ="242" />
-      <box name="group_times_unmaksed" left="451" top ="198" />
-      <box name="group_times" left="402" top ="341" />
-      <box name="group_pos_inds_unmasked" left="346" top ="142" />
-      <box name="group_pos_inds" left="254" top ="292" />
-      <box name="tac" left="531" top ="383" />
-      <box name="group_speed_hist" left="82" top ="358" />
     </box>
-    <offset left="5016" top="4759" />
+    <offset left="4990" top="4964" />
   </layout>
 </document>

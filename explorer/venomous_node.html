@@ -29,10 +29,7 @@ which result in certain rendered output, ie. text and icons etc.
 	:host[is_selected] .card{
 		background-color: #ffc;
 	}
-	.node_name{	
-		vertical-align: bottom;
-    	font-weight: bold;
-	}
+
 	.card_name{
 		text-align: center;
 	}
@@ -50,6 +47,21 @@ which result in certain rendered output, ie. text and icons etc.
 		padding-left: 4px;
 		padding-right: 4px;
 	}
+  .return{
+    border-radius: 5px;
+    border: 2px solid;
+    padding: 0px 5px 0px 5px;    
+    margin: 1px;
+    display: inline-block;
+    font-size: 0.8em;
+    line-height: 1.2em;
+  }
+  .node_name{ 
+    vertical-align: bottom;
+    font-weight: bold;
+    font-size: 1em;
+    line-height: 1.4em;
+  }
    </style>
 
 	<template>
@@ -58,6 +70,7 @@ which result in certain rendered output, ie. text and icons etc.
 		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
 		<span class="node_name">[[name]]</span>
 		</div>
+    <template is="dom-repeat" items="[[returns]]"><span class="return" hidden$="[[!complex_returns]]">[[item.name]]</span></template>
 		<ul><template is="dom-repeat" items="{{aliases}}">
 			<li class="alias_name">{{item.name}}</li>
 		</template></ul>
@@ -90,6 +103,9 @@ which result in certain rendered output, ie. text and icons etc.
       listeners: {
       	track: '_on_track',
       	'iron-resize': '_on_resize'
+      },
+      _complex_returns: function(){
+          return (this.returns.length > 1); // we assume the namesake is actually in the list
       },
       properties: {
   		name: {type: String,
@@ -125,6 +141,9 @@ which result in certain rendered output, ie. text and icons etc.
    				value: 0,
    				notify: true,
    				readOnly: true},
+      returns: {type: Array,
+            value: function(){return [];},
+              observer: '_contents_changed'},
    		aliases: {type: Array,
    				  value: function(){return [];},
    			      observer: '_contents_changed'},
@@ -134,7 +153,11 @@ which result in certain rendered output, ie. text and icons etc.
    	    		notify: true},
         no_move: {type: Boolean,
           value: false,
-              reflectToAttribute: true}
+              reflectToAttribute: true},
+        complex_returns:{type:  Boolean,
+          notify: true,
+          computed: '_complex_returns(returns.splice)'
+              }
       },
       _on_resize: function(e){
 		// I'm not sure why this has to be async

@@ -91,6 +91,7 @@ venomous explorer: see index_full.html for demo.
 			   left="{{item.left}}" top="{{item.top}}"
 			   width="{{item.width}}" height="{{item.height}}"
 			   name="[[item.name]]" node_type="[[item.node_type]]"
+			   returns="[[item.returns]]"
 			   aliases="[[item.aliases]]"
 			   is_selected="[[item.is_selected]]"></venomous-node>
 		</template>
@@ -111,6 +112,7 @@ venomous explorer: see index_full.html for demo.
 						   width="{{jtem.width}}" height="{{jtem.height}}"
 						   name="[[jtem.name]]" node_type="[[jtem.node_type]]"
 						   aliases="[[jtem.aliases]]"
+						   returns="[[jtem.returns]]"
 						   no_move="[[jtem.no_move]]"
 						   is_selected="[[jtem.is_selected]]"></venomous-node>
 				</template>
@@ -133,8 +135,9 @@ venomous explorer: see index_full.html for demo.
 	    arr.push(obj[k]);
 	return arr;
   }
-  var getAttr = function(el,attr){
-  	return el.attributes.getNamedItem(attr).value;
+  var getAttr = function(el, attr, default_){
+  	var a = el.attributes.getNamedItem(attr);
+  	return a ? a.value : default_;
   }
 
   var ParseInput = function(node){
@@ -166,6 +169,7 @@ venomous explorer: see index_full.html for demo.
 		width: 0, height: 0,
 		edges_before: [],
 		edges_after: [],
+		returns: [],
 		aliases: [],
 		code: '',
 		description: ''};
@@ -173,17 +177,27 @@ venomous explorer: see index_full.html for demo.
 	for(var j=0;j<node.childNodes.length; j++){
 		var node_j = node.childNodes[j];
 		var node_j_name = node_j.nodeName.toLowerCase()
-		if(node_j_name == "arg"){
-			var e = {
-				node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
-				node2_name: v.name };
-			v.edges_before.push(e);
-		}else if(node_j_name == "code"){
-			for(var k=0;k<node_j.childNodes.length;k++)if(node_j.childNodes[k].nodeName.toLowerCase() == "#cdata-section")
-				v.code += node_j.childNodes[k].data;
-			v.code = remove_common_indent(v.code).trim();
-		}else if(node_j_name == "description"){
-			v.description = remove_common_indent(node_j.innerHTML).trim();
+		switch(node_j_name){
+			case "arg":
+				var e = {
+					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
+					node2_name: v.name };
+				v.edges_before.push(e);
+				break;
+			case "code":
+				for(var k=0;k<node_j.childNodes.length;k++)if(node_j.childNodes[k].nodeName.toLowerCase() == "#cdata-section")
+					v.code += node_j.childNodes[k].data;
+				v.code = remove_common_indent(v.code).trim();
+				break
+			case "return":
+				var r = {name: getAttr(node_j,"name", v.name),
+						 type: getAttr(node_j,"type"),
+						 chunking: getAttr(node_j, "chunking", "auto")};
+				v.returns.push(r);
+				break;
+			case "description":
+				v.description = remove_common_indent(node_j.innerHTML).trim();
+				break;
 		}
 	}
 	return v;
@@ -651,6 +665,10 @@ venomous explorer: see index_full.html for demo.
       					notify: true},
       		active_description: {type: String,
       					computed: "lookup_node_key(active_name, active_loop_name, active_kind, 'description')",
+      					value: "",
+      					notify: true},
+      		active_returns: {type: String,
+      					computed: "lookup_node_key(active_name, active_loop_name, active_kind, 'returns')",
       					value: "",
       					notify: true},
       		offset_left: {type: Number,

@@ -81,6 +81,17 @@
     margin-left: 10px;
     width: initial;
   }
+  h4{
+    margin: 0px;
+    padding: 0px;
+    font-size: 1em;
+  }
+  .return_item{
+    margin-left: 10px;
+  }
+  .return_name{
+    font-weight: bold;
+  }
   </style>
   </head>
   
@@ -103,6 +114,7 @@
   active_loop_name="{{active_loop_name}}"
   active_code="{{active_node_code}}"
   active_description="{{active_node_description}}"
+  active_returns="{{active_node_returns}}"
   no_node_is_active="{{no_node_is_active}}"></venomous-explorer>
 
   <paper-material id="dialog_node" class="vertical layout" elevation="5" 
@@ -116,9 +128,13 @@
     <iron-pages selected="{{tab_selected}}" class="flex">
       
       <div class="flex_inner" id="dialog_node_summary">
-        <h2><span>[[active_loop_name]]</span> <span>[[active_node_name]]</span></h2>
-        <!-- TODO: provide args, return types, hints, alias info, and links to afters -->
-        <br>
+        <h2><span>[[active_loop_name]]</span><span hidden$="[[!active_loop_name]]">::</span><span>[[active_node_name]]</span></h2>
+        <!-- TODO: provide args,  hints, alias info, and links to afters -->
+        <h4 hidden$="[[!active_node_returns]]"><br>Returns:</h4>
+        <template is="dom-repeat" items="[[active_node_returns]]">
+          <div class="return_item"><span class="return_name">[[item.name]]</span> <span>[[item.type]]</span></div>
+        </template>
+        <h4 hidden$="[[!active_node_description]]"><br>Description:</h4>
         <marked-element markdown="[[active_node_description]]"></marked-element>
       </div>
 
