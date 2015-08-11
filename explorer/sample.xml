@@ -181,6 +181,8 @@
 		]]></code>
 	</compute>
 
+	
+
 	<input name="group_num" type="uint8"/>
 
 	<raw><![CDATA[
@@ -226,6 +228,81 @@
 	};
 
 	]]></raw>
+
+	<compute name="eeg">
+		<arg name="eeg_file"/>
+		<return type="int16[]" chunking="100000"/>
+		<request name="timebase" type="int"/>
+		<description>
+			Simply pulls the eeg data from the file into an array, swapping endian-ness if need be.
+		</description>
+	</compute>
+
+	<input name="eeg_freq_band_of_interest" type="slice^int^">
+		<description>
+			The low and high values in Hz. Theta is often treated as `6-12Hz`.
+		</description>
+	</input>
+
+	<compute name="eeg_analytic">
+		<arg name="eeg"/>
+		<arg name="eeg_freq_band_of_interest"/>
+		<return type="cint16[]" chunking="100000"/>
+		<return type="int" name="timebase"/>
+		<description>
+			Bandpasses the eeg using a [Blackman window](https://en.wikipedia.org/wiki/Window_function#Blackman_windows) and then performs the [hilbert transform](https://en.wikipedia.org/wiki/Hilbert_transform) to get a complex (ie. `x +iy`) value for each time point.
+
+			Note `timebase` is copied through from `eeg` for convenience.
+		</description>
+	</compute>
+
+	<compute name="eeg_phase">
+		<arg name="eeg_analytic"/>
+		<return type="int16[]" chunking="100000"/>
+		<return type="int" name="timebase"/>
+		<description>
+			Simply gives the complex angle of the analytic signal.
+
+			Note `timebase` is copied through from `eeg` for convenience.
+		</description>
+	</compute>
+
+	<compute name="eeg_power">
+		<arg name="eeg_analytic"/>
+		<return type="int16[]" chunking="100000"/>
+		<return type="int" name="timebase"/>
+		<description>
+			Simply gives the complex magnitude of the analytic signal.
+
+			Note `timebase` is copied through from `eeg` for convenience.
+		</description>
+	</compute>	
+
+	<compute name="eeg_power_spectrum">
+		<arg name="eeg"/>
+		<return type="int16[]" chunking="100"/>
+		<description>
+			Peforms a Fourier transform, probably using the Fast method (unless a particularly small spectral window is needed in which case it might be better to use a naive DFT).
+		</description>
+	</compute>
+
+	<input name="eeg_total_freq_band" type="slice^int^">
+		<description>
+			When computing signal-to-noise we ignore noise outside this range. Specified in Hz.
+		</description>
+	</input>
+
+	<compute name="freq_band_sig_to_noise">
+		<arg name="eeg_total_freq_band"/>
+		<arg name="eeg_freq_band_of_interest"/>
+		<arg name="eeg_power_spectrum" required="{{ chunks accoring to eeg_freq_band_of_interest }}"/>
+		<return type="float"/>
+		<description>
+			Finds peak in the spectrum, within the `eeg_freq_band_of_interest`. Then computes the energy in the spectrum 
+			1Hz either side of this, and normalizes by the average energy in `eeg_total_freq_band`.
+		</description>
+	</compute>
+
 	<input name="trial_time_slice" type="slice^int32^"/> 
 	<input name="directional_slice" type="slice^float^"/>
 	<input name="spatial_mask" type="spatial^bool^"/>
@@ -391,6 +468,59 @@
 
 		]]></code>
 	</compute>
+
+	<compute name="waves">
+		<arg name="tet_file"/>
+		<return type="int8[]" chunking="200*5000"/>
+		<description>
+			The wave data for a spike is `50` samples on each of the `4` channels within a tetrode, i.e. `200` samples.  Each
+			sample is one byte.
+
+			*Optimization note:* we chunk data for 5,000 spikes together, using the serialised shape of the file on disk, i.e.
+			even though the data is 3 dimensional, it is only accessible in 1d form, so we lose little by chunking in the same
+			way...actually that's not quite true when it comes to discarding data, but we'll ignore that for now.
+		</description>
+	</compute>
+
+
+	<compute name="wave_amplitude">
+		<arg name="waves"/>
+		<return type="uint8[]" chunking="5000"/>
+		<description>
+			Simply gives the `max-min` for each channel's spike.
+
+			Note we store all the data for each channel contiguously (unlike in the `waves` array).
+		</description>
+	</compute>
+
+	<compute name="wave_energy">
+		<arg name="waves"/>
+		<return type="uint8[]" chunking="5000"/>
+		<description>
+			Simply gives the `sum` for each channel's spike...well actually, I can't remember exactly how it's normaly defined.
+
+			Note we store all the data for each channel contiguously (unlike in the `waves` array).
+		</description>
+	</compute>
+
+	<input name="sub_spike_t" type="int8">
+		<description>
+			The index on the interval `[0,50)`, giving the time of interest within a spike.
+		</description>
+	</input>
+
+	<compute name="wave_v_time_t">
+		<arg name="waves"/>
+		<arg name="sub_spike_t"/>
+		<return type="uint8[]" chunking="5000"/>
+		<description>
+			Simply indexes into the `waves` as requested by `sub_spike_t`.
+
+			Note we store all the data for each channel contiguously (unlike in the `waves` array).
+		</description>
+	</compute>
+
+
 
 	<compute name="spike_pos_inds">
 		<arg name="pos_file" required=".header"/>
@@ -620,6 +750,8 @@
   <layout>
     <box name="axona_file_name" left="651" top ="-227" />
     <box name="group_num" left="1080" top ="567" />
+    <box name="eeg_freq_band_of_interest" left="-151" top ="260" />
+    <box name="eeg_total_freq_band" left="-397" top ="276" />
     <box name="trial_time_slice" left="970" top ="225" />
     <box name="directional_slice" left="1136" top ="289" />
     <box name="spatial_mask" left="1134" top ="234" />
@@ -627,17 +759,28 @@
     <box name="boundary_shape" left="746" top ="244" />
     <box name="speed_bin_size" left="504" top ="550" />
     <box name="spa_bin_size" left="223" top ="271" />
+    <box name="sub_spike_t" left="1928" top ="125" />
     <box name="tac_window_secs" left="1184" top ="981" />
     <box name="axona_file" left="661" top ="-66" />
     <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
     <box name="dir" left="426" top ="365" />
     <box name="speed" left="619" top ="321" />
+    <box name="eeg" left="-62" top ="154" />
+    <box name="eeg_analytic" left="54" top ="324" />
+    <box name="eeg_phase" left="189" top ="438" />
+    <box name="eeg_power" left="-43" top ="442" />
+    <box name="eeg_power_spectrum" left="-268" top ="209" />
+    <box name="freq_band_sig_to_noise" left="-274" top ="335" />
     <box name="dist_to_boundary" left="805" top ="305" />
     <box name="pos_mask" left="993" top ="376" />
     <box name="speed_dwell" left="648" top ="599" />
     <box name="pos_bin_ind" left="284" top ="331" />
     <box name="spike_times" left="1337" top ="106" />
+    <box name="waves" left="1700" top ="92" />
+    <box name="wave_amplitude" left="1511" top ="182" />
+    <box name="wave_energy" left="1685" top ="181" />
+    <box name="wave_v_time_t" left="1848" top ="178" />
     <box name="spike_pos_inds" left="1328" top ="202" />
     <box name="spike_mask" left="1285" top ="459" />
     <box name="cut_file" left="1283" top ="-43" />
@@ -652,6 +795,6 @@
       <box name="cut_delta" left="278" top ="38" />
       <box name="cut_state" left="111" top ="94" />
     </box>
-    <offset left="4990" top="4964" />
+    <offset left="4832" top="4847" />
   </layout>
 </document>
