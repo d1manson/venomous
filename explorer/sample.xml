@@ -639,7 +639,7 @@
     <box name="spike_mask" left="1343" top ="429" />
     <box name="cut_file" left="1283" top ="-43" />
     <box name="tac_window_secs" left="800" top ="727" />
-    <box name="cut_changes_loop" left="1002" top="496" width ="772" height="474" />
-    <offset left="5032" top="4760" />
+    <box name="cut_changes_loop" left="1002" top="496" width ="546" height="250" />
+    <offset left="5026" top="4913" />
   </layout>
 </document>

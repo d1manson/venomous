@@ -34,6 +34,8 @@ USEAGE:
 	http://stackoverflow.com/a/30821159/2399799
 -->
 
+
+
 <dom-module id="venomous-node">
    <link rel="import" href="bower_components/paper-card/paper-card.html">
    <link rel="import" href="bower_components/iron-icons/iron-icons.html">
@@ -93,15 +95,16 @@ USEAGE:
 
 	<script>
 	"use strict";
-  	var origin = {x: 5000, y: 5000}; // copy-pasted below inside venomous-explorer TODO: avoid copy-paste somehow
-  
+  	
 	var node_type_to_icon_mapping = {
   	input: 'icons:system-update-alt',
-  	compute: 'hardware:laptop'
+  	compute: 'hardware:laptop',
+  	loop: 'icons:autorenew'
 	}
 	var node_type_to_css_mapping = {
 	  	input: 'color:#99f',
-	  	compute: 'color:#cc7'
+	  	compute: 'color:#cc7',
+	  	loop: 'color:#1FB31F'
 	}
 
 	// element registration
@@ -113,6 +116,10 @@ USEAGE:
       behaviors: [
       	Polymer.IronResizableBehavior
       ],
+      listeners: {
+      	track: '_on_track',
+      	'iron-resize': '_on_resize'
+      },
       properties: {
   		name: {type: String,
   			observer: '_contents_changed'},
@@ -120,16 +127,33 @@ USEAGE:
   			observer: '_contents_changed'},
   		is_moving: {type: Boolean,
   				value: false,
-  				reflectToAttribute: true},
+  				reflectToAttribute: true,
+  				notify: true},
   		is_selected: {type: Boolean,
   			value: false,
   			reflectToAttribute: true},
-  		left: {type: String,
+  		left: {type: Number,
   				value: 0,
-  				observer: '_pos_changed'},
-  		top: {type: String ,
+  				observer: '_pos_changed',
+  				notify: true},
+  		top: {type: Number,
   			  value: 0,
-   			  observer: '_pos_changed'},
+   			  observer: '_pos_changed',
+   			  notify: true},
+   		origin_x: {type: Number,
+   					value: 0,
+	   				observer: '_pos_changed',},
+   		origin_y: {type: Number,
+   					value: 0,
+   					observer: '_pos_changed',},
+   		width: {type: Number,
+   				value: 0,
+   				notify: true,
+   				readOnly: true},
+   		height: {type: Number,
+   				value: 0,
+   				notify: true,
+   				readOnly: true},
    		aliases: {type: Array,
    				  value: function(){return [];},
    			      observer: '_contents_changed'},
@@ -138,12 +162,36 @@ USEAGE:
    	    	    computed: 'get_elevation(is_selected)',
    	    		notify: true}
       },
+      _on_resize: function(e){
+		// I'm not sure why this has to be async
+		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
+      	var el = e.currentTarget;
+      	this.debounce('update_size', function(){
+	      	this._setWidth(el.clientWidth);
+	      	this._setHeight(el.clientHeight);
+	    }, 1)
+      },
+      _on_track: function(e){
+        switch(e.detail.state) {
+          case 'start':
+            this.set("is_moving",true)
+            break;
+          case 'track':
+            this.set('left',this.left + e.detail.ddx);
+            this.set('top', this.top + e.detail.ddy);
+            break;
+          case 'end':
+            this.set("is_moving",false)
+            break;
+        }
+        e.stopPropagation(); // prevent dragging on main zone too.
+      },
       _contents_changed: function(){
       	this.notifyResize();
       },
       _pos_changed: function(){
-      	this.style.left = (this.left+origin.x) + "px";
-      	this.style.top = (this.top+origin.y) + "px";
+      	this.style.left = (this.left + this.origin_x) + "px";
+      	this.style.top = (this.top + this.origin_y) + "px";
 		this.notifyResize();
       },
       node_type_to_icon(node_type){
@@ -246,7 +294,6 @@ USEAGE:
 	<div class="top zone" on-track="_on_drag" bar_duty="centre"></div>
 	<div class="bottom zone" on-track="_on_drag" bar_duty="centre"></div>
 
-	<div class="name_text">[[name]]</div>
 	<content>
 		
 	</content>	
@@ -257,7 +304,6 @@ USEAGE:
 
 </template>
 <script>
-  var origin = {x: 5000, y: 5000}; // copy-pasted above and below in other elements TODO: avoid copy-paste somehow
 
 	Polymer({
 		is: 'venomous-loop',
@@ -286,6 +332,12 @@ USEAGE:
 				value: 0,
 				observer: '_sizeChanged'
 			},
+			origin_x: {type: Number,
+   					value: 0,
+				observer: '_sizeChanged'},
+   			origin_y: {type: Number,
+   					value: 0,
+				observer: '_sizeChanged'},
 			is_moving:{
 				type: Boolean,
 				reflectToAttribute: true,
@@ -305,8 +357,8 @@ USEAGE:
 		_sizeChanged: function(e){
 			this.style.width = this.width + "px";
 			this.style.height = this.height + "px";
-			this.style.left = (this.left + origin.x) + "px";
-			this.style.top = (this.top + origin.y) + "px";
+			this.style.left = (this.left + this.origin_x) + "px";
+			this.style.top = (this.top + this.origin_y) + "px";
 		},
 		_on_drag: function(e){
 			var duty = e.currentTarget.getAttribute('bar_duty');
@@ -416,7 +468,7 @@ USEAGE:
   <template>
   	<div id="container" class="layout vertical" style="height:100%;">
   		<div id="grid_pattern"></div>
-  		<div id="about">venomous explorer</div>
+  		<div id="about" class="noselect">venomous explorer</div>
 	    <div id='main_zone' class="noselect"
 	     on-track="main_zone_on_track" 
 	     on-tap="node_on_click" nodrag>	
@@ -436,23 +488,38 @@ USEAGE:
 		    	</svg>
 	    	</template>
 	    	
-	    	<template is="dom-repeat" items="[[vnodes]]">
-				<venomous-node class="vnode"
+	    	<template is="dom-repeat" items="{{vnodes}}">
+				<venomous-node 
 				   index$="[[index]]" 
-				   on-track="node_on_track" 
-				   on-iron-resize="node_on_resize"
 				   on-tap="node_on_click"
-				   is_moving="[[item.is_moving]]"
-				   left="[[item.left]]" top="[[item.top]]"
+				   is_moving="{{item.is_moving}}"
+				   origin_x="[[origin_x]]" origin_y="[[origin_y]]"
+				   left="{{item.left}}" top="{{item.top}}"
+				   width="{{item.width}}" height="{{item.height}}"
 				   name="[[item.name]]" node_type="[[item.node_type]]"
 				   aliases="[[item.aliases]]"
 				   is_selected="[[item.is_selected]]"></venomous-node>
 			</template>
 
-			<template is="dom-repeat" items="[[vloops]]">
+			<template is="dom-repeat" items="{{vloops}}">
 			<venomous-loop index$="[[index]]" name="[[item.name]]" 
+  			    origin_x="[[origin_x]]" origin_y="[[origin_y]]"
 				left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}"
 				index$="[[index]]"	on-tap="node_on_click" is_selected="[[item.is_selected]]">
+
+		    	<template is="dom-repeat" items="{{item.vnodes}}" as="jtem">
+					<venomous-node
+					   index$="[[index]]" 
+					   on-tap="node_on_click"
+					   is_moving="{{jtem.is_moving}}"
+					   left="{{jtem.left}}" top="{{jtem.top}}"
+					   width="{{jtem.width}}" height="{{jtem.height}}"
+					   name="[[jtem.name]]" node_type="[[jtem.node_type]]"
+					   aliases="[[jtem.aliases]]"
+					   is_selected="[[jtem.is_selected]]"></venomous-node>
+				</template>
+
+
 			</venomous-loop>
 	    	</template>
 
@@ -465,7 +532,7 @@ USEAGE:
   <script type="text/javascript" src="polyfill_array_find.js"></script>
   <script>
   "use strict";
-  var origin = {x: 5000, y: 5000}; // copy-pasted above inside venomous-node TODO: avoid copy-paste somehow
+  
 
   var push_objs_vals_onto_array = function(arr, obj){
 	for(var k in obj)if(obj.hasOwnProperty(k))
@@ -505,13 +572,13 @@ USEAGE:
       get_edge_xy(coord_type, edge){
       		edge = edge.base;
       		if(coord_type == 'x1')
-      			return edge.node1_left + 0.5*(edge.node1_width || 0) + origin.x;
+      			return edge.node1_left + 0.5*(edge.node1_width || 0) + this.origin_x;
       		else if(coord_type == 'x2')
-      			return edge.node2_left + 0.5*(edge.node2_width || 0) + origin.x;
+      			return edge.node2_left + 0.5*(edge.node2_width || 0) + this.origin_x;
       		else if(coord_type == 'y1')
-      			return edge.node1_top + (edge.node1_height || 0) + origin.y;
+      			return edge.node1_top + (edge.node1_height || 0) + this.origin_y;
       		else
-      			return edge.node2_top + origin.y;
+      			return edge.node2_top + this.origin_y;
       },
       node_on_click: function(e){
 		var idx = e.currentTarget.index;
@@ -549,34 +616,6 @@ USEAGE:
             this.set("is_moving",false)
             break;
         }      	
-      },
-      node_on_track: function(e){
-      	var idx = e.currentTarget.index;
-
-        switch(e.detail.state) {
-          case 'start':
-            this.set('vnodes.' + idx + ".is_moving",true)
-            break;
-          case 'track':
-            this.set('vnodes.'+ idx + '.left',this.vnodes[idx].left + e.detail.ddx);
-            this.set('vnodes.'+ idx + '.top',this.vnodes[idx].top + e.detail.ddy);
-            break;
-          case 'end':
-            this.set('vnodes.' + idx + ".is_moving",false)
-            break;
-        }
-        e.stopPropagation(); // prevent dragging on main zone too.
-      },
-      node_on_resize: function(e){
-		var idx = e.currentTarget.index;
-		var el = e.currentTarget;
-		// I'm not sure why this has to be async
-		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
-      	this.debounce('node_on_resize_' + idx, function(){
-	      	// by modifying the vnodes[idx] we trigger the observer to update all the edges
-	      	this.set('vnodes.' + idx + '.width', el.clientWidth);
-	      	this.set('vnodes.' + idx + '.height', el.clientHeight);
-	    }, 1)
       },
       write_to_xml: function(){
       		var xw = new XMLWriter('UTF-8');
@@ -654,6 +693,7 @@ USEAGE:
 					 		 node_type: 'input',
 					 		 left: 20 + i*5,
 					 		 top: 100 + i*5,
+					 		 width: 0, height: 0,
 					 		 edges_after: [],
 					 		 aliases: [],
 					 		 description: ''};
@@ -672,6 +712,7 @@ USEAGE:
 					         node_type: 'compute',
 					         left: 20 + i*5,
 					         top: 200 + i*5,
+ 					 		 width: 0, height: 0,
 					     	 edges_before: [],
 					     	 edges_after: [],
 					     	 aliases: [],
@@ -720,6 +761,22 @@ USEAGE:
 							 width: 100,
 							 height: 100,
 							 description: '',
+							 vnodes: [{name: 'dummy_delta',
+							 	node_type: 'input',
+							 	top: 50, left: 300,
+							 	width: 0, height: 0, 
+							 	code: '', description: ''},
+							 	{name: getAttr(node, 'name'),
+							 	node_type: 'loop',
+							 	top: 50, left: 50,
+							 	width: 0, height: 0, 
+							 	code: '', description: ''},
+							 	{name: 'dummy_state',
+							 	node_type: 'compute',
+							 	top: 130, left: 200,
+							 	width: 0, height: 0, 
+							 	code: '', description: 'uses `previous_state` and `dummy_delta` to update for current iteration.'}
+							 ]
 							};
 					for(var j=0;j<node.childNodes.length; j++){
 						var node_j = node.childNodes[j];
@@ -784,7 +841,9 @@ USEAGE:
 			}
       },
       _vnodes_changed: function(delta){
-      		/* This is solely responsible for telling edges about the left/top of their start/end nodes.*/
+      		/* This is solely responsible for telling edges about the left/top and width/height of their start/end nodes.
+				we are essentially implementing a manual binding from start/end node to each of their edges.
+      		*/
       		if(delta.path == "vnodes.splices"){
       			delta.indexSplices.forEach(function(delta_sub){
 						delta_sub.added.forEach(this._vnodes_changed_sub, this)
@@ -830,14 +889,6 @@ USEAGE:
       		vloops: {type: Array,
       				value: function() {return [];},
       				notify: true},
-      		offset_left: {type: Number,
-      					  value: origin.x,
-      					  notify: true,
-      					  observer: '_offset_changed'},
-      		offset_top: {type: Number,
-      					  value: origin.y,
-      					  notify: true,
-      					  observer: '_offset_changed'},
       		is_moving: {type: Boolean,
       					value: false,
       				  reflectToAttribute: true},
@@ -858,8 +909,25 @@ USEAGE:
       		active_description: {type: String,
       					computed: "lookup_node_key(active_name, active_kind, 'description')",
       					value: "",
-      					notify: true}
-
+      					notify: true},
+      		offset_left: {type: Number,
+      					  value: 5000,
+      					  notify: true,
+      					  observer: '_offset_changed'},
+      		offset_top: {type: Number,
+      					  value: 5000,
+      					  notify: true,
+      					  observer: '_offset_changed'},
+      		origin_x: {
+      			type: Number,
+      			value: 5000,
+      			readOnly: true
+      		},
+      		origin_y: {
+      			type: Number,
+      			value: 5000,
+      			readOnly: true
+      		}
       }
     });
   </script>
