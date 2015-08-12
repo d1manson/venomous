@@ -59,7 +59,7 @@
       position: fixed;
       top: 15px;
       bottom: 15px;
-      width: 30%;
+      width: 40%;
       left: 15px;
       background-color: #fff;
       overflow: hidden;
@@ -193,7 +193,9 @@
     the_graph.addEventListener("error", function(e){
       the_toast.text = e.detail.type.toUpperCase() + ": "  + e.detail.msg;
       the_toast.show();
-      console.dir(e.detail);
+      console.log(the_toast.text)
+      if(e.detail.data)
+        console.dir(e.detail.data);
     })
     ajax_load.addEventListener("response", function(e){
       the_graph.load_from_xml(e.detail.response.childNodes);

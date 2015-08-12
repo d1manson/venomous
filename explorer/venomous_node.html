@@ -65,9 +65,9 @@ which result in certain rendered output, ie. text and icons etc.
    </style>
 
 	<template>
-	<paper-material class="card" style$="[[node_type_to_css(node_type)]]" elevation$="[[elevation]]">
+	<paper-material class="card" style$="[[node_type_to_css(node_type,'color')]]" elevation$="[[elevation]]">
 		<div class="card_top">
-		<iron-icon icon="[[node_type_to_icon(node_type)]]"></iron-icon>
+		<iron-icon icon="[[node_type_to_icon(node_type)]]" ></iron-icon>
 		<span class="node_name">[[name]]</span>
 		</div>
     <template is="dom-repeat" items="[[returns]]"><span class="return" hidden$="[[!complex_returns]]">[[item.name]]</span></template>
@@ -85,10 +85,10 @@ which result in certain rendered output, ie. text and icons etc.
   	compute: 'hardware:laptop',
   	chain: 'icons:track-changes'
 	}
-	var node_type_to_css_mapping = {
-	  	input: 'color:#99f',
-	  	compute: 'color:#cc7',
-	  	chain: 'color:#1FB31F'
+	var node_type_to_color_mapping = {
+	  	input: '#99f',
+	  	compute: '#cc7',
+	  	chain: '#1FB31F'
 	}
 
 	// element registration
@@ -198,8 +198,8 @@ which result in certain rendered output, ie. text and icons etc.
       node_type_to_icon(node_type){
       	return node_type_to_icon_mapping[node_type];
       },
-      node_type_to_css(node_type){
-		return node_type_to_css_mapping[node_type];
+      node_type_to_css(node_type, prop){
+  		  return prop + ":" + node_type_to_color_mapping[node_type];
       }
     });
 	</script>

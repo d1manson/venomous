@@ -6,8 +6,12 @@ Note that unlike node and loop, an *ARRAY* of edges are contained in a single el
 hopefully at some point it will be possible to put multiple edges inside one svg block rather than putitng each in its own block.
 (this is only possible with Polymer 0.5 not 1.0 - see http://stackoverflow.com/a/30821159/2399799).
 
-Each edge in the array must have its _left _right _width and _height set for node1 and node2, i.e. node1_left etc.
+Also, it would be nice to be able to have markers default to the color of their parent lines..
+http://stackoverflow.com/a/16665510/2399799
+
+Each edge in the array must have its _left _top set for node1 and node2, i.e. node1_left etc.
 The edges are simply rendered as read-only arrows from 1 to 2.
+
 -->
 
 <dom-module id="venomous-edges">
@@ -27,6 +31,13 @@ The edges are simply rendered as read-only arrows from 1 to 2.
     width: 100%;
     height: 100%;
    }
+   .line_edge{
+    stroke: #000;
+    stroke-width:1;
+   }
+   .line_edge[chain]{
+    stroke: #1FB31F;
+   }
    </style>
 
 	<template>
@@ -34,13 +45,17 @@ The edges are simply rendered as read-only arrows from 1 to 2.
       <svg class="edge">
         <defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refx="9" refy="3" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+          <path d="M0,0 L0,6 L9,3 z" fill$="[[get_fill_color(item.is_chain)]]"/>
         </marker>
       </defs>
 
-        <line x1$="[[get_edge_xy('x1', item.*, origin_x, origin_y)]]" x2$="[[get_edge_xy('x2', item.*, origin_x, origin_y)]]" 
-          y1$="[[get_edge_xy('y1', item.*, origin_x, origin_y)]]" y2$="[[get_edge_xy('y2', item.*, origin_x, origin_y)]]"
-          style="stroke:rgb(0,0,0);stroke-width:1" marker-end="url(#arrow)"/>
+        <line class="line_edge" x1$="[[add_ab(item.node1_left, origin_x)]]" x2$="[[add_ab(item.node2_left, origin_x)]]" 
+           y1$="[[add_ab(item.node1_top, origin_y)]]" y2$="[[add_ab(item.node2_top, origin_y)]]" 
+          marker-end="url(#arrow)"  chain$="[[item.is_chain]]" hidden$="[[item.is_arc]]"/>
+
+        <path class="line_edge" d$="[[make_arc_path(item.node1_left, item.node1_top, item.radius, origin_x, origin_y)]]" 
+                             fill="none" marker-end="url(#arrow)"  chain$="[[item.is_chain]]" hidden$="[[!item.is_arc]]"/>
+
       </svg>
     </template>
         
@@ -51,16 +66,15 @@ The edges are simply rendered as read-only arrows from 1 to 2.
   	
   Polymer({
       is: "venomous-edges",
-      get_edge_xy(coord_type, edge, origin_x, origin_y){
-          edge = edge.base;
-          if(coord_type == 'x1')
-            return edge.node1_left + 0.5*(edge.node1_width || 0) + origin_x;
-          else if(coord_type == 'x2')
-            return edge.node2_left + 0.5*(edge.node2_width || 0) + origin_x;
-          else if(coord_type == 'y1')
-            return edge.node1_top + (edge.node1_height || 0) + origin_y;
-          else
-            return edge.node2_top + origin_y;
+      add_ab(a,b){
+        return a+b;
+      },
+      make_arc_path: function(x,y,r,ox,oy){
+        return "M" + (x+ox) + " " + (y+r+oy) + 
+              " A " + r + " " + r + " 0 1 1 " + (x+ox+r) + " " + (y+oy);
+      },
+      get_fill_color: function(is_chain){
+        return is_chain ? '#1FB31F' :  '#000'; 
       },
       properties: {
         edges: {type: Array,

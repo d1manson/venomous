@@ -155,7 +155,8 @@ venomous explorer: see index_full.html for demo.
 			case "delta":
 				var e = {
 					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
-					node2_name: v.name };
+					node2_name: v.name,
+					is_chain: true};
 				v.edges_before.push(e);
 				break;
 			case "description":
@@ -174,6 +175,7 @@ venomous explorer: see index_full.html for demo.
 		width: 0, height: 0,
 		edges_before: [],
 		edges_after: [],
+		edge_self: undefined,
 		returns: [],
 		aliases: [],
 		code: '',
@@ -184,12 +186,24 @@ venomous explorer: see index_full.html for demo.
 		var node_j_name = node_j.nodeName.toLowerCase()
 		switch(node_j_name){
 			case "arg":
+				var e = {
+					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
+					node2_name: v.name,
+					is_chain: false};
+				v.edges_before.push(e);
+				break;
 			case "chain":
 				var e = {
 					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
-					node2_name: v.name };
+					node2_name: v.name,
+					is_chain: true};
 				v.edges_before.push(e);
-				break;
+				e = {node1_name: v.name,
+					node2_name: v.name,
+					is_chain: true,
+					is_arc: true}
+				v.edge_self = e;	
+				break;			
 			case "code":
 				for(var k=0;k<node_j.childNodes.length;k++)if(node_j.childNodes[k].nodeName.toLowerCase() == "#cdata-section")
 					v.code += node_j.childNodes[k].data;
@@ -305,8 +319,6 @@ venomous explorer: see index_full.html for demo.
 			return xw.flush(); //generate the xml string
       },
       load_from_xml: function(root){
-      		console.dir(root);
-
       		if(root.length != 1 || root[0].nodeName.toLowerCase() != "document")
       			return this.fire('error',{type: 'parse-error', msg: 'the root node should simply by called "document", and cannot have any siblings.'});
       		root = root[0]; // now root really is the root, and contains engine (and layout) children.
@@ -357,6 +369,8 @@ venomous explorer: see index_full.html for demo.
 								edges.push(e);
 							}
 						}
+						if(v.edge_self)
+							edges.push(v.edge_self);
 						computes[v.name] = v;
 						break;
 
@@ -422,6 +436,10 @@ venomous explorer: see index_full.html for demo.
       			}
       		}
 
+			for(var k in chains)if(chains.hasOwnProperty(k))
+				for(var j=0; j<chains[k].edges_after.length; j++)
+					chains[k].edges_after[j].is_chain = true;
+
 			if(i_layout < root.childNodes.length){
 				var layout = root.childNodes[i_layout];
 				for( var i=0; i< layout.childNodes.length; i++){
@@ -455,19 +473,31 @@ venomous explorer: see index_full.html for demo.
       _vnodes_changed_sub: function(v){
       		// used by _vnodes_changed
 
+      		var radius;
+			if(v.edge_self){
+				var e = v.edge_self;
+      			radius = Math.min(0.25*(v.width || 0), 0.5*(v.height || 0)); //generally not used, 
+				this.set('vedges.' + e.idx + '.node1_left', v.left);
+				this.set('vedges.' + e.idx + '.node1_top', v.top);
+				this.set('vedges.' + e.idx + '.radius', radius);
+			}
+
       		if(v.edges_before) for(var i=0;i<v.edges_before.length; i++){
       			var e = v.edges_before[i];
-				this.set('vedges.' + e.idx + '.node2_left', v.left);
-				this.set('vedges.' + e.idx + '.node2_top', v.top);
-				this.set('vedges.' + e.idx + '.node2_width', v.width);
-				this.set('vedges.' + e.idx + '.node2_height', v.height);
+      			if(!e.is_chain || v.node_type == "chain"){
+      				//normal edge, coming in to top-centre
+					this.set('vedges.' + e.idx + '.node2_left', v.left + 0.5*(v.width || 0) );
+					this.set('vedges.' + e.idx + '.node2_top', v.top);
+				}else{
+					//chain edge coming in to edge_self
+					this.set('vedges.' + e.idx + '.node2_left', v.left);
+					this.set('vedges.' + e.idx + '.node2_top', v.top - radius);
+				}
 			}
 			if(v.edges_after) for(var i=0;i<v.edges_after.length; i++){
 				var e = v.edges_after[i];
-				this.set('vedges.' + e.idx + '.node1_left', v.left);
-				this.set('vedges.' + e.idx + '.node1_top', v.top);
-				this.set('vedges.' + e.idx + '.node1_width', v.width);
-				this.set('vedges.' + e.idx + '.node1_height', v.height);
+				this.set('vedges.' + e.idx + '.node1_left', v.left  + 0.5*(v.width || 0) );
+				this.set('vedges.' + e.idx + '.node1_top', v.top  + (v.height || 0) );
 			}
       },
       _vnodes_changed: function(delta){

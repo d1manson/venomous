@@ -578,7 +578,12 @@
 		}
 	]]></raw>
 
-	<input name="cut_delta" type="cut_delta_spec"/>
+	<input name="cut_delta" type="cut_delta_spec">
+		<description>
+		This is a small `enum` and `union`, specifying what kind of change is being made - `split_v_t`, `merge`, `swap`, or `paint` - and providing the params
+		needed for the given change, i.e. a pair of group numbers for a `swap`/`merge`, or a `sub_spike_t` and threshold values for a `split_v_t`.
+		</description>
+	</input>
 	
 	<chain name="cut_chain">
 		<description>
@@ -766,9 +771,9 @@
     <box name="boundary_shape" left="746" top ="244" />
     <box name="speed_bin_size" left="733" top ="455" />
     <box name="spa_bin_size" left="223" top ="271" />
-    <box name="sub_spike_t" left="1928" top ="125" />
+    <box name="sub_spike_t" left="1902" top ="100" />
     <box name="tac_window_secs" left="1560" top ="886" />
-    <box name="cut_delta" left="1662" top ="351" />
+    <box name="cut_delta" left="1679" top ="351" />
     <box name="axona_file" left="661" top ="-66" />
     <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
@@ -786,9 +791,9 @@
     <box name="pos_bin_ind" left="284" top ="331" />
     <box name="spike_times" left="1396" top ="135" />
     <box name="waves" left="1700" top ="92" />
-    <box name="wave_amplitude" left="1554" top ="157" />
-    <box name="wave_energy" left="1685" top ="181" />
-    <box name="wave_v_time_t" left="1848" top ="178" />
+    <box name="wave_amplitude" left="1563" top ="152" />
+    <box name="wave_energy" left="1700" top ="192" />
+    <box name="wave_v_time_t" left="1813" top ="148" />
     <box name="spike_pos_inds" left="1293" top ="220" />
     <box name="spike_mask" left="1249" top ="496" />
     <box name="cut_file" left="2097" top ="65" />
@@ -800,7 +805,7 @@
     <box name="group_pos_inds" left="1723" top ="776" />
     <box name="tac" left="1500" top ="954" />
     <box name="group_speed_hist" left="759" top ="913" />
-    <box name="cut_chain" left="1662" top ="413" />
-    <offset left="5285" top="5002" />
+    <box name="cut_chain" left="1743" top ="397" />
+    <offset left="5356" top="4812" />
   </layout>
 </document>
