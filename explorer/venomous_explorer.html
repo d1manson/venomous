@@ -343,7 +343,8 @@ venomous explorer: see index_full.html for demo.
 				var ret = computes[name] || inputs[name] || aliases[name] || chains[name]; 
 				if(ret)
 					return ret;
-				parse_errors.push('[' + parent.node_type + ' "' + parent.name + '"] could not find arg named "' + name + '".');
+				var prefix = typeof parent === "string" ? '[' + parent + ']' : '[' + parent.node_type + ' "' + parent.name + '"]';
+				parse_errors.push(prefix + ' could not find arg named "' + name + '".');
 			}
 
 			for(var i=0;i< engine.childNodes.length; i++){
@@ -447,7 +448,7 @@ venomous explorer: see index_full.html for demo.
 					var node_name = node.nodeName.toLowerCase(); 
 					if(node_name == "box"){
 						var name = getAttr(node,"name");
-						var v = tmp_lookup_node_from_name(name);
+						var v = tmp_lookup_node_from_name(name, "layout:box");
 						if(v){
 							v.left = parseFloat(getAttr(node,"left"));
 							v.top = parseFloat(getAttr(node,"top"));

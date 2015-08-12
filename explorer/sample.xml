@@ -303,10 +303,6 @@
 		</description>
 	</compute>
 
-	<input name="trial_time_slice" type="slice^int32^"/> 
-	<input name="directional_slice" type="slice^float^"/>
-	<input name="spatial_mask" type="spatial^bool^"/>
-	<input name="boundary_dist_slice" type="slice^float^"/>
 
 	<input name="boundary_shape" type="shape"/>
 
@@ -348,15 +344,25 @@
 	   			return mixture;
 		}
 	]]></raw>
-	<compute name="pos_mask">
+
+	<input name="pos_mask_delta_params" type="TODO: enums-union thing">
+		<description>
+			Enum is one of `trial_time_slice`, `directional_slice`, `boundary_dist_slice`, or `spatial_mask`.
+			Note that `spatial_mask` takes an additional input.
+		</description>
+	</input>
+
+	<chain name="pos_mask_chain">
+		<delta name="pos_mask_delta_params"/>	
+	</chain>
+
+	<compute name="pos_mask_state">
 		<return name="summary" type="logical_summary"/>
 		<return name="mask" type="bool[]"/>
+		<chain name="pos_mask_chain"/>
 		<arg name="pos_file" request=".header"/>
-		<arg name="trial_time_slice" optional="true"/>
-		<arg name="directional_slice" optional="true"/>
-		<arg name="spatial_mask" optional="true"/>
-		<arg name="boundary_dist_slice" optional="true"/>
-		<arg name="dist_to_boundary" optional="true"/>
+		<arg name="dist_to_boundary" required="maybe"/>
+		<arg name="dir" required="maybe"/>
 		
 		<description>
 			`True` means use pos, `False` means don't use it.
@@ -429,13 +435,13 @@
 	<compute name="speed_dwell">
 		<return type="int32[]"/>
 		<arg name="speed"/>
-		<arg name="pos_mask"/>
+		<arg name="pos_mask_state"/>
 		<arg name="speed_bin_size"/>
 		<code><![CDATA[
-		if(pos_mask.summary == all)
+		if(pos_mask_state.summary == all)
 			speed_dwell = hist(speed, speed_bin_size);
 		else
-			speed_dwell = hist_masked(speed, pos_mask, speed_bin_size);
+			speed_dwell = hist_masked(speed, pos_mask_state, speed_bin_size);
 		]]></code>
 	</compute>
 
@@ -539,7 +545,7 @@
 	</compute>
 
 	<compute name="spike_mask">
-		<arg name="pos_mask"/>
+		<arg name="pos_mask_state"/>
 		<arg name="spike_pos_inds"/>
 		<return name="summary" type="logical_summary"/>
 		<return name="mask" type="bool[]"/>
@@ -779,55 +785,53 @@
 
 </engine>
   <layout>
-    <box name="axona_file_name" left="651" top ="-227" />
-    <box name="group_num" left="1532" top ="511" />
+    <box name="axona_file_name" left="752" top ="-222" />
+    <box name="group_num" left="1670" top ="638" />
     <box name="eeg_freq_band_of_interest" left="-151" top ="260" />
     <box name="eeg_total_freq_band" left="-397" top ="276" />
-    <box name="trial_time_slice" left="970" top ="225" />
-    <box name="directional_slice" left="1136" top ="289" />
-    <box name="spatial_mask" left="1134" top ="234" />
-    <box name="boundary_dist_slice" left="1043" top ="182" />
-    <box name="boundary_shape" left="746" top ="244" />
-    <box name="speed_bin_size" left="733" top ="455" />
+    <box name="boundary_shape" left="1028" top ="302" />
+    <box name="pos_mask_delta_params" left="787" top ="345" />
+    <box name="speed_bin_size" left="811" top ="552" />
     <box name="spa_bin_size" left="223" top ="271" />
     <box name="wave_smoothing_params" left="1721" top ="123" />
     <box name="sub_spike_t" left="1908" top ="176" />
-    <box name="tac_window_secs" left="1560" top ="886" />
+    <box name="tac_window_secs" left="1767" top ="849" />
     <box name="cut_delta_params" left="1533" top ="267" />
-    <box name="axona_file" left="661" top ="-66" />
+    <box name="axona_file" left="774" top ="-67" />
     <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
-    <box name="dir" left="426" top ="365" />
-    <box name="speed" left="619" top ="321" />
+    <box name="dir" left="561" top ="325" />
+    <box name="speed" left="433" top ="352" />
     <box name="eeg" left="-62" top ="154" />
     <box name="eeg_analytic" left="54" top ="324" />
     <box name="eeg_phase" left="189" top ="438" />
     <box name="eeg_power" left="-43" top ="442" />
     <box name="eeg_power_spectrum" left="-268" top ="209" />
     <box name="freq_band_sig_to_noise" left="-274" top ="335" />
-    <box name="dist_to_boundary" left="805" top ="305" />
-    <box name="pos_mask" left="993" top ="376" />
-    <box name="speed_dwell" left="815" top ="505" />
+    <box name="dist_to_boundary" left="1027" top ="352" />
+    <box name="pos_mask_state" left="940" top ="466" />
+    <box name="speed_dwell" left="963" top ="598" />
     <box name="pos_bin_ind" left="284" top ="331" />
-    <box name="spike_times" left="1396" top ="135" />
+    <box name="spike_times" left="1354" top ="192" />
     <box name="waves_unsmoothed" left="1506" top ="96" />
     <box name="waves" left="1714" top ="172" />
     <box name="wave_amplitude" left="1553" top ="221" />
     <box name="wave_energy" left="1720" top ="243" />
     <box name="wave_v_time_t" left="1865" top ="230" />
-    <box name="spike_pos_inds" left="1293" top ="220" />
-    <box name="spike_mask" left="1249" top ="496" />
+    <box name="spike_pos_inds" left="1282" top ="319" />
+    <box name="spike_mask" left="1252" top ="553" />
     <box name="cut_file" left="2052" top ="43" />
     <box name="cut_delta" left="1720" top ="318" />
     <box name="cut_state" left="1800" top ="478" />
     <box name="group_mask" left="1248" top ="669" />
-    <box name="group_times_unmaksed" left="1448" top ="665" />
-    <box name="group_times" left="1484" top ="786" />
-    <box name="group_pos_inds_unmasked" left="1742" top ="652" />
-    <box name="group_pos_inds" left="1723" top ="776" />
-    <box name="tac" left="1500" top ="954" />
-    <box name="group_speed_hist" left="759" top ="913" />
+    <box name="group_times_unmaksed" left="1763" top ="701" />
+    <box name="group_times" left="1647" top ="788" />
+    <box name="group_pos_inds_unmasked" left="1415" top ="691" />
+    <box name="group_pos_inds" left="1228" top ="787" />
+    <box name="tac" left="1668" top ="925" />
+    <box name="group_speed_hist" left="957" top ="848" />
+    <box name="pos_mask_chain" left="818" top ="392" />
     <box name="cut_chain" left="1723" top ="392" />
-    <offset left="5433" top="4929" />
+    <offset left="4956" top="4817" />
   </layout>
 </document>
