@@ -469,7 +469,7 @@
 		]]></code>
 	</compute>
 
-	<compute name="waves">
+	<compute name="waves_unsmoothed">
 		<arg name="tet_file"/>
 		<return type="int8[]" chunking="200*5000"/>
 		<description>
@@ -482,6 +482,13 @@
 		</description>
 	</compute>
 
+	<input name="wave_smoothing_params" type="?"/>
+
+	<compute name="waves">
+		<arg name="waves_unsmoothed"/>
+		<arg name="wave_smoothing_params"/>
+		<return type="int8[]" chunking="200*5000"/>
+	</compute>
 
 	<compute name="wave_amplitude">
 		<arg name="waves"/>
@@ -578,12 +585,27 @@
 		}
 	]]></raw>
 
-	<input name="cut_delta" type="cut_delta_spec">
+	<input name="cut_delta_params" type="cut_delta_spec">
 		<description>
 		This is a small `enum` and `union`, specifying what kind of change is being made - `split_v_t`, `merge`, `swap`, or `paint` - and providing the params
-		needed for the given change, i.e. a pair of group numbers for a `swap`/`merge`, or a `sub_spike_t` and threshold values for a `split_v_t`.
+		needed for the given change, i.e. a pair of group numbers for a `swap`/`merge`, or threshold values for a `split_v_t`.
+
+		Note that this is not the only input to the `cut_delta`. You also need to specify `sub_spike_t`, and `wave_smoothing_params` (although if not relevant to the delta they can be `null`).
 		</description>
 	</input>
+	
+	<compute name="cut_delta">
+		<arg name="cut_delta_params"/>
+		<arg name="wave_v_time_t" required="maybe"/>
+		<arg name="wave_amplitude" required="maybe"/>
+		<arg name="wave_energy" required="maybe"/>		
+		<return name="params" type="cut_delta_spec"/>
+		<return name="mask" type="bool[]"/>
+		<description>
+			For those cut deltas requiring something to be computed, this provides the result of that computation. Note that the computation does
+			not depend on the previous state of the cut, but can (for example) depend on the choice of `sub_spike_t` and thresholds etc.
+		</description>
+	</compute>
 	
 	<chain name="cut_chain">
 		<description>
@@ -608,9 +630,6 @@
 	<compute name="cut_state">
 		<chain name="cut_chain"/>
 		<arg name="cut_file" required="first_iteration"/>
-		<arg name="wave_v_time_t" required="maybe"/>
-		<arg name="wave_amplitude" required="maybe"/>
-		<arg name="wave_energy" required="maybe"/>
 		<return name="group_nums" type="uint8[]"/>
 		<return name="inds_by_group" type="uint8[]" chunking="manual explicit"/>
 		<description>
@@ -771,9 +790,10 @@
     <box name="boundary_shape" left="746" top ="244" />
     <box name="speed_bin_size" left="733" top ="455" />
     <box name="spa_bin_size" left="223" top ="271" />
-    <box name="sub_spike_t" left="1902" top ="100" />
+    <box name="wave_smoothing_params" left="1721" top ="123" />
+    <box name="sub_spike_t" left="1908" top ="176" />
     <box name="tac_window_secs" left="1560" top ="886" />
-    <box name="cut_delta" left="1679" top ="351" />
+    <box name="cut_delta_params" left="1533" top ="267" />
     <box name="axona_file" left="661" top ="-66" />
     <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
@@ -790,13 +810,15 @@
     <box name="speed_dwell" left="815" top ="505" />
     <box name="pos_bin_ind" left="284" top ="331" />
     <box name="spike_times" left="1396" top ="135" />
-    <box name="waves" left="1700" top ="92" />
-    <box name="wave_amplitude" left="1563" top ="152" />
-    <box name="wave_energy" left="1700" top ="192" />
-    <box name="wave_v_time_t" left="1813" top ="148" />
+    <box name="waves_unsmoothed" left="1506" top ="96" />
+    <box name="waves" left="1714" top ="172" />
+    <box name="wave_amplitude" left="1553" top ="221" />
+    <box name="wave_energy" left="1720" top ="243" />
+    <box name="wave_v_time_t" left="1865" top ="230" />
     <box name="spike_pos_inds" left="1293" top ="220" />
     <box name="spike_mask" left="1249" top ="496" />
-    <box name="cut_file" left="2097" top ="65" />
+    <box name="cut_file" left="2052" top ="43" />
+    <box name="cut_delta" left="1720" top ="318" />
     <box name="cut_state" left="1800" top ="478" />
     <box name="group_mask" left="1248" top ="669" />
     <box name="group_times_unmaksed" left="1448" top ="665" />
@@ -805,7 +827,7 @@
     <box name="group_pos_inds" left="1723" top ="776" />
     <box name="tac" left="1500" top ="954" />
     <box name="group_speed_hist" left="759" top ="913" />
-    <box name="cut_chain" left="1743" top ="397" />
-    <offset left="5356" top="4812" />
+    <box name="cut_chain" left="1723" top ="392" />
+    <offset left="5433" top="4929" />
   </layout>
 </document>
