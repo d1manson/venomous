@@ -347,7 +347,7 @@
 
 	<input name="pos_mask_delta_params" type="TODO: enums-union thing">
 		<description>
-			Enum is one of `trial_time_slice`, `directional_slice`, `boundary_dist_slice`, or `spatial_mask`.
+			Enum is one of `trial_time_slice`, `directional_slice`, `boundary_dist_slice`, `speed_splice`, or `spatial_mask`.
 			Note that `spatial_mask` takes an additional input.
 		</description>
 	</input>
@@ -362,6 +362,7 @@
 		<chain name="pos_mask_chain"/>
 		<arg name="pos_file" request=".header"/>
 		<arg name="dist_to_boundary" required="maybe"/>
+		<arg name="speed" required="maybe"/>
 		<arg name="dir" required="maybe"/>
 		
 		<description>
@@ -414,6 +415,13 @@
 		<description>cm/s</description>
 	</input>
 
+	<compute name="speed_bin_ind">
+		<arg name="speed_bin_size"/>
+		<arg name="speed"/>
+		<return type="uint8[]"/>
+		<description>simply takes raw speed values and converts to bin indices.</description>
+	</compute>
+
 	<raw><![CDATA[
 
 		vector<int32> hist(vals, bin_size){
@@ -432,11 +440,11 @@
 		}
 	]]></raw>
 
+
 	<compute name="speed_dwell">
 		<return type="int32[]"/>
-		<arg name="speed"/>
+		<arg name="speed_bin_ind"/>
 		<arg name="pos_mask_state"/>
-		<arg name="speed_bin_size"/>
 		<code><![CDATA[
 		if(pos_mask_state.summary == all)
 			speed_dwell = hist(speed, speed_bin_size);
@@ -445,19 +453,61 @@
 		]]></code>
 	</compute>
 
+	<input name="dir_bin_size" type="int8"/>
+	<input name="dir_smoothing" type="int8"/>
+	
+	<compute name="dir_bin_ind">
+		<arg name="dir"/>
+		<arg name="dir_bin_size"/>
+		<return type="int32[]"/>
+		<description> 
+			Simply takes raw direction values and converts them to bin indices.
+		</description>
+	</compute>
+
+	<compute name="dir_dwell">
+		<return type="int32[]"/>
+		<arg name="dir_bin_ind"/>
+		<arg name="pos_mask_state"/>
+		<arg name="dir_smoothing"/>
+		<description>
+			Counts the number of pos samples in each dir bin and then smooths.
+
+			*Optimisation Note:* we could split the pre-smoothed thing out into a separate compute if user wants to play
+			around with the smoothing param.
+		</description>
+		<code><![CDATA[
+		]]></code>
+	</compute>
+
+
 	<input name="spa_bin_size" type="float">
 		<description>cm</description>
 	</input>
 
+	<input name="spa_smoothing" type=""/>
+	
 	<compute name="pos_bin_ind">
 		<return type="point[]" chunking="10000"/>
 		<arg name="spa_bin_size"/>
 		<arg name="xy"/>
+		<description>Takes raw xy values and converts to 1d bin index (as in `sub2ind` in `Matlab` or `.ravel_multi_index()` in `numpy`).</description>
 		<code><![CDATA[
 			pos_bin_ind.allocate(xy.length);
 			for(auto p : xy)
 				pos_bin_ind.write({p.x/spa_bin_size, p.y/spa_bin_size});
 		]]></code>
+	</compute>
+
+
+	<compute name="spa_dwell">
+		<arg name="pos_bin_ind"/>
+		<arg name="spa_smoothing"/>
+		<return name="nodwell" type="?"/>
+		<return type="?"/>
+		<description>
+			counts number of pos samples in each spatial bin and smooths, recording no-dwell bins before smoothing.
+		</description>
 	</compute>
 
 	<compute name="spike_times">
@@ -672,81 +722,76 @@
 	</compute>
 
 
-	<compute name="group_mask">
-		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+	<compute name="cut_mask">
+		<arg name="cut_state" required=".inds_by_group[summary.requested AND mask.requested]"/>
 		<arg name="spike_mask"/>
-		<return name="summary" type="logical_summary"/>
-		<return name="mask" type="bool[]"/>
+		<return name="summary" type="logical_summary[]" chunking="none"/>
+		<return name="mask" type="bool[]" chunking="n:=cut_state.inds_by_group.length"/>
+		<description>
+			As with `cut_times`, and `cut_pos_inds`, this holds each group's mask in a separate chunk, so they can
+			be separately requested and managed in cache.  Note that here we have both `summary` and `mask`, with `summary` not actually using 
+			any chunking (all values are contiguous in memory), but still benefiting from targeted request behaviour.
+		</description>
+		
 		<code><![CDATA[
-			if(!computed(group_mask))
-				group_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			if(!computed(cut_mask))
+				cut_mask = copy(spike_mask.iter_sorted_inds(cut_state.inds_by_group[group_num]));
 			if(required(summary))
-				summary = make_logical_summary(group_mask);
+				summary = make_logical_summary(cut_mask);
 		]]></code>
 	</compute>
 
-	<compute name="group_times_unmaksed">
-		<arg name="group_num"/>
-		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+	<compute name="cut_times">
+		<return name="unmaksed" type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
+		<return type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
+		<arg name="cut_mask" required=".inds_by_group[unmaksed.requested AND this.requested]"/>
+		<arg name="cut_state" required=".inds_by_group[unmaksed.requested AND this.requested]"/>
 		<arg name="spike_times"/>	
+		<description>
+			As with `cut_mask`, and `cut_pos_inds`, this holds each group's values in a separate chunk, so they can
+			be separately requested and managed in cache.  Note we have an `unmasked` version as well as the `cut_times` verison which has
+			the mask applied.
+		</description>
 		<code><![CDATA[
-			group_times_unmaksed = copy(spike_times.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+			
+
 		]]></code>
 	</compute>
 
-	<compute name="group_times">
-		<arg name="group_mask"/>
-		<arg name="group_times_unmaksed"/>
-		<return type="uint32[]"/>
-
-		<code><![CDATA[
-			if(group_mask.all)
-				group_times.equals(group_times_unmaksed);
-			if(group_mask.none)
-				group_times = [];
-
-			group_times = group_times_unmaksed[group_mask]; // TODO: implement logical take
-		]]></code>
-	</compute>
-
-	<compute name="group_pos_inds_unmasked">
-		<arg name="group_num"/>
-		<arg name="cut_state" required=".inds_by_group[group_num]"/>
+	<compute name="cut_pos_inds">
+		<return type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
+		<return name="unmaksed" type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
+		<arg name="cut_mask" required=".inds_by_group[unmaksed.requested AND this.requested]"/>
+		<arg name="cut_state" required=".inds_by_group[unmaksed.requested AND this.requested]"/>
 		<arg name="spike_pos_inds"/>
-		<return type="uint32[]"/>
+		<description>
+			As with `cut_mask`, and `cut_times`, this holds each group's values in a separate chunk, so they can
+			be separately requested and managed in cache.  Note we have an `unmasked` version as well as the `cut_pos_inds` verison which has
+			the mask applied.
+		</description>
 		<code><![CDATA[
-			group_pos_inds_unmasked = copy(spike_pos_inds.iter_sorted_inds(cut_state.inds_by_group[group_num]));
+		
+
 		]]></code>
 	</compute>
 
-	<compute name="group_pos_inds">
-		<arg name="group_pos_inds_unmasked"/>
-		<arg name="group_mask"/>
-		<return type="uint32[]"/>
-		<code><![CDATA[
-			if(group_mask.all)
-				group_pos_inds.equals(group_pos_inds_unmasked);
-			if(group_mask.none)
-				group_pos_inds = [];
 
-			group_pos_inds = group_pos_inds_unmaksed[group_mask]; // TODO: implement logical take
-		]]></code>
-	</compute>
 
 	<compute name="tac">
-		<arg name="group_times"/>
+		<arg name="group_num"/>
+		<arg name="cut_times" required=".that"/>
 		<arg name="tac_window_secs"/>
 		<return name="tac" type="float[]"/>
 		<return name="max" type="uint32"/>
 		<code><![CDATA[
 			N_BINS = 100;
 			uint32[] hist(N_BINS);
-			float f = tac_window_secs * group_times.timebase /N_BINS;
-			auto max_diff = tac_window_secs * group_times.timebase;
-			auto later_time = group_times.times; //iterator
-			for(auto earlier_time : group_times.times){
+			float f = tac_window_secs * cut_times.timebase /N_BINS;
+			auto max_diff = tac_window_secs * cut_times.timebase;
+			auto later_time = cut_times.times; //iterator
+			for(auto earlier_time : cut_times.times){
 				// move the later time until it is one element beyond the end of the window
-				for(;later_time < earlier_time + max_diff && later_time != group_times.times.end(); ++later_time) ;
+				for(;later_time < earlier_time + max_diff && later_time != cut_times.times.end(); ++later_time) ;
 				// accumulate a "1" in the histogram for each time in the window, relative to the earlier time.
 				for( auto mid_time = earlier_time; mid_time != later_time; ++mid_time)
 					hist[(mid_time-earlier_time)*f]++;
@@ -759,19 +804,63 @@
 		]]></code>
 	</compute>
 
-	<compute name="group_speed_hist">
-		<arg name="group_pos_inds"/>
-		<arg name="speed_bin_size"/>
-		<arg name="speed_dwell"/>
-		<arg name="speed"/>
+	<compute name="group_dir_rm">
+		<arg name="cut_pos_inds"/>
+		<arg name="group_num"/>
+		<arg name="dir_smoothing"/>
+		<arg name="dir_dwell"/>
+		<arg name="dir_bin_ind"/>
 		<return type="float[]"/>
 		<return name="max" type="float"/>
 		<description>
-			Computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
+			For a specific group, computes rate in each dir bin, normalises to max of 1, but also provides max rate in Hz.
+		</description>
+		<code><![CDATA[
+			
+		]]></code>
+	</compute>
+
+	<compute name="group_spa_rm">
+		<arg name="cut_pos_inds"/>
+		<arg name="group_num"/>
+		<arg name="spa_smoothing"/>
+		<arg name="spa_dwell"/>
+		<arg name="spa_bin_ind"/>
+		<return type="float[]"/>
+		<return name="max" type="float"/>
+		<description>
+			For a specific group, computes rate in each spa bin, normalises to max of 1, but also provides max rate in Hz.
+		</description>
+		<code><![CDATA[
+			
+		]]></code>
+	</compute>
+
+	<compute name="group_spa_ac">
+		<arg name="group_spa_rm"/>
+	</compute>
+
+	<compute name="group_gridness_props">
+		<arg name="group_spa_ac"/>
+		<description>
+			*Optimization note:* you can calculate some props without doing rotations and correlations of autocorr: scale, peak heights etc.
+			So should return those thigns separately rather than as one big struct.
+		</description>
+	</compute>
+
+	<compute name="group_speed_hist">
+		<arg name="cut_pos_inds"/>
+		<arg name="group_num"/>
+		<arg name="speed_dwell"/>
+		<arg name="speed_bin_ind"/>
+		<return type="float[]"/>
+		<return name="max" type="float"/>
+		<description>
+			For a specific group, computes rate in each speed bin, normalises to max of 1, but also provides max rate in Hz.
 		</description>
 		<code><![CDATA[
 			uint32[] spike;
-			for(auto s : speed.iter_sorted(group_pos_inds))
+			for(auto s : speed.iter_sorted(cut_pos_inds))
 				spike[speed/speed_bin_size]++;
 			float[] rate = array(spike.length);
 			for(int i=0; i< spike.length; i++)
@@ -786,22 +875,25 @@
 </engine>
   <layout>
     <box name="axona_file_name" left="752" top ="-222" />
-    <box name="group_num" left="1670" top ="638" />
+    <box name="group_num" left="831" top ="801" />
     <box name="eeg_freq_band_of_interest" left="-151" top ="260" />
     <box name="eeg_total_freq_band" left="-397" top ="276" />
     <box name="boundary_shape" left="1028" top ="302" />
-    <box name="pos_mask_delta_params" left="787" top ="345" />
-    <box name="speed_bin_size" left="811" top ="552" />
-    <box name="spa_bin_size" left="223" top ="271" />
+    <box name="pos_mask_delta_params" left="758" top ="213" />
+    <box name="speed_bin_size" left="869" top ="588" />
+    <box name="dir_bin_size" left="494" top ="491" />
+    <box name="dir_smoothing" left="634" top ="596" />
+    <box name="spa_bin_size" left="263" top ="583" />
+    <box name="spa_smoothing" left="189" top ="693" />
     <box name="wave_smoothing_params" left="1721" top ="123" />
     <box name="sub_spike_t" left="1908" top ="176" />
-    <box name="tac_window_secs" left="1767" top ="849" />
+    <box name="tac_window_secs" left="1487" top ="997" />
     <box name="cut_delta_params" left="1533" top ="267" />
     <box name="axona_file" left="774" top ="-67" />
     <box name="both_xy" left="367" top ="126" />
     <box name="xy" left="353" top ="219" />
-    <box name="dir" left="561" top ="325" />
-    <box name="speed" left="433" top ="352" />
+    <box name="dir" left="493" top ="388" />
+    <box name="speed" left="707" top ="351" />
     <box name="eeg" left="-62" top ="154" />
     <box name="eeg_analytic" left="54" top ="324" />
     <box name="eeg_phase" left="189" top ="438" />
@@ -809,29 +901,35 @@
     <box name="eeg_power_spectrum" left="-268" top ="209" />
     <box name="freq_band_sig_to_noise" left="-274" top ="335" />
     <box name="dist_to_boundary" left="1027" top ="352" />
-    <box name="pos_mask_state" left="940" top ="466" />
-    <box name="speed_dwell" left="963" top ="598" />
-    <box name="pos_bin_ind" left="284" top ="331" />
+    <box name="pos_mask_state" left="920" top ="470" />
+    <box name="speed_bin_ind" left="877" top ="648" />
+    <box name="speed_dwell" left="975" top ="696" />
+    <box name="dir_bin_ind" left="535" top ="541" />
+    <box name="dir_dwell" left="691" top ="643" />
+    <box name="pos_bin_ind" left="339" top ="635" />
+    <box name="spa_dwell" left="305" top ="740" />
     <box name="spike_times" left="1354" top ="192" />
     <box name="waves_unsmoothed" left="1506" top ="96" />
     <box name="waves" left="1714" top ="172" />
     <box name="wave_amplitude" left="1553" top ="221" />
     <box name="wave_energy" left="1720" top ="243" />
     <box name="wave_v_time_t" left="1865" top ="230" />
-    <box name="spike_pos_inds" left="1282" top ="319" />
-    <box name="spike_mask" left="1252" top ="553" />
+    <box name="spike_pos_inds" left="1340" top ="388" />
+    <box name="spike_mask" left="1211" top ="560" />
     <box name="cut_file" left="2052" top ="43" />
-    <box name="cut_delta" left="1720" top ="318" />
-    <box name="cut_state" left="1800" top ="478" />
-    <box name="group_mask" left="1248" top ="669" />
-    <box name="group_times_unmaksed" left="1763" top ="701" />
-    <box name="group_times" left="1647" top ="788" />
-    <box name="group_pos_inds_unmasked" left="1415" top ="691" />
-    <box name="group_pos_inds" left="1228" top ="787" />
-    <box name="tac" left="1668" top ="925" />
-    <box name="group_speed_hist" left="957" top ="848" />
-    <box name="pos_mask_chain" left="818" top ="392" />
-    <box name="cut_chain" left="1723" top ="392" />
-    <offset left="4956" top="4817" />
+    <box name="cut_delta" left="1689" top ="337" />
+    <box name="cut_state" left="1592" top ="531" />
+    <box name="cut_mask" left="1460" top ="701" />
+    <box name="cut_times" left="1590" top ="781" />
+    <box name="cut_pos_inds" left="1224" top ="789" />
+    <box name="tac" left="1392" top ="1062" />
+    <box name="group_dir_rm" left="654" top ="1056" />
+    <box name="group_spa_rm" left="304" top ="1050" />
+    <box name="group_spa_ac" left="304" top ="1145" />
+    <box name="group_gridness_props" left="272" top ="1215" />
+    <box name="group_speed_hist" left="1000" top ="1061" />
+    <box name="pos_mask_chain" left="788" top ="260" />
+    <box name="cut_chain" left="1562" top ="431" />
+    <offset left="4759" top="5186" />
   </layout>
 </document>
