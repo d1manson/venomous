@@ -7,7 +7,6 @@ venomous explorer: see index_full.html for demo.
 <dom-module id="venomous-explorer">
    <link rel="import" href="bower_components/iron-flex-layout/classes/iron-flex-layout.html">
    <link rel="import" href="venomous_node.html">
-   <link rel="import" href="venomous_loop.html">
    <link rel="import" href="venomous_edges.html">
 
   <style>
@@ -96,29 +95,6 @@ venomous explorer: see index_full.html for demo.
 			   is_selected="[[item.is_selected]]"></venomous-node>
 		</template>
 
-		<template is="dom-repeat" items="{{vloops}}">
-			<venomous-loop index$="[[index]]" name="[[item.name]]" 
-  			    origin_x="[[origin_x]]" origin_y="[[origin_y]]"
-				left="{{item.left}}" top="{{item.top}}" width="{{item.width}}" height="{{item.height}}"
-				index$="[[index]]"	on-tap="node_on_click" is_selected="[[item.is_selected]]">
-
-		    	<template is="dom-repeat" items="{{item.vnodes}}" as="jtem" index-as="jndex">
-					<venomous-node
-						   loop_index$="[[index]]"
-						   index$="[[jndex]]" 
-						   on-tap="node_on_click"
-						   is_moving="{{jtem.is_moving}}"
-						   left="{{jtem.left}}" top="{{jtem.top}}"
-						   width="{{jtem.width}}" height="{{jtem.height}}"
-						   name="[[jtem.name]]" node_type="[[jtem.node_type]]"
-						   aliases="[[jtem.aliases]]"
-						   returns="[[jtem.returns]]"
-						   no_move="[[jtem.no_move]]"
-						   is_selected="[[jtem.is_selected]]"></venomous-node>
-				</template>
-			</venomous-loop>
-    	</template>
-
 	    </div>
 	</div>
   </template>
@@ -160,6 +136,35 @@ venomous explorer: see index_full.html for demo.
 	return v;
   }
 
+  var ParseChain = function(node){
+  	var v = {
+		name: getAttr(node,"name"),
+		node_type: 'chain',
+		left: 20,
+		top: 300,
+		width: 0, height: 0,
+		edges_before: [],
+		edges_after: [],
+		aliases: [],
+		description: ''};
+	for(var j=0;j<node.childNodes.length; j++){
+		var node_j = node.childNodes[j];
+		var node_j_name = node_j.nodeName.toLowerCase()
+		switch(node_j_name){
+			case "arg":
+			case "delta":
+				var e = {
+					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
+					node2_name: v.name };
+				v.edges_before.push(e);
+				break;
+			case "description":
+				v.description = remove_common_indent(node_j.innerHTML).trim();
+				break;
+		}
+	}
+	return v;
+  }
   var ParseCompute = function(node){
   	var v = {
 		name: getAttr(node,"name"),
@@ -179,6 +184,7 @@ venomous explorer: see index_full.html for demo.
 		var node_j_name = node_j.nodeName.toLowerCase()
 		switch(node_j_name){
 			case "arg":
+			case "chain":
 				var e = {
 					node1_name: getAttr(node_j,"name"), // note that caller must iterate over edges_before and inform befores
 					node2_name: v.name };
@@ -203,66 +209,7 @@ venomous explorer: see index_full.html for demo.
 	return v;
   }
 
-  var ParseLoop = function(node){
-  	/* This is for parsing of <loop></loop>  elements.
-  		(i.e. rather than being a loop with the task of parsing!..although it is that too as it happens)
-	*/
-  	var v = {
-  		name: getAttr(node, 'name'),
-		top: 0,
-		left: 0,
-		width: 100,
-		height: 100,
-		description: '',
-		edges: [],
-		vnodes: []
-		};
-    var computes = {};
-	var inputs = {};
-	// the first node in the loop is the loop's previous state
-	var prev_state = {
-		name: v.name,
-		node_type: 'loop',
-		left: 0,
-		top: 0,
-		width: 0, height: 0,
-		edges_after: [],
-		aliases: [],
-		description: '',
-		no_move: true
-	}
-
-	for(var j=0; j<node.childNodes.length; j++){
-		var node_j = node.childNodes[j];
-		var node_j_name = node_j.nodeName.toLowerCase()
-	    switch (node_j_name){
-	    	case "description":
-				v.description = remove_common_indent(node_j.innerHTML).trim();
-				break;
-
-			case "#text":
-				break; // TODO: check for errors and pass to caller
-
-			case "compute":
-				var w = ParseCompute(node_j);
-				computes[w.name] = w;
-				break;
-
-			case "input":
-				var w = ParseInput(node_j);
-				inputs[w.name] = w;
-				break;
-
-			default:
-				break; // TODO: pass error to caller 
-	    }
-	}
-	var inputs_and_computes = push_objs_vals_onto_array([prev_state], inputs);
-								push_objs_vals_onto_array(inputs_and_computes, computes);
-	v.vnodes = inputs_and_computes;
-	return v;						
-  }
-
+  
   var remove_common_indent = function(s){
 		var lines = s.split(/\r?\n/);
 		// find minimum common indent on non-empty lines
@@ -283,71 +230,29 @@ venomous explorer: see index_full.html for demo.
 		return "Ignoring non-empty text node: '" + txt.substr(0,30) + (txt.length > 30 ? "...'" : "'.");
   }
 
-    // element registration
-    // TODO: loops and nodes should be abastracted into a common "base class"-ish thing.....current setup is very messy.
     Polymer({
       is: "venomous-explorer",
-      _lookup_node: function(loop_name, node_name, as_path_str){
-      		if(loop_name){
-	      		var lp = this.vloops.find(function(w){return w.name == loop_name});
-	      		if (!lp)
-    	  			return;
-				if(!node_name)
-      				return as_path_str ? "vloops." + this.vloops.indexOf(lp) : lp;
-      			var v = lp.vnodes.find(function(w){return w.name == node_name});
-      			return as_path_str ? "vloops." + this.vloops.indexOf(lp) + ".vnodes." + lp.vnodes.indexOf(v) : v;
-      		}else{
-      			var v = this.vnodes.find(function(w){return w.name == node_name});
-      			return as_path_str ? "vnodes." + this.vnodes.indexOf(v) : v;
-      		}
+      _lookup_node: function(node_name, as_path_str){
+  			var v = this.vnodes.find(function(w){return w.name == node_name});
+  			return as_path_str ? "vnodes." + this.vnodes.indexOf(v) : v;	
       },
       node_on_click: function(e){
 		var idx = e.currentTarget.index;
-		var idx_loop = e.currentTarget.loop_index;
 		
-		var clicked_type; // TODO: this could be a map-lookup rather than a switch really..
-		switch(e.currentTarget.tagName.toLowerCase()){
-			case "venomous-loop":
-				clicked_type = 'vloop';
-				break;
-			case "venomous-node":
-				clicked_type = 'vnode';
-				break;
-			default:
-				clicked_type = 'back';
-				break;
-		}
+		var name_mapping = {
+			'venomous-node': 'vnode',
+			'div': 'back'
+		};
+		var clicked_type = name_mapping[e.currentTarget.tagName.toLowerCase()];
 
-		if(this.active_name || this.active_loop_name)
-			this.set(this._lookup_node(this.active_loop_name, this.active_name, true) + ".is_selected", false);			
+		if(this.active_name)
+			this.set(this._lookup_node(this.active_name, true) + ".is_selected", false);			
 
 		if(clicked_type == 'back'){
 			this.set('active_name', '');
-			this.set('active_loop_name', '');
-			this.set('active_kind', '');
-		}else{			
-			// if you clicked the 0th node within a loop, then lets say instead that you clicked the loop
-			if(idx_loop !== undefined && idx == 0){
-				idx = idx_loop;
-				idx_loop = undefined;
-				clicked_type = "vloop";
-			}
-			this.set('active_kind', clicked_type)
-			if(clicked_type == "vloop"){
-				this.set('active_name','');
-				this.set('active_loop_name',this.vloops[idx].name);
-				this.set('vloops.' + idx + ".is_selected", true);
-			}else if (idx_loop === undefined){
-				// clicked top-level node
-				this.set('active_name',this.vnodes[idx].name);
-				this.set('active_loop_name','');
-				this.set('vnodes.' + idx + ".is_selected", true);
-			}else{
-				//clicked node within a loop (remmeber we don't allow nested loops, yet)
-				this.set('active_name',this.vloops[idx_loop].vnodes[idx].name);
-				this.set('active_loop_name',this.vloops[idx_loop].name);
-				this.set('vloops.' + idx_loop + '.vnodes.' + idx + ".is_selected", true);
-			}
+		}else{//vnode			
+			this.set('active_name', this.vnodes[idx].name);
+			this.set('vnodes.' + idx + ".is_selected", true);
 		}
 		e.stopPropagation(); // prevent click on main zone too.
       },
@@ -386,28 +291,7 @@ venomous explorer: see index_full.html for demo.
 			    xw.writeAttributeString('left', v.left);
 			    xw.writeAttributeString('top ', v.top);
 			    xw.writeEndElement(); 
-			  }
-			  
-			  for(var i=0; i<this.vloops.length; i++){
-			  	var v = this.vloops[i];
-			  	xw.writeStartElement('box')
-			    xw.writeAttributeString('name', v.name);
-			    xw.writeAttributeString('left', v.left);
-			    xw.writeAttributeString('top', v.top);
-				xw.writeAttributeString('width ', v.width);
-				xw.writeAttributeString('height', v.height);
-
-				for(var j=1; j<this.vloops[i].vnodes.length; j++){ //note we omit the zeroth node
-					var v = this.vloops[i].vnodes[j];
-				  	xw.writeStartElement('box')
-				    xw.writeAttributeString('name', v.name);
-				    xw.writeAttributeString('left', v.left);
-				    xw.writeAttributeString('top ', v.top);
-				    xw.writeEndElement(); 
-			  	}
-			    xw.writeEndElement(); 
-			  }
-			  
+			  }			  
 
 			  xw.writeStartElement("offset");
 			  xw.writeAttributeString("left", this.offset_left);
@@ -439,9 +323,17 @@ venomous explorer: see index_full.html for demo.
 			var inputs = {};
 			var computes = {};
 			var aliases = {};
-			var loops = {};
+			var chains = {};
 			var edges = [];
 			var parse_errors = [];
+
+			var tmp_lookup_node_from_name = function(name, parent){
+				var ret = computes[name] || inputs[name] || aliases[name] || chains[name]; 
+				if(ret)
+					return ret;
+				parse_errors.push('[' + parent.node_type + ' "' + parent.name + '"] could not find arg named "' + name + '".');
+			}
+
 			for(var i=0;i< engine.childNodes.length; i++){
 
 				var node = engine.childNodes[i];
@@ -459,17 +351,11 @@ venomous explorer: see index_full.html for demo.
 						// inform befores of new edges...
 						for (var j=0; j<v.edges_before.length; j++){
 							var e = v.edges_before[j];
-							if(e.node1_name in aliases)
-								aliases[e.node1_name].edges_after.push(e);
-							else if(e.node1_name in inputs)
-								inputs[e.node1_name].edges_after.push(e);
-							else if(e.node1_name in computes)
-								computes[e.node1_name].edges_after.push(e);
-							else{
-								parse_errors.push('[compute "' + v.name + '"] could not find arg named "' + e.node1_name + '"');
-								continue;
+							var b = tmp_lookup_node_from_name(e.node1_name, v);
+							if(b){
+								b.edges_after.push(e);
+								edges.push(e);
 							}
-							edges.push(e);
 						}
 						computes[v.name] = v;
 						break;
@@ -497,9 +383,17 @@ venomous explorer: see index_full.html for demo.
 						}
 						break;
 
-					case "loop":
-						var v = ParseLoop(node);
-						loops[v.name] = v;
+					case "chain":
+						var v = ParseChain(node);
+						for (var j=0; j<v.edges_before.length; j++){
+							var e = v.edges_before[j];
+							var b = tmp_lookup_node_from_name(e.node1_name, v);
+							if(b){
+								b.edges_after.push(e);
+								edges.push(e);
+							}
+						}
+						chains[v.name] = v;
 						break;
 
 					case "#text":
@@ -507,6 +401,7 @@ venomous explorer: see index_full.html for demo.
 						if(err)
 							parse_errors.push(err);
 						break;
+
 					default:
 						parse_errors.push("Unrecognised xml node: '" + node_name + "'.");
 				}
@@ -534,31 +429,10 @@ venomous explorer: see index_full.html for demo.
 					var node_name = node.nodeName.toLowerCase(); 
 					if(node_name == "box"){
 						var name = getAttr(node,"name");
-						var v;
-						if(name in inputs)
-							v = inputs[name];
-						else if(name in computes)
-							v = computes[name];
-						else if(name in loops)
-							v = loops[name]
-						v.left = parseFloat(getAttr(node,"left"));
-						v.top = parseFloat(getAttr(node,"top"));
-						if(node.hasAttribute('width'))
-							v.width = parseFloat(getAttr(node,"width"))
-						if(node.hasAttribute('height'))
-							v.height = parseFloat(getAttr(node,"height"))
-						if('vnodes' in v){// because this is a loop
-							for(var j=0; j< node.childNodes.length; j++){
-								var node_j = node.childNodes[j];
-								if(node_j.nodeName.toLowerCase() == "box"){
-									var name_j = getAttr(node_j, "name");
-									var w = v.vnodes.find(function(x){return x.name == name_j;});
-									if(w){
-										w.left = parseFloat(getAttr(node_j,"left"));
-										w.top = parseFloat(getAttr(node_j,"top"));
-									}
-								}
-							}
+						var v = tmp_lookup_node_from_name(name);
+						if(v){
+							v.left = parseFloat(getAttr(node,"left"));
+							v.top = parseFloat(getAttr(node,"top"));
 						}
 					}else if(node_name == "offset"){
 						this.set("offset_left", parseFloat(getAttr(node, "left")));
@@ -568,11 +442,10 @@ venomous explorer: see index_full.html for demo.
 			}
 
 			this.set('vedges', edges);
-			var inputs_and_computes = push_objs_vals_onto_array([], inputs);
-								      push_objs_vals_onto_array(inputs_and_computes, computes);
-
-			this.set('vnodes', inputs_and_computes);
-			this.set('vloops', push_objs_vals_onto_array([], loops));
+			var all_nodes = push_objs_vals_onto_array([], inputs);
+								      push_objs_vals_onto_array(all_nodes, computes);
+								      push_objs_vals_onto_array(all_nodes, chains);
+			this.set('vnodes', all_nodes);
 
 			if (parse_errors.length)
 				return this.fire('error', {type: 'parse-error', 
@@ -622,11 +495,11 @@ venomous explorer: see index_full.html for demo.
 	 	this.$.main_zone.style.left = -this.offset_left + "px";
 		this.$.main_zone.style.top = -this.offset_top + "px";
 	 },
-	 none_true: function(a,b){
-	 	return !a && !b;
+	 none_true: function(a){
+	 	return !a;
 	 },
-	 lookup_node_key: function(node_name, loop_name, node_kind, key){
-	 	var v = this._lookup_node(loop_name, node_kind == "vnode" ? node_name : "")
+	 lookup_node_key: function(node_name, key){
+	 	var v = this._lookup_node(node_name, false)
 	 	return v ? v[key] : "";
 	 },
       observers: [
@@ -640,35 +513,26 @@ venomous explorer: see index_full.html for demo.
       		vedges: {type: Array,
       		        value: function() {return [];},
       		        notify: true},
-      		vloops: {type: Array,
-      				value: function() {return [];},
-      				notify: true},
       		is_moving: {type: Boolean,
       					value: false,
       				  reflectToAttribute: true},
       		no_node_is_active: {type: Boolean,
       							 value: true,
-      							 computed: 'none_true(active_name, active_loop_name)',
+      							 computed: 'none_true(active_name)',
       							 notify: true},
       		active_name: {type: String,
       					value: "",
       					notify: true},
-      		active_loop_name: {type: String,
-      					value: "",
-      					notify: true},
-      		active_kind: {type: String,
-      					value: '',
-      					notify: true},
       		active_code: {type: String,
-      					computed: "lookup_node_key(active_name, active_loop_name, active_kind, 'code')",
+      					computed: "lookup_node_key(active_name, 'code')",
       					value: "",
       					notify: true},
       		active_description: {type: String,
-      					computed: "lookup_node_key(active_name, active_loop_name, active_kind, 'description')",
+      					computed: "lookup_node_key(active_name, 'description')",
       					value: "",
       					notify: true},
       		active_returns: {type: String,
-      					computed: "lookup_node_key(active_name, active_loop_name, active_kind, 'returns')",
+      					computed: "lookup_node_key(active_name, 'returns')",
       					value: "",
       					notify: true},
       		offset_left: {type: Number,
