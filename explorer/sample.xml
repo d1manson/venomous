@@ -57,9 +57,16 @@
 		}
 	]]></raw>
 
+	<input name="pos_max_speed"/>
+	<input name="pos_smoothing"/>
+	<input name="use_both_LEDs"/>
+
 	<compute name="both_xy">
 		<arg name="pos_file"/>
 		<arg name="set_file"/>
+		<arg name="use_both_LEDs"/>
+		<arg name="pos_max_speed"/>
+		<arg name="pos_smoothing"/>
 		<return name="used_both" type="bool"/>
 		<return name="xy1" type="point[]" chunking="10000"/>
 		<return name="xy2" type="point[]" chunking="10000"/>
@@ -114,6 +121,8 @@
 
 		]]></code>
 	</compute>
+
+
 
 	<raw><![CDATA[
 		float angle_ab(point a, point b){
@@ -247,36 +256,19 @@
 	<compute name="eeg_analytic">
 		<arg name="eeg"/>
 		<arg name="eeg_freq_band_of_interest"/>
-		<return type="cint16[]" chunking="100000"/>
+		<return type="cfloat32[]" chunking="100000"/>
 		<return type="int" name="timebase"/>
+		<return name="eeg_phase" type="float32" chunking="100000"/>
+		<return name="eeg_amp" type="float32" chunking="100000"/>
 		<description>
 			Bandpasses the eeg using a [Blackman window](https://en.wikipedia.org/wiki/Window_function#Blackman_windows) and then performs the [hilbert transform](https://en.wikipedia.org/wiki/Hilbert_transform) to get a complex (ie. `x +iy`) value for each time point.
 
 			Note `timebase` is copied through from `eeg` for convenience.
+
+			The `eeg_phase` and `eeg_amp` are simply the complex angle and magnitdue respectively. phase is in radians.
 		</description>
 	</compute>
 
-	<compute name="eeg_phase">
-		<arg name="eeg_analytic"/>
-		<return type="int16[]" chunking="100000"/>
-		<return type="int" name="timebase"/>
-		<description>
-			Simply gives the complex angle of the analytic signal.
-
-			Note `timebase` is copied through from `eeg` for convenience.
-		</description>
-	</compute>
-
-	<compute name="eeg_power">
-		<arg name="eeg_analytic"/>
-		<return type="int16[]" chunking="100000"/>
-		<return type="int" name="timebase"/>
-		<description>
-			Simply gives the complex magnitude of the analytic signal.
-
-			Note `timebase` is copied through from `eeg` for convenience.
-		</description>
-	</compute>	
 
 	<compute name="eeg_power_spectrum">
 		<arg name="eeg"/>
@@ -411,6 +403,14 @@
 		]]></code>
 	</compute>
 
+	<compute name="path_plot">
+		<arg name="xy"/>
+		<arg name="pos_mask_state"/>
+		<description>
+			Shows a simple plot of the path, with masked sections in a paler colour.
+		</description>
+	</compute>
+	
 	<input name="speed_bin_size" type="float">
 		<description>cm/s</description>
 	</input>
@@ -487,21 +487,21 @@
 
 	<input name="spa_smoothing" type=""/>
 	
-	<compute name="pos_bin_ind">
+	<compute name="spa_bin_ind">
 		<return type="point[]" chunking="10000"/>
 		<arg name="spa_bin_size"/>
 		<arg name="xy"/>
 		<description>Takes raw xy values and converts to 1d bin index (as in `sub2ind` in `Matlab` or `.ravel_multi_index()` in `numpy`).</description>
 		<code><![CDATA[
-			pos_bin_ind.allocate(xy.length);
+			spa_bin_ind.allocate(xy.length);
 			for(auto p : xy)
-				pos_bin_ind.write({p.x/spa_bin_size, p.y/spa_bin_size});
+				spa_bin_ind.write({p.x/spa_bin_size, p.y/spa_bin_size});
 		]]></code>
 	</compute>
 
 
 	<compute name="spa_dwell">
-		<arg name="pos_bin_ind"/>
+		<arg name="spa_bin_ind"/>
 		<arg name="spa_smoothing"/>
 		<return name="nodwell" type="?"/>
 		<return type="?"/>
@@ -524,6 +524,29 @@
 
 		]]></code>
 	</compute>
+
+	<input name="phase_bin_size" type="float">
+		<description>In degrees.</description>
+	</input>
+
+	<compute name="spike_phase">
+		<arg name="spike_times"/>
+		<arg name="eeg_analytic" required=".eeg_phase"/>
+		<return type="float32[]" chunking="5000"/>
+		<description>
+			For each spike, it looks up the phase of the eeg (in `eeg_freq_band_of_interest`, e.g. the theta band).  phase is in radians (as in `eeg_analytic.eeg_phase`.)
+		</description>
+	</compute>
+
+	<compute name="spike_phase_bin_ind">
+		<arg name="spike_phase"/>
+		<arg name="phase_bin_size"/>
+		<return type="uint16" chunking="5000"/>
+		<description>
+			Converts absolute phase values to indices.
+		</description>
+	</compute>
+
 
 	<compute name="waves_unsmoothed">
 		<arg name="tet_file"/>
@@ -758,6 +781,8 @@
 		]]></code>
 	</compute>
 
+	<input name="drift_mode_on" type="bool"/>
+
 	<compute name="cut_pos_inds">
 		<return type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
 		<return name="unmaksed" type="uint32[]" chunking="n:=cut_state.inds_by_group.length"/>
@@ -820,6 +845,13 @@
 		]]></code>
 	</compute>
 
+	<compute name="group_spa_raw_spikes">
+		<arg name="group_num"/>
+		<arg name="xy"/>
+		<arg name="cut_pos_inds"/>
+		<arg name="drift_mode_on"/>	
+	</compute>
+
 	<compute name="group_spa_rm">
 		<arg name="cut_pos_inds"/>
 		<arg name="group_num"/>
@@ -848,7 +880,19 @@
 		</description>
 	</compute>
 
-	<compute name="group_speed_hist">
+	<compute name="group_phase_hist">
+		<arg name="spike_phase_bin_ind"/>
+		<arg name="group_num"/>
+		<arg name="cut_mask"/>
+		<arg name="cut_state"/>
+		<description>
+			Note that this is a "hist" rather than a "ratemap" because it's not normalized by dwell, although really dwell should be fairly
+			uniform across all phases.
+		</description>
+
+	</compute>
+
+	<compute name="group_speed_rm">
 		<arg name="cut_pos_inds"/>
 		<arg name="group_num"/>
 		<arg name="speed_dwell"/>
@@ -872,64 +916,100 @@
 		]]></code>
 	</compute>
 
+
+
+	<input name="cluster_axes_choice">
+		<description>
+			This specifies the energy/amplitude/V(t) as well as the channel for both the x and y axes.
+		</description>	
+	</input>
+
+	<input name="hide_masked_spikes_in_clusters"/>
+
+	<compute name="cluster_plot">
+		<arg name="drift_mode_on"/>
+		<arg name="cluster_axes_choice"/>
+		<arg name="wave_amplitude" required="depends on cluster_axes_choice"/>
+		<arg name="wave_energy" required="depends on cluster_axes_choice"/>
+		<arg name="wave_v_time_t" required="depends on cluster_axes_choice"/>
+		<arg name="cut_state" required=".group_nums"/>
+		<arg name="spike_mask"/>
+		<arg name="hide_masked_spikes_in_clusters"/>
+		<description>
+			Returns the RGBA data for a single cluster plot.
+
+		</description>
+	</compute>
+
 </engine>
   <layout>
     <box name="axona_file_name" left="752" top ="-222" />
-    <box name="group_num" left="831" top ="801" />
+    <box name="pos_max_speed" left="386" top ="106" />
+    <box name="pos_smoothing" left="393" top ="149" />
+    <box name="use_both_LEDs" left="238" top ="127" />
+    <box name="group_num" left="836" top ="894" />
     <box name="eeg_freq_band_of_interest" left="-151" top ="260" />
     <box name="eeg_total_freq_band" left="-397" top ="276" />
-    <box name="boundary_shape" left="1028" top ="302" />
-    <box name="pos_mask_delta_params" left="758" top ="213" />
+    <box name="boundary_shape" left="1005" top ="320" />
+    <box name="pos_mask_delta_params" left="773" top ="248" />
     <box name="speed_bin_size" left="869" top ="588" />
-    <box name="dir_bin_size" left="494" top ="491" />
+    <box name="dir_bin_size" left="572" top ="507" />
     <box name="dir_smoothing" left="634" top ="596" />
-    <box name="spa_bin_size" left="263" top ="583" />
-    <box name="spa_smoothing" left="189" top ="693" />
+    <box name="spa_bin_size" left="365" top ="618" />
+    <box name="spa_smoothing" left="183" top ="665" />
+    <box name="phase_bin_size" left="1203" top ="734" />
     <box name="wave_smoothing_params" left="1721" top ="123" />
     <box name="sub_spike_t" left="1908" top ="176" />
-    <box name="tac_window_secs" left="1487" top ="997" />
-    <box name="cut_delta_params" left="1533" top ="267" />
+    <box name="tac_window_secs" left="1568" top ="991" />
+    <box name="cut_delta_params" left="1602" top ="291" />
+    <box name="drift_mode_on" left="1303" top ="924" />
+    <box name="cluster_axes_choice" left="1906" top ="943" />
+    <box name="hide_masked_spikes_in_clusters" left="1896" top ="901" />
     <box name="axona_file" left="774" top ="-67" />
-    <box name="both_xy" left="367" top ="126" />
-    <box name="xy" left="353" top ="219" />
-    <box name="dir" left="493" top ="388" />
-    <box name="speed" left="707" top ="351" />
+    <box name="both_xy" left="235" top ="191" />
+    <box name="xy" left="476" top ="282" />
+    <box name="dir" left="524" top ="389" />
+    <box name="speed" left="714" top ="379" />
     <box name="eeg" left="-62" top ="154" />
-    <box name="eeg_analytic" left="54" top ="324" />
-    <box name="eeg_phase" left="189" top ="438" />
-    <box name="eeg_power" left="-43" top ="442" />
+    <box name="eeg_analytic" left="-22" top ="318" />
     <box name="eeg_power_spectrum" left="-268" top ="209" />
     <box name="freq_band_sig_to_noise" left="-274" top ="335" />
-    <box name="dist_to_boundary" left="1027" top ="352" />
+    <box name="dist_to_boundary" left="997" top ="386" />
     <box name="pos_mask_state" left="920" top ="470" />
+    <box name="path_plot" left="-15" top ="669" />
     <box name="speed_bin_ind" left="877" top ="648" />
-    <box name="speed_dwell" left="975" top ="696" />
-    <box name="dir_bin_ind" left="535" top ="541" />
+    <box name="speed_dwell" left="1001" top ="717" />
+    <box name="dir_bin_ind" left="525" top ="549" />
     <box name="dir_dwell" left="691" top ="643" />
-    <box name="pos_bin_ind" left="339" top ="635" />
-    <box name="spa_dwell" left="305" top ="740" />
-    <box name="spike_times" left="1354" top ="192" />
+    <box name="spa_bin_ind" left="344" top ="661" />
+    <box name="spa_dwell" left="247" top ="708" />
+    <box name="spike_times" left="1371" top ="267" />
+    <box name="spike_phase" left="1043" top ="595" />
+    <box name="spike_phase_bin_ind" left="1115" top ="778" />
     <box name="waves_unsmoothed" left="1506" top ="96" />
     <box name="waves" left="1714" top ="172" />
     <box name="wave_amplitude" left="1553" top ="221" />
     <box name="wave_energy" left="1720" top ="243" />
     <box name="wave_v_time_t" left="1865" top ="230" />
-    <box name="spike_pos_inds" left="1340" top ="388" />
-    <box name="spike_mask" left="1211" top ="560" />
-    <box name="cut_file" left="2052" top ="43" />
-    <box name="cut_delta" left="1689" top ="337" />
-    <box name="cut_state" left="1592" top ="531" />
-    <box name="cut_mask" left="1460" top ="701" />
-    <box name="cut_times" left="1590" top ="781" />
-    <box name="cut_pos_inds" left="1224" top ="789" />
-    <box name="tac" left="1392" top ="1062" />
-    <box name="group_dir_rm" left="654" top ="1056" />
-    <box name="group_spa_rm" left="304" top ="1050" />
-    <box name="group_spa_ac" left="304" top ="1145" />
-    <box name="group_gridness_props" left="272" top ="1215" />
-    <box name="group_speed_hist" left="1000" top ="1061" />
-    <box name="pos_mask_chain" left="788" top ="260" />
-    <box name="cut_chain" left="1562" top ="431" />
-    <offset left="4759" top="5186" />
+    <box name="spike_pos_inds" left="1308" top ="471" />
+    <box name="spike_mask" left="1215" top ="590" />
+    <box name="cut_file" left="1379" top ="125" />
+    <box name="cut_delta" left="1682" top ="343" />
+    <box name="cut_state" left="1559" top ="591" />
+    <box name="cut_mask" left="1417" top ="680" />
+    <box name="cut_times" left="1535" top ="883" />
+    <box name="cut_pos_inds" left="1268" top ="830" />
+    <box name="tac" left="1529" top ="1043" />
+    <box name="group_dir_rm" left="650" top ="1120" />
+    <box name="group_spa_raw_spikes" left="384" top ="1119" />
+    <box name="group_spa_rm" left="220" top ="1099" />
+    <box name="group_spa_ac" left="296" top ="1241" />
+    <box name="group_gridness_props" left="261" top ="1333" />
+    <box name="group_phase_hist" left="1320" top ="1119" />
+    <box name="group_speed_rm" left="976" top ="1125" />
+    <box name="cluster_plot" left="1832" top ="993" />
+    <box name="pos_mask_chain" left="813" top ="297" />
+    <box name="cut_chain" left="1508" top ="493" />
+    <offset left="4623" top="4871" />
   </layout>
 </document>
