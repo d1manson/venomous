@@ -7,7 +7,55 @@ The complete set of contributors may be found at https://expandjs.github.io/CONT
 -->
 
 <!--
-This element is used to display a visual effect that simulates rippling from the touch point.
+An element used to display a visual effect that simulates rippling from the
+[touch point](http://www.google.com/design/spec/animation/responsive-interaction.html#responsive-interaction-surface-reaction).
+
+```html
+<mat-ripple></mat-ripple>
+```
+
+The `auto-center` attribute can be set to create a
+[radial reaction](http://www.google.com/design/spec/animation/responsive-interaction.html#responsive-interaction-user-input),
+forcing the ripple to always start from the center.
+
+By default `mat-ripple` will stay on top of any other DOM node. To prevent this, you can set a `context` element.
+In such case, the ripple will become unclickable, and the `context` element will be used as its wave generator.
+
+```html
+<div id="context">
+    Click me to create waves
+    <mat-ripple id="ripple"></mat-ripple>
+</div>
+
+<script>
+    (function () {
+        var context = XP.getElementById('context'),
+            ripple = XP.getElementById('ripple');
+
+        ripple.context = context;
+   }());
+</script>
+```
+
+Using the ripple inside a [mat-paper](http://expandjs.com/elements/mat-paper), the `context` will be set automatically.
+
+```html
+<mat-paper>
+    Click me to create waves
+    <mat-ripple></mat-ripple>
+</mat-paper>
+```
+
+---
+
+## Styling
+
+The ripple's `color` can be changed accordingly to the
+[Material Design palette](http://www.google.com/design/spec/style/color.html#color-color-palette).
+
+```html
+<mat-ripple color="purple"></mat-ripple>
+```
 
 @element mat-ripple
 @description A custom element used to display a Material Design ripple effect created by user interaction
@@ -18,11 +66,11 @@ This element is used to display a visual effect that simulates rippling from the
 @demo http://expandjs.com/demo/mat-ripple
 
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
 @dependency iron-flex-layout PolymerElements/iron-flex-layout#^1.0.0
-@dependency mat-ink ExpandJS/mat-ink#0.9.5
+@dependency mat-ink ExpandJS/mat-ink#0.9.6
 
-@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+@devDependency mat-demo ExpandJS/mat-demo#0.9.6
 -->
 
 <link rel="import" href="../polymer/polymer.html">

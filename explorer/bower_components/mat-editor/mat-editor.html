@@ -7,7 +7,39 @@ The complete set of contributors may be found at https://expandjs.github.io/CONT
 -->
 
 <!--
-This element is used to display a material code editor.
+An element used to display a Material Design code editor.
+
+```html
+<mat-editor label="My editor"></mat-editor>
+```
+
+It can be set to `full-screen` mode, covering the whole viewport. This can be done manually...
+
+```html
+<mat-editor value="..." full-screen></mat-editor>
+```
+...or displaying a button on the top right using the `expandable` attribute.
+
+```html
+<mat-editor value="..." expandable></mat-editor>
+```
+
+To access the actual value, you have two attributes:
+
+- **value** is the current value as string
+- **model** does the same, however it adds some additional behaviors
+
+If the initial value was `null`, when the editor is empty, the `model` returns to `null`
+instead of an empty string.
+
+This is useful for binding data that has not yet been initialized, needs to be created on
+the fly or comes from external sources.
+
+Generally, we recommend to use the `model` for data binding and `value` to set the default.
+
+```html
+<mat-editor label="My editor" model="{{myEditor}}" value="..."></mat-editor>
+```
 
 @element mat-editor
 @description A custom element used to display a Material Design code editor
@@ -21,15 +53,15 @@ This element is used to display a material code editor.
 
 @dependency codemirror Codemirror/codemirror#^5.0.0
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
 @dependency iron-flex-layout PolymerElements/iron-flex-layout#^1.0.0
-@dependency mat-icon-button ExpandJS/mat-icon-button#0.9.5
-@dependency mat-icons ExpandJS/mat-icons#0.9.5
-@dependency mat-label ExpandJS/mat-label#0.9.5
-@dependency mat-paper ExpandJS/mat-paper#0.9.5
-@dependency xp-input-behavior ExpandJS/xp-input-behavior#0.9.5
+@dependency mat-icon-button ExpandJS/mat-icon-button#0.9.6
+@dependency mat-icons ExpandJS/mat-icons#0.9.6
+@dependency mat-label ExpandJS/mat-label#0.9.6
+@dependency mat-paper ExpandJS/mat-paper#0.9.6
+@dependency xp-input-behavior ExpandJS/xp-input-behavior#0.9.6
 
-@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+@devDependency mat-demo ExpandJS/mat-demo#0.9.6
 -->
 
 <script src="../codemirror/lib/codemirror.js"></script>
@@ -64,10 +96,6 @@ This element is used to display a material code editor.
             margin: 0 !important;
             width: auto !important;
             z-index: 1;
-        }
-
-        :host ::content textarea {
-            display: none !important;
         }
 
         :host #matEditorWrapper,

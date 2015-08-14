@@ -1,7 +1,7 @@
 {
   "name": "xp-array-behavior",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A behavior used to improve polymer's array mutation API on the context element.",
   "homepage": "http://expandjs.com/elements/xp-array-behavior",
   "authors": [
@@ -22,7 +22,7 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   }
 }

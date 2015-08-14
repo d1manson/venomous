@@ -1,9 +1,13 @@
-
-
 <!DOCTYPE html>
+<!--
+TODO: The adaptee.refresh() calls on the mat-editor are hacky...they seem to be needed for the editor to render properly after having been hidden.
+Look out for a fix.
+-->
+
 <html style="height:100%;">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
     <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
     <link rel="import" href="bower_components/polymer/polymer.html">
     <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
@@ -155,7 +159,7 @@
   </div>
   <div class="buttons">
     <paper-button dialog-dismiss>Close</paper-button>
-    <paper-button dialog-confirm>Apply Changes</paper-button>
+    <paper-button dialog-confirm id="update_xml_button">Apply Changes</paper-button>
   </div>
   </paper-dialog>
 
@@ -179,7 +183,10 @@
     window.dialog_xml_source = document.getElementById("dialog_xml_source");
     window.xml_source_editor = document.getElementById("xml_source_editor");
     window.dialog_node_tabs = document.getElementById("dialog_node_tabs");
+    window.update_xml_button = document.getElementById("update_xml_button");
     
+
+
     x_main.tab_selected = 0;
 
     save_button.addEventListener("click",function(e){
@@ -200,6 +207,12 @@
     ajax_load.addEventListener("response", function(e){
       the_graph.load_from_xml(e.detail.response.childNodes);
     });
+    update_xml_button.addEventListener("click", function(e){
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(xml_source_editor.value, "application/xml");
+      the_graph.load_from_xml(doc.childNodes);
+    });
+
     ajax_load.params = {dummy: Math.random().toString(36).slice(2)}; //prevent caching
     ajax_load.generateRequest();
     ajax_save.addEventListener("response", function(e){

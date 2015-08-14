@@ -1,7 +1,7 @@
 {
   "name": "xp-adapter-behavior",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A behavior used to add adapting capabilities on the context element",
   "homepage": "http://expandjs.com/elements/xp-adapter-behavior",
   "authors": [
@@ -22,16 +22,16 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   },
-  "_release": "0.9.5",
+  "_release": "0.9.6",
   "_resolution": {
     "type": "version",
-    "tag": "v0.9.5",
-    "commit": "1c0071a204ce77a2c9647664feaa00227b4221ed"
+    "tag": "v0.9.6",
+    "commit": "e4fb82881e139fc4bbcd7902fac1f76a2ba82b7d"
   },
   "_source": "git://github.com/ExpandJS/xp-adapter-behavior.git",
-  "_target": "0.9.5",
+  "_target": "0.9.6",
   "_originalSource": "ExpandJS/xp-adapter-behavior"
 }

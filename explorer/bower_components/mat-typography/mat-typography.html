@@ -7,7 +7,19 @@ The complete set of contributors may be found at https://expandjs.github.io/CONT
 -->
 
 <!--
-This style provides css variables for material typography.
+CSS variables that provide [Material Design typography styles](http://www.google.com/design/spec/style/typography.html#typography-styles).
+
+```html
+<style>
+    #headline { @apply(--mat-font-headline); }
+    #subhead  { @apply(--mat-font-subhead); }
+    #button   { @apply(--mat-font-button); }
+</style>
+
+<div id="headline">Headline</div>
+<div id="subhead">Subhead</h2>
+<div id="button">Button</div>
+```
 
 @element mat-typography
 @description A custom style used to provide css variables for Material Design typography
@@ -18,7 +30,7 @@ This style provides css variables for material typography.
 
 @dependency font-roboto PolymerElements/font-roboto#^1.0.0
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
 -->
 
 <link rel="import" href="../font-roboto/roboto.html">

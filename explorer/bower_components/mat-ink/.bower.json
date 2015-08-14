@@ -1,7 +1,7 @@
 {
   "name": "mat-ink",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A custom element used to decorate content as Material Design ink",
   "homepage": "http://expandjs.com/elements/mat-ink",
   "authors": [
@@ -24,20 +24,20 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
-    "mat-palette": "ExpandJS/mat-palette#0.9.5",
-    "mat-typography": "ExpandJS/mat-typography#0.9.5",
-    "xp-shared-behavior": "ExpandJS/xp-shared-behavior#0.9.5",
-    "xp-slave-state": "ExpandJS/xp-slave-state#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
+    "mat-palette": "ExpandJS/mat-palette#0.9.6",
+    "mat-typography": "ExpandJS/mat-typography#0.9.6",
+    "xp-shared-behavior": "ExpandJS/xp-shared-behavior#0.9.6",
+    "xp-slave-behavior": "ExpandJS/xp-slave-behavior#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   },
-  "_release": "0.9.5",
+  "_release": "0.9.6",
   "_resolution": {
     "type": "version",
-    "tag": "v0.9.5",
-    "commit": "eec36f5b0c19f583dbbc62763fe66858fb07a74f"
+    "tag": "v0.9.6",
+    "commit": "f44e0f3203e158ecb04e772b303f1fce0ed63c6e"
   },
   "_source": "git://github.com/ExpandJS/mat-ink.git",
-  "_target": "0.9.5",
+  "_target": "0.9.6",
   "_originalSource": "ExpandJS/mat-ink"
 }

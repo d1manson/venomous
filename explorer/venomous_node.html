@@ -5,6 +5,9 @@ This is a private dependancy of venomous_explorer.
 The venomous node is an absolutely positioned box, with readonly/notify size, i.e. width/height.
 It cannot contain other content, rather it has a variety of properties such as "name" and "node_type"
 which result in certain rendered output, ie. text and icons etc.
+
+TODO: I wanted width/height to be readonly, which means you have to use this._setWidth(val) to change the value
+but there's something strange with this which prevents child-to-parent binding from working..probably a bug?
 -->
 
 <dom-module id="venomous-node">
@@ -105,13 +108,15 @@ which result in certain rendered output, ie. text and icons etc.
       	'iron-resize': '_on_resize'
       },
       _complex_returns: function(){
-          return (this.returns.length > 1); // we assume the namesake is actually in the list
+          return (this.returns && this.returns.length > 1); // we assume the namesake is actually in the list
       },
       properties: {
   		name: {type: String,
-  			observer: '_contents_changed'},
+  			observer: '_contents_changed',
+        notify: true},
   		node_type: {type: String,
-  			observer: '_contents_changed'},
+  			observer: '_contents_changed',
+        notify: true},
   		is_moving: {type: Boolean,
   				value: false,
   				reflectToAttribute: true,
@@ -135,12 +140,10 @@ which result in certain rendered output, ie. text and icons etc.
    					observer: '_pos_changed',},
    		width: {type: Number,
    				value: 0,
-   				notify: true,
-   				readOnly: true},
+   				notify: true},  
    		height: {type: Number,
    				value: 0,
-   				notify: true,
-   				readOnly: true},
+   				notify: true},
       returns: {type: Array,
             value: function(){return [];},
               observer: '_contents_changed'},
@@ -164,8 +167,8 @@ which result in certain rendered output, ie. text and icons etc.
 		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
       	var el = e.currentTarget;
       	this.debounce('update_size', function(){
-	      	this._setWidth(el.clientWidth);
-	      	this._setHeight(el.clientHeight);
+	      	this.set('width',el.clientWidth);
+	      	this.set('height',el.clientHeight);
 	    }, 1)
       },
       _on_track: function(e){

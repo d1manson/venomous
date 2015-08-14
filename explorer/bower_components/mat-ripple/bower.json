@@ -1,7 +1,7 @@
 {
   "name": "mat-ripple",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A custom element used to display a Material Design ripple effect created by user interaction",
   "homepage": "http://expandjs.com/elements/mat-ripple",
   "authors": [
@@ -25,12 +25,12 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
-    "mat-ink": "ExpandJS/mat-ink#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
+    "mat-ink": "ExpandJS/mat-ink#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0",
     "iron-flex-layout": "PolymerElements/iron-flex-layout#^1.0.0"
   },
   "devDependencies": {
-    "mat-demo": "ExpandJS/mat-demo#0.9.5"
+    "mat-demo": "ExpandJS/mat-demo#0.9.6"
   }
 }

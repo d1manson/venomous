@@ -1,7 +1,7 @@
 {
   "name": "xp-targeter-behavior",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A behavior used add targeting capabilities on the context element",
   "homepage": "http://expandjs.com/elements/xp-targeter-behavior",
   "authors": [
@@ -22,16 +22,16 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   },
-  "_release": "0.9.5",
+  "_release": "0.9.6",
   "_resolution": {
     "type": "version",
-    "tag": "v0.9.5",
-    "commit": "5d229ec5b8b97437ea38d77e19340a643a47bd3a"
+    "tag": "v0.9.6",
+    "commit": "0211c707f3014a2728352203060f55285a235f03"
   },
   "_source": "git://github.com/ExpandJS/xp-targeter-behavior.git",
-  "_target": "0.9.5",
+  "_target": "0.9.6",
   "_originalSource": "ExpandJS/xp-targeter-behavior"
 }

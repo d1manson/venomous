@@ -45,19 +45,21 @@ The paper's background color can be changed accordingly to the [Material Design 
 @demo http://expandjs.com/demo/mat-paper
 
 @behavior mat-palette /bower_components/mat-palette/mat-palette.html
+@behavior xp-master-behavior /bower_components/xp-master-behavior/xp-master-behavior.html
 @behavior xp-shared-behavior /bower_components/xp-shared-behavior/xp-shared-behavior.html
+@behavior xp-slave-behavior /bower_components/xp-slave-behavior/xp-slave-behavior.html
 
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
 @dependency iron-flex-layout PolymerElements/iron-flex-layout#^1.0.0
-@dependency mat-palette ExpandJS/mat-palette#0.9.5
-@dependency mat-shadow ExpandJS/mat-shadow#0.9.5
-@dependency mat-typography ExpandJS/mat-typography#0.9.5
-@dependency xp-master-state ExpandJS/xp-master-state#0.9.5
-@dependency xp-shared-behavior ExpandJS/xp-shared-behavior#0.9.5
-@dependency xp-slave-state ExpandJS/xp-slave-state#0.9.5
+@dependency mat-palette ExpandJS/mat-palette#0.9.6
+@dependency mat-shadow ExpandJS/mat-shadow#0.9.6
+@dependency mat-typography ExpandJS/mat-typography#0.9.6
+@dependency xp-master-behavior ExpandJS/xp-master-behavior#0.9.6
+@dependency xp-shared-behavior ExpandJS/xp-shared-behavior#0.9.6
+@dependency xp-slave-behavior ExpandJS/xp-slave-behavior#0.9.6
 
-@devDependency mat-demo ExpandJS/mat-demo#0.9.5
+@devDependency mat-demo ExpandJS/mat-demo#0.9.6
 -->
 
 <link rel="import" href="../polymer/polymer.html">
@@ -66,9 +68,9 @@ The paper's background color can be changed accordingly to the [Material Design 
 <link rel="import" href="../mat-palette/mat-palette.html">
 <link rel="import" href="../mat-shadow/mat-shadow.html">
 <link rel="import" href="../mat-typography/mat-typography.html">
-<link rel="import" href="../xp-master-state/xp-master-state.html">
+<link rel="import" href="../xp-master-behavior/xp-master-behavior.html">
 <link rel="import" href="../xp-shared-behavior/xp-shared-behavior.html">
-<link rel="import" href="../xp-slave-state/xp-slave-state.html">
+<link rel="import" href="../xp-slave-behavior/xp-slave-behavior.html">
 
 <dom-module id="mat-paper">
 
@@ -169,9 +171,6 @@ The paper's background color can be changed accordingly to the [Material Design 
     </style>
 
     <template>
-        <template is="xp-master-state" slaves="{{inks}}" slave-tag="mat-ink"></template>
-        <template is="xp-master-state" slaves="{{papers}}" slave-tag="mat-paper"></template>
-        <template is="xp-slave-state" master="{{layer}}" master-tag="mat-paper"></template>
         <content id="content"></content>
     </template>
 
@@ -184,7 +183,9 @@ The paper's background color can be changed accordingly to the [Material Design 
             // BEHAVIORS
             behaviors: [
                 Polymer.MatPalette,
-                Polymer.XPSharedBehavior
+                Polymer.XPMasterBehavior,
+                Polymer.XPSharedBehavior,
+                Polymer.XPSlaveBehavior
             ],
 
             /*********************************************************************/
@@ -249,6 +250,28 @@ The paper's background color can be changed accordingly to the [Material Design 
                 var self = this;
                 XP.setStyle(self, 'background', !self.disabled && self._getColor(self.background));
                 return self;
+            },
+
+            /**
+             * Returns the masters map.
+             *
+             * @method _setupMasters
+             * @returns {Object}
+             * @private
+             */
+            _setupMasters: function () {
+                return {layer: 'mat-paper'};
+            },
+
+            /**
+             * Returns the slaves map.
+             *
+             * @method _setupSlaves
+             * @returns {Object}
+             * @private
+             */
+            _setupSlaves: function () {
+                return {inks: 'mat-ink', papers: 'mat-paper'};
             },
 
             /*********************************************************************/
@@ -330,7 +353,9 @@ The paper's background color can be changed accordingly to the [Material Design 
                  */
                 inks: {
                     notify: true,
-                    type: Array
+                    readOnly: true,
+                    type: Array,
+                    value: function () { return []; }
                 },
 
                 /**
@@ -343,6 +368,7 @@ The paper's background color can be changed accordingly to the [Material Design 
                 layer: {
                     notify: true,
                     observer: '_layerChanged',
+                    readOnly: true,
                     value: null
                 },
 
@@ -356,7 +382,9 @@ The paper's background color can be changed accordingly to the [Material Design 
                  */
                 papers: {
                     notify: true,
-                    type: Array
+                    readOnly: true,
+                    type: Array,
+                    value: function () { return []; }
                 },
 
                 /**

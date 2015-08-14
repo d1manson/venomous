@@ -1,7 +1,7 @@
 {
   "name": "mat-icons",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A collection of all Material Design icons",
   "homepage": "http://expandjs.com/elements/mat-icons",
   "authors": [
@@ -24,6 +24,6 @@
     "**/.*"
   ],
   "dependencies": {
-    "xp-iconset": "ExpandJS/xp-iconset#0.9.5"
+    "xp-iconset": "ExpandJS/xp-iconset#0.9.6"
   }
 }

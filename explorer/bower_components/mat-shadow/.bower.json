@@ -1,7 +1,7 @@
 {
   "name": "mat-shadow",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A custom style used to provide css variables for Material Design shadows",
   "homepage": "http://expandjs.com/elements/mat-shadow",
   "authors": [
@@ -24,16 +24,16 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   },
-  "_release": "0.9.5",
+  "_release": "0.9.6",
   "_resolution": {
     "type": "version",
-    "tag": "v0.9.5",
-    "commit": "2f3256887d017482c7a3b2c707ba4ef5018b3a82"
+    "tag": "v0.9.6",
+    "commit": "7e78dd9cafe1cad045870facacff4a110a3a592b"
   },
   "_source": "git://github.com/ExpandJS/mat-shadow.git",
-  "_target": "0.9.5",
+  "_target": "0.9.6",
   "_originalSource": "ExpandJS/mat-shadow"
 }

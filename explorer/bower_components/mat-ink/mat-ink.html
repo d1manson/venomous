@@ -7,7 +7,31 @@ The complete set of contributors may be found at https://expandjs.github.io/CONT
 -->
 
 <!--
-This element is used to decorate contents as material ink.
+An element used to decorate content as [Material Design ink](http://www.google.com/design/spec/style/color.html#color-ui-color-application).
+
+With the `opacity` attribute you can choose from predefined transparency rules:
+- **divider**
+- **hint**
+- **icon**
+- **secondary**
+
+```html
+<mat-ink opacity="divider" style="background: #000; height: 1px;"></mat-ink>
+<mat-ink opacity="hint">Helper text</mat-ink>
+<mat-ink opacity="icon"><img src="path/icon.png" /></mat-ink>
+<mat-ink opacity="secondary">Secondary text</mat-ink>
+```
+
+---
+
+## Styling
+
+The ink's `color` can be changed accordingly to the
+[Material Design palette](http://www.google.com/design/spec/style/color.html#color-color-palette).
+
+```html
+<mat-ink color="green" opacity="secondary">Secondary text</mat-ink>
+```
 
 @element mat-ink
 @description A custom element used to decorate content as Material Design ink
@@ -18,13 +42,14 @@ This element is used to decorate contents as material ink.
 
 @behavior mat-palette /bower_components/mat-palette/mat-palette.html
 @behavior xp-shared-behavior /bower_components/xp-shared-behavior/xp-shared-behavior.html
+@behavior xp-slave-behavior /bower_components/xp-slave-behavior/xp-slave-behavior.html
 
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
-@dependency mat-palette ExpandJS/mat-palette#0.9.5
-@dependency mat-typography ExpandJS/mat-typography#0.9.5
-@dependency xp-shared-behavior ExpandJS/xp-shared-behavior#0.9.5
-@dependency xp-slave-state ExpandJS/xp-slave-state#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
+@dependency mat-palette ExpandJS/mat-palette#0.9.6
+@dependency mat-typography ExpandJS/mat-typography#0.9.6
+@dependency xp-shared-behavior ExpandJS/xp-shared-behavior#0.9.6
+@dependency xp-slave-behavior ExpandJS/xp-slave-behavior#0.9.6
 -->
 
 <link rel="import" href="../polymer/polymer.html">
@@ -32,7 +57,7 @@ This element is used to decorate contents as material ink.
 <link rel="import" href="../mat-palette/mat-palette.html">
 <link rel="import" href="../mat-typography/mat-typography.html">
 <link rel="import" href="../xp-shared-behavior/xp-shared-behavior.html">
-<link rel="import" href="../xp-slave-state/xp-slave-state.html">
+<link rel="import" href="../xp-slave-behavior/xp-slave-behavior.html">
 
 <dom-module id="mat-ink">
 
@@ -77,7 +102,6 @@ This element is used to decorate contents as material ink.
     </style>
 
     <template>
-        <template is="xp-slave-state" master="{{layer}}" master-tag="mat-paper"></template>
         <content id="content"></content>
     </template>
 
@@ -90,7 +114,8 @@ This element is used to decorate contents as material ink.
             // BEHAVIORS
             behaviors: [
                 Polymer.MatPalette,
-                Polymer.XPSharedBehavior
+                Polymer.XPSharedBehavior,
+                Polymer.XPSlaveBehavior
             ],
 
             /*********************************************************************/
@@ -106,6 +131,17 @@ This element is used to decorate contents as material ink.
                 var self = this;
                 XP.setStyle(self, 'color', !self.disabled && self._getColor(self.color));
                 return self;
+            },
+
+            /**
+             * Returns the masters map.
+             *
+             * @method _setupMasters
+             * @returns {Object}
+             * @private
+             */
+            _setupMasters: function () {
+                return {layer: 'mat-paper'};
             },
 
             /*********************************************************************/
@@ -164,10 +200,12 @@ This element is used to decorate contents as material ink.
                  * @attribute layer
                  * @type Element
                  * @notifies
+                 * @readonly
                  */
                 layer: {
                     notify: true,
                     observer: '_layerChanged',
+                    readOnly: true,
                     value: null
                 },
 

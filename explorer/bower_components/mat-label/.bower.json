@@ -1,7 +1,7 @@
 {
   "name": "mat-label",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A custom element used to display a Material Design label",
   "homepage": "http://expandjs.com/elements/mat-label",
   "authors": [
@@ -24,23 +24,23 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
-    "mat-ink": "ExpandJS/mat-ink#0.9.5",
-    "xp-adapter-behavior": "ExpandJS/xp-adapter-behavior#0.9.5",
-    "xp-label": "ExpandJS/xp-label#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
+    "mat-ink": "ExpandJS/mat-ink#0.9.6",
+    "xp-adapter-behavior": "ExpandJS/xp-adapter-behavior#0.9.6",
+    "xp-label": "ExpandJS/xp-label#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   },
   "devDependencies": {
-    "mat-demo": "ExpandJS/mat-demo#0.9.5",
-    "mat-text-field": "ExpandJS/mat-text-field#0.9.5"
+    "mat-demo": "ExpandJS/mat-demo#0.9.6",
+    "mat-text-field": "ExpandJS/mat-text-field#0.9.6"
   },
-  "_release": "0.9.5",
+  "_release": "0.9.6",
   "_resolution": {
     "type": "version",
-    "tag": "v0.9.5",
-    "commit": "edc66c21db6a6502b02490f78cb885a9f47675ae"
+    "tag": "v0.9.6",
+    "commit": "13b38a1d7f6b93f7043aeae641c16e5c8409af01"
   },
   "_source": "git://github.com/ExpandJS/mat-label.git",
-  "_target": "0.9.5",
+  "_target": "0.9.6",
   "_originalSource": "ExpandJS/mat-label"
 }

@@ -1,0 +1,124 @@
+<!--
+@license
+Copyright (c) 2015 The ExpandJS authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+This behavior is used to add slave capabilities on the context element for a master-slave pattern.
+
+@element xp-slave-behavior
+@description A behavior used to add slave capabilities on the context element for a master-slave pattern
+@keywords web app, html5, expandjs, web-components
+@group behaviors
+@homepage http://expandjs.com/elements/xp-slave-behavior
+@repository https://github.com/ExpandJS/xp-slave-behavior
+
+@dependency polymer Polymer/polymer#^1.0.0
+@dependency expandjs ExpandJS/expandjs#0.9.6
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../expandjs/expandjs.html">
+
+<script>
+    Polymer.XPSlaveBehavior = {
+
+        /**
+         * Fired when the slave is attached.
+         *
+         * @event xp-slave
+         * @param {Element} firer
+         * @param {Function} coupler
+         * @param {string} selector
+         * @param {boolean} isAttached
+         * @bubbles
+         */
+
+        /*********************************************************************/
+
+        /**
+         * The method that will return the masters map.
+         *
+         * @method _setupMasters
+         * @abstract
+         * @private
+         */
+        _setupMasters: XP.mock(),
+
+        /*********************************************************************/
+
+        /**
+         * Couples a master to this element.
+         *
+         * @method _coupleMaster
+         * @param {string} key
+         * @param {Element} master
+         * @returns {Element}
+         * @private
+         */
+        _coupleMaster: function (key, master) {
+            var self = this;
+            if (!self[key]) { self['_set' + XP.capitalize(key)](master); }
+            return (master === self[key] && master) || null;
+        },
+
+        /**
+         * Decouples a master from this element.
+         *
+         * @method _decoupleMaster
+         * @param {string} key
+         * @param {Element} master
+         * @returns {Element}
+         * @private
+         */
+        _decoupleMaster: function (key, master) {
+            var self = this;
+            if (self[key] === master) { self['_set' + XP.capitalize(key)](null); }
+            return (!self[key] && master) || null;
+        },
+
+        /*********************************************************************/
+
+        // PROPERTIES
+        properties: {
+
+            /**
+             * A map used to bind masters to their respective css selector.
+             * Each key is an element's property and its value is the selector.
+             *
+             * @attribute masters-map
+             * @type Object
+             * @notifies
+             * @readonly
+             */
+            mastersMap: {
+                notify: true,
+                readOnly: true,
+                type: Object,
+                value: null
+            }
+        },
+
+        /*********************************************************************/
+
+        // LISTENER
+        attached: function () {
+            var self = this, firer = function (value, key) { self.fire('xp-slave', {firer: self, coupler: self._coupleMaster.bind(self, key), selector: value, isAttached: true}); }.bind(self);
+            XP.delay(function () { XP.forOwn(self.mastersMap, firer); });
+        },
+
+        // LISTENER
+        detached: function () {
+            var self = this, firer = function (value, key) { if (self[key]) { self[key].fire('xp-slave', {firer: self, coupler: self._decoupleMaster.bind(self, key), selector: value, isAttached: false}); } }.bind(self);
+            XP.delay(function () { XP.forOwn(self.mastersMap, firer); });
+        },
+
+        // LISTENER
+        ready: function () {
+            this._setMastersMap(this._setupMasters() || {});
+        }
+    };
+</script>

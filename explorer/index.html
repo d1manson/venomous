@@ -1,5 +1,6 @@
 <!DOCTYPE html><html style="height:100%;"><head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
     <script>/**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
@@ -9,7 +10,7 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-// @version 0.7.10
+// @version 0.7.11
 window.WebComponents = window.WebComponents || {};
 
 (function(scope) {
@@ -2294,7 +2295,7 @@ if (typeof HTMLTemplateElement === "undefined") {
     HTMLTemplateElement.prototype = Object.create(HTMLElement.prototype);
     HTMLTemplateElement.decorate = function(template) {
       if (!template.content) {
-        template.content = template.ownerDocument.createDocumentFragment();
+        template.content = contentDoc.createDocumentFragment();
       }
       var child;
       while (child = template.firstChild) {
@@ -2312,6 +2313,7 @@ if (typeof HTMLTemplateElement === "undefined") {
             },
             set: function(text) {
               contentDoc.body.innerHTML = text;
+              HTMLTemplateElement.bootstrap(contentDoc);
               while (this.content.firstChild) {
                 this.content.removeChild(this.content.firstChild);
               }
@@ -2613,19 +2615,14 @@ return m;
 }
 });
 var cePolyfill = window.CustomElements && !CustomElements.useNative;
-if (cePolyfill) {
-var ready = CustomElements.ready;
-CustomElements.ready = true;
-}
 document.registerElement('dom-module', DomModule);
-if (cePolyfill) {
-CustomElements.ready = ready;
-}
 function forceDocumentUpgrade() {
 if (cePolyfill) {
 var script = document._currentScript || document.currentScript;
-if (script) {
-CustomElements.upgradeAll(script.ownerDocument);
+var doc = script && script.ownerDocument;
+if (doc && !doc.__customElementsForceUpgraded) {
+doc.__customElementsForceUpgraded = true;
+CustomElements.upgradeAll(doc);
 }
 }
 }
@@ -2929,7 +2926,7 @@ debouncer.stop();
 }
 }
 });
-Polymer.version = '1.0.9';
+Polymer.version = '1.1.0';
 Polymer.Base._addFeature({
 _registerFeatures: function () {
 this._prepIs();
@@ -3399,11 +3396,14 @@ Polymer.dom.addDebouncer(host.debounce('_distribute', host._distributeContent));
 },
 appendChild: function (node) {
 var handled;
+this._ensureContentLogicalInfo(node);
 this._removeNodeFromHost(node, true);
 if (this._nodeIsInLogicalTree(this.node)) {
 this._addLogicalInfo(node, this.node);
 this._addNodeToHost(node);
 handled = this._maybeDistribute(node, this.node);
+} else {
+this._addNodeToHost(node);
 }
 if (!handled && !this._tryRemoveUndistributedNode(node)) {
 var container = this.node._isShadyRoot ? this.node.host : this.node;
@@ -3417,9 +3417,9 @@ if (!ref_node) {
 return this.appendChild(node);
 }
 var handled;
+this._ensureContentLogicalInfo(node);
 this._removeNodeFromHost(node, true);
 if (this._nodeIsInLogicalTree(this.node)) {
-saveLightChildrenIfNeeded(this.node);
 var children = this.childNodes;
 var index = children.indexOf(ref_node);
 if (index < 0) {
@@ -3428,6 +3428,8 @@ throw Error('The ref_node to be inserted before is not a child ' + 'of this node
 this._addLogicalInfo(node, this.node, index);
 this._addNodeToHost(node);
 handled = this._maybeDistribute(node, this.node);
+} else {
+this._addNodeToHost(node);
 }
 if (!handled && !this._tryRemoveUndistributedNode(node)) {
 ref_node = ref_node.localName === CONTENT ? this._firstComposedNode(ref_node) : ref_node;
@@ -3445,6 +3447,8 @@ var handled;
 if (this._nodeIsInLogicalTree(this.node)) {
 this._removeNodeFromHost(node);
 handled = this._maybeDistribute(node, this.node);
+} else {
+this._removeNodeFromHost(node);
 }
 if (!handled) {
 var container = this.node._isShadyRoot ? this.node.host : this.node;
@@ -3513,10 +3517,27 @@ return true;
 }
 },
 _updateInsertionPoints: function (host) {
-host.shadyRoot._insertionPoints = factory(host.shadyRoot).querySelectorAll(CONTENT);
+var i$ = host.shadyRoot._insertionPoints = factory(host.shadyRoot).querySelectorAll(CONTENT);
+for (var i = 0, c; i < i$.length; i++) {
+c = i$[i];
+saveLightChildrenIfNeeded(c);
+saveLightChildrenIfNeeded(factory(c).parentNode);
+}
 },
 _nodeIsInLogicalTree: function (node) {
-return Boolean(node._lightParent !== undefined || node._isShadyRoot || this._ownerShadyRootForNode(node) || node.shadyRoot);
+return Boolean(node._lightParent !== undefined || node._isShadyRoot || node.shadyRoot);
+},
+_ensureContentLogicalInfo: function (node) {
+if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+saveLightChildrenIfNeeded(this.node);
+var c$ = Array.prototype.slice.call(node.childNodes);
+for (var i = 0, n; i < c$.length && (n = c$[i]); i++) {
+this._ensureContentLogicalInfo(n);
+}
+} else if (node.localName === CONTENT) {
+saveLightChildrenIfNeeded(this.node);
+saveLightChildrenIfNeeded(node);
+}
 },
 _parentNeedsDistribution: function (parent) {
 return parent && parent.shadyRoot && hasInsertionPoint(parent.shadyRoot);
@@ -3570,14 +3591,12 @@ node = factory(node).parentNode;
 }
 },
 _addNodeToHost: function (node) {
-var checkNode = node.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? node.firstChild : node;
-var root = this._ownerShadyRootForNode(checkNode);
+var root = this.getOwnerRoot();
 if (root) {
 root.host._elementAdd(node);
 }
 },
 _addLogicalInfo: function (node, container, index) {
-saveLightChildrenIfNeeded(container);
 var children = factory(container).childNodes;
 index = index === undefined ? children.length : index;
 if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
@@ -4104,8 +4123,13 @@ this.shadyRoot = this.root;
 this.shadyRoot._distributionClean = false;
 this.shadyRoot._isShadyRoot = true;
 this.shadyRoot._dirtyRoots = [];
-this.shadyRoot._insertionPoints = !this._notes || this._notes._hasContent ? this.shadyRoot.querySelectorAll('content') : [];
+var i$ = this.shadyRoot._insertionPoints = !this._notes || this._notes._hasContent ? this.shadyRoot.querySelectorAll('content') : [];
 saveLightChildrenIfNeeded(this.shadyRoot);
+for (var i = 0, c; i < i$.length; i++) {
+c = i$[i];
+saveLightChildrenIfNeeded(c);
+saveLightChildrenIfNeeded(c.parentNode);
+}
 this.shadyRoot.host = this;
 },
 get domHost() {
@@ -4340,14 +4364,12 @@ if (newChildParent !== parentNode) {
 removeFromComposedParent(newChildParent, newChild);
 }
 remove(newChild);
-saveLightChildrenIfNeeded(parentNode);
 nativeInsertBefore.call(parentNode, newChild, refChild || null);
 newChild._composedParent = parentNode;
 }
 function remove(node) {
 var parentNode = getComposedParent(node);
 if (parentNode) {
-saveLightChildrenIfNeeded(parentNode);
 node._composedParent = null;
 nativeRemoveChild.call(parentNode, node);
 }
@@ -6595,7 +6617,7 @@ MIXIN_RULE: 1000
 OPEN_BRACE: '{',
 CLOSE_BRACE: '}',
 _rx: {
-comments: /\/\*[^*]*\*+([^\/*][^*]*\*+)*\//gim,
+comments: /\/\*[^*]*\*+([^/*][^*]*\*+)*\//gim,
 port: /@import[^;]*;/gim,
 customProp: /(?:^|[\s;])--[^;{]*?:[^{};]*?(?:[;\n]|$)/gim,
 mixinProp: /(?:^|[\s;])--[^;{]*?:[^{;]*?{[^}]*?}(?:[;\n]|$)?/gim,
@@ -6611,7 +6633,8 @@ return api;
 }();
 Polymer.StyleUtil = function () {
 return {
-MODULE_STYLES_SELECTOR: 'style, link[rel=import][type~=css]',
+MODULE_STYLES_SELECTOR: 'style, link[rel=import][type~=css], template',
+INCLUDE_ATTR: 'include',
 toCssText: function (rules, callback, preserveProperties) {
 if (typeof rules === 'string') {
 rules = this.parser.parse(rules);
@@ -6666,27 +6689,52 @@ afterNode = n$[n$.length - 1];
 target.insertBefore(style, afterNode && afterNode.nextSibling || target.firstChild);
 return style;
 },
+cssFromModules: function (moduleIds) {
+var modules = moduleIds.trim().split(' ');
+var cssText = '';
+for (var i = 0; i < modules.length; i++) {
+cssText += this.cssFromModule(modules[i]);
+}
+return cssText;
+},
 cssFromModule: function (moduleId) {
 var m = Polymer.DomModule.import(moduleId);
 if (m && !m._cssText) {
+m._cssText = this._cssFromElement(m);
+}
+return m && m._cssText || '';
+},
+_cssFromElement: function (element) {
 var cssText = '';
-var e$ = Array.prototype.slice.call(m.querySelectorAll(this.MODULE_STYLES_SELECTOR));
-for (var i = 0, e; i < e$.length; i++) {
+var content = element.content || element;
+var sourceDoc = element.ownerDocument;
+var e$ = Array.prototype.slice.call(content.querySelectorAll(this.MODULE_STYLES_SELECTOR));
+for (var i = 0, e, resolveDoc, addModule; i < e$.length; i++) {
 e = e$[i];
+resolveDoc = sourceDoc;
+addModule = null;
+if (e.localName === 'template') {
+cssText += this._cssFromElement(e);
+} else {
 if (e.localName === 'style') {
+addModule = e.getAttribute(this.INCLUDE_ATTR);
 e = e.__appliedElement || e;
 e.parentNode.removeChild(e);
 } else {
 e = e.import && e.import.body;
+resolveDoc = e.ownerDocument;
 }
 if (e) {
-cssText += Polymer.ResolveUrl.resolveCss(e.textContent, e.ownerDocument);
+cssText += this.resolveCss(e.textContent, resolveDoc);
 }
 }
-m._cssText = cssText;
+if (addModule) {
+cssText += this.cssFromModules(addModule);
 }
-return m && m._cssText || '';
+}
+return cssText;
 },
+resolveCss: Polymer.ResolveUrl.resolveCss,
 parser: Polymer.CssParse,
 ruleTypes: Polymer.CssParse.types
 };
@@ -7587,7 +7635,8 @@ var styleTransformer = Polymer.StyleTransformer;
 Polymer({
 is: 'custom-style',
 extends: 'style',
-created: function () {
+properties: { include: String },
+ready: function () {
 this._tryApply();
 },
 attached: function () {
@@ -7599,7 +7648,7 @@ if (this.parentNode && this.parentNode.localName !== 'dom-module') {
 this._appliesToDocument = true;
 var e = this.__appliedElement || this;
 styleDefaults.addStyle(e);
-if (e.textContent) {
+if (e.textContent || this.include) {
 this._apply();
 } else {
 var observer = new MutationObserver(function () {
@@ -7613,6 +7662,9 @@ observer.observe(e, { childList: true });
 },
 _apply: function () {
 var e = this.__appliedElement || this;
+if (this.include) {
+e.textContent += styleUtil.cssFromModules(this.include);
+}
 this._computeStyleProperties();
 var props = this._styleProperties;
 var self = this;
@@ -7950,29 +8002,36 @@ items.push(store[key]);
 return items;
 },
 _applySplices: function (splices) {
-var keySplices = [];
-for (var i = 0; i < splices.length; i++) {
-var j, o, key, s = splices[i];
+var keyMap = {}, key, i;
+splices.forEach(function (s) {
+s.addedKeys = [];
+for (i = 0; i < s.removed.length; i++) {
+key = this.getKey(s.removed[i]);
+keyMap[key] = keyMap[key] ? null : -1;
+}
+for (i = 0; i < s.addedCount; i++) {
+var item = this.userArray[s.index + i];
+key = this.getKey(item);
+key = key === undefined ? this.add(item) : key;
+keyMap[key] = keyMap[key] ? null : 1;
+s.addedKeys.push(key);
+}
+}, this);
 var removed = [];
-for (j = 0; j < s.removed.length; j++) {
-o = s.removed[j];
-key = this.remove(o);
+var added = [];
+for (var key in keyMap) {
+if (keyMap[key] < 0) {
+this.removeKey(key);
 removed.push(key);
 }
-var added = [];
-for (j = 0; j < s.addedCount; j++) {
-o = this.userArray[s.index + j];
-key = this.add(o);
+if (keyMap[key] > 0) {
 added.push(key);
 }
-keySplices.push({
-index: s.index,
-removed: removed,
-removedItems: s.removed,
-added: added
-});
 }
-return keySplices;
+return [{
+removed: removed,
+added: added
+}];
 }
 };
 Polymer.Collection.get = function (userArray) {
@@ -8067,11 +8126,13 @@ this.collection = null;
 } else {
 this._error(this._logf('dom-repeat', 'expected array for `items`,' + ' found', this.items));
 }
-this._splices = [];
+this._keySplices = [];
+this._indexSplices = [];
 this._needFullRefresh = true;
 this._debounceTemplate(this._render);
 } else if (change.path == 'items.splices') {
-this._splices = this._splices.concat(change.value.keySplices);
+this._keySplices = this._keySplices.concat(change.value.keySplices);
+this._indexSplices = this._indexSplices.concat(change.value.indexSplices);
 this._debounceTemplate(this._render);
 } else {
 var subpath = change.path.slice(6);
@@ -8108,16 +8169,17 @@ this._applyFullRefresh();
 this._needFullRefresh = false;
 } else {
 if (this._sortFn) {
-this._applySplicesUserSort(this._splices);
+this._applySplicesUserSort(this._keySplices);
 } else {
 if (this._filterFn) {
 this._applyFullRefresh();
 } else {
-this._applySplicesArrayOrder(this._splices);
+this._applySplicesArrayOrder(this._indexSplices);
 }
 }
 }
-this._splices = [];
+this._keySplices = [];
+this._indexSplices = [];
 var keyToIdx = this._keyToInstIdx = {};
 for (var i = 0; i < this._instances.length; i++) {
 var inst = this._instances[i];
@@ -8255,10 +8317,10 @@ pool.push(inst);
 }
 }
 this._instances.splice(s.index, s.removed.length);
-for (var i = 0; i < s.added.length; i++) {
+for (var i = 0; i < s.addedKeys.length; i++) {
 var inst = {
 isPlaceholder: true,
-key: s.added[i]
+key: s.addedKeys[i]
 };
 this._instances.splice(s.index + i, 0, inst);
 }
@@ -8367,12 +8429,12 @@ is: 'array-selector',
 properties: {
 items: {
 type: Array,
-observer: '_resetSelection'
+observer: 'clearSelection'
 },
 multi: {
 type: Boolean,
 value: false,
-observer: '_resetSelection'
+observer: 'clearSelection'
 },
 selected: {
 type: Object,
@@ -8383,7 +8445,7 @@ type: Boolean,
 value: false
 }
 },
-_resetSelection: function () {
+clearSelection: function () {
 if (Array.isArray(this.selected)) {
 for (var i = 0; i < this.selected.length; i++) {
 this.unlinkPaths('selected.' + i);
@@ -8778,7 +8840,6 @@ if (!window.Promise) {
        * A reference to the status code, if the `xhr` has completely resolved.
        *
        * @attribute status
-       * @type short
        * @default 0
        */
       status: {
@@ -8792,7 +8853,6 @@ if (!window.Promise) {
        * A reference to the status text, if the `xhr` has completely resolved.
        *
        * @attribute statusText
-       * @type String
        * @default ""
        */
       statusText: {
@@ -8952,7 +9012,6 @@ if (!window.Promise) {
       }
       var body = this._encodeBodyObject(options.body, contentType);
 
-
       // In IE, `xhr.responseType` is an empty string when the response
       // returns. Hence, caching it as `xhr._responseType`.
       xhr.responseType = xhr._responseType = (options.handleAs || 'text');
@@ -8960,7 +9019,10 @@ if (!window.Promise) {
 
 
 
-      xhr.send(body);
+      xhr.send(
+        /** @type {ArrayBuffer|ArrayBufferView|Blob|Document|FormData|
+                   null|string|undefined} */
+        (body));
 
       return this.completes;
     },
@@ -8990,7 +9052,7 @@ if (!window.Promise) {
               // If accessing `xhr.responseText` throws, responseType `json`
               // is supported and the result is rightly `undefined`.
               try {
-                xhr.responseText;
+                /** @suppress {suspiciousCode} */ xhr.responseText;
               } catch (e) {
                 return xhr.response;
               }
@@ -9029,20 +9091,21 @@ if (!window.Promise) {
      * @param {*} body The given body of the request to try and encode.
      * @param {?string} contentType The given content type, to infer an encoding
      *     from.
-     * @return {?string|*} Either the encoded body as a string, if successful,
+     * @return {*} Either the encoded body as a string, if successful,
      *     or the unaltered body object if no encoding could be inferred.
      */
     _encodeBodyObject: function(body, contentType) {
       if (typeof body == 'string') {
         return body;  // Already encoded.
       }
+      var bodyObj = /** @type {Object} */ (body);
       switch(contentType) {
         case('application/json'):
-          return JSON.stringify(body);
+          return JSON.stringify(bodyObj);
         case('application/x-www-form-urlencoded'):
-          return this._wwwFormUrlEncode(body);
+          return this._wwwFormUrlEncode(bodyObj);
       }
-      return body;  // Unknown, make no change.
+      return body;
     },
 
     /**
@@ -10326,8 +10389,7 @@ if (!window.Promise) {
         type: Boolean,
         value: false,
         notify: true,
-        reflectToAttribute: true,
-        observer: '_activeChanged'
+        reflectToAttribute: true
       },
 
       /**
@@ -10348,6 +10410,16 @@ if (!window.Promise) {
       receivedFocusFromKeyboard: {
         type: Boolean,
         readOnly: true
+      },
+
+      /**
+       * The aria attribute to be set if the button is a toggle and in the
+       * active state.
+       */
+      ariaActiveAttribute: {
+        type: String,
+        value: 'aria-pressed',
+        observer: '_ariaActiveAttributeChanged'
       }
     },
 
@@ -10358,7 +10430,8 @@ if (!window.Promise) {
     },
 
     observers: [
-      '_detectKeyboardFocus(focused)'
+      '_detectKeyboardFocus(focused)',
+      '_activeChanged(active, ariaActiveAttribute)'
     ],
 
     keyBindings: {
@@ -10456,11 +10529,18 @@ if (!window.Promise) {
       this._changedButtonState();
     },
 
-    _activeChanged: function(active) {
+    _ariaActiveAttributeChanged: function(value, oldValue) {
+      if (oldValue && oldValue != value && this.hasAttribute(oldValue)) {
+        this.removeAttribute(oldValue);
+      }
+    },
+
+    _activeChanged: function(active, ariaActiveAttribute) {
       if (this.toggles) {
-        this.setAttribute('aria-pressed', active ? 'true' : 'false');
+        this.setAttribute(this.ariaActiveAttribute,
+                          active ? 'true' : 'false');
       } else {
-        this.removeAttribute('aria-pressed');
+        this.removeAttribute(this.ariaActiveAttribute);
       }
       this._changedButtonState();
     },
@@ -13246,8 +13326,8 @@ context. You should place this element as a child of `<body>` whenever possible.
 
 /**
  * Fired after the `iron-overlay` closes.
- * @event iron-overlay-closed {{canceled: boolean}} detail -
- *     canceled: True if the overlay was canceled.
+ * @event iron-overlay-closed
+ * @param {{canceled: (boolean|undefined)}} set to the `closingReason` attribute
  */
 
     listeners: {
@@ -13351,7 +13431,7 @@ context. You should place this element as a child of `<body>` whenever possible.
         // overlay becomes visible here
         this.style.display = '';
         // force layout to ensure transitions will go
-        this.offsetWidth;
+        /** @suppress {suspiciousCode} */ this.offsetWidth;
         if (this.opened) {
           this._renderOpened();
         } else {
@@ -13475,7 +13555,7 @@ context. You should place this element as a child of `<body>` whenever possible.
       this.style.display = 'none';
       this.style.transform = this.style.webkitTransform = '';
       // force layout to avoid application of transform
-      this.offsetWidth;
+      /** @suppress {suspiciousCode} */ this.offsetWidth;
       this.style.transition = this.style.webkitTransition = '';
     },
 
@@ -25114,24 +25194,15 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         }
     };
 </script><script>
-    Polymer({
-
-        // ELEMENT
-        is: 'xp-slave-state',
-
-        // EXTENDS
-        extends: 'template',
-
-        /*********************************************************************/
+    Polymer.XPSlaveBehavior = {
 
         /**
          * Fired when the slave is attached.
          *
-         * @event xp-slave-state
+         * @event xp-slave
          * @param {Element} firer
          * @param {Function} coupler
-         * @param {string} masterSelector
-         * @param {string} masterTag
+         * @param {string} selector
          * @param {boolean} isAttached
          * @bubbles
          */
@@ -25139,31 +25210,44 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         /*********************************************************************/
 
         /**
-         * Couples the slave to a master.
+         * The method that will return the masters map.
          *
-         * @method _couple
+         * @method _setupMasters
+         * @abstract
+         * @private
+         */
+        _setupMasters: XP.mock(),
+
+        /*********************************************************************/
+
+        /**
+         * Couples a master to this element.
+         *
+         * @method _coupleMaster
+         * @param {string} key
          * @param {Element} master
          * @returns {Element}
          * @private
          */
-        _couple: function (master) {
+        _coupleMaster: function (key, master) {
             var self = this;
-            if (!self.master) { self._setMaster(master); }
-            return master === self.master ? master : null;
+            if (!self[key]) { self['_set' + XP.capitalize(key)](master); }
+            return (master === self[key] && master) || null;
         },
 
         /**
-         * Decouples the slave from its master.
+         * Decouples a master from this element.
          *
-         * @method _decouple
+         * @method _decoupleMaster
+         * @param {string} key
          * @param {Element} master
          * @returns {Element}
          * @private
          */
-        _decouple: function (master) {
+        _decoupleMaster: function (key, master) {
             var self = this;
-            if (self.master === master) { self._setMaster(null); }
-            return !self.master ? master : null;
+            if (self[key] === master) { self['_set' + XP.capitalize(key)](null); }
+            return (!self[key] && master) || null;
         },
 
         /*********************************************************************/
@@ -25172,40 +25256,18 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         properties: {
 
             /**
-             * The slave's master.
+             * A map used to bind masters to their respective css selector.
+             * Each key is an element's property and its value is the selector.
              *
-             * @attribute master
-             * @type Element
+             * @attribute masters-map
+             * @type Object
              * @notifies
              * @readonly
              */
-            master: {
+            mastersMap: {
                 notify: true,
                 readOnly: true,
-                value: null
-            },
-
-            /**
-             * A selector used to recognize the master.
-             *
-             * @attribute master-selector
-             * @type string
-             */
-            masterSelector: {
-                reflectToAttribute: true,
-                type: String,
-                value: null
-            },
-
-            /**
-             * The `tagName` of the master.
-             *
-             * @attribute master-tag
-             * @type string
-             */
-            masterTag: {
-                reflectToAttribute: true,
-                type: String,
+                type: Object,
                 value: null
             }
         },
@@ -25214,17 +25276,21 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
 
         // LISTENER
         attached: function () {
-            var self = this;
-            XP.delay(function () { self.fire('xp-slave-state', {firer: self.domHost, coupler: self._couple.bind(self), masterSelector: self.masterSelector, masterTag: self.masterTag, isAttached: true}); });
+            var self = this, firer = function (value, key) { self.fire('xp-slave', {firer: self, coupler: self._coupleMaster.bind(self, key), selector: value, isAttached: true}); }.bind(self);
+            XP.delay(function () { XP.forOwn(self.mastersMap, firer); });
         },
 
         // LISTENER
         detached: function () {
-            var self = this;
-            if (!self.master) { return; }
-            XP.delay(function () { self.master.fire('xp-slave-state', {firer: self.domHost, coupler: self._decouple.bind(self), masterSelector: self.masterSelector, masterTag: self.masterTag, isAttached: false}); });
+            var self = this, firer = function (value, key) { if (self[key]) { self[key].fire('xp-slave', {firer: self, coupler: self._decoupleMaster.bind(self, key), selector: value, isAttached: false}); } }.bind(self);
+            XP.delay(function () { XP.forOwn(self.mastersMap, firer); });
+        },
+
+        // LISTENER
+        ready: function () {
+            this._setMastersMap(this._setupMasters() || {});
         }
-    });
+    };
 </script><script>
     Polymer.XPAdapterBehavior = {
 
@@ -25902,123 +25968,114 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
 
     }
 </style><script>
-    Polymer({
+    Polymer.XPMasterBehaviorImp = {
 
-        // ELEMENT
-        is: 'xp-master-state',
-
-        // EXTENDS
-        extends: 'template',
-
-        // BEHAVIORS
-        behaviors: [
-            Polymer.XPArrayBehavior
-        ],
+        /**
+         * The method that will return the slaves map.
+         *
+         * @method _setupSlaves
+         * @abstract
+         * @private
+         */
+        _setupSlaves: XP.mock(),
 
         /*********************************************************************/
 
         /**
-         * Couples the master to a slave.
+         * Couples a slave to this element.
          *
-         * @method _couple
+         * @method _coupleSlave
+         * @param {string} key
          * @param {Element} slave
          * @returns {Element}
          * @private
          */
-        _couple: function (slave) {
-            return this.append('slaves', slave);
+        _coupleSlave: function (key, slave) {
+            var self = this;
+            if (!self[key]) { self['_set' + XP.capitalize(key)]([]); }
+            return self.append(key, slave);
         },
 
         /**
-         * Decouples the master from a slave.
+         * Decouples a slave from this element.
          *
-         * @method _decouple
+         * @method _decoupleSlave
+         * @param {string} key
          * @param {Element} slave
          * @returns {Element}
          * @private
          */
-        _decouple: function (slave) {
-            var self = this, index = self.slaves.indexOf(slave);
-            return index >= 0 ? self.pullAt('slaves', index) : null;
+        _decoupleSlave: function (key, slave) {
+            var self = this, index = XP.indexOf(self[key] || [], slave);
+            return index >= 0 ? self.pullAt(key, index) : null;
         },
 
         /*********************************************************************/
+
+        // LISTENERS
+        listeners: {
+            'xp-slave': '_slaveHandler'
+        },
 
         // PROPERTIES
         properties: {
 
             /**
-             * A selector used to recognize the slaves.
+             * A map used to bind slaves arrays to their respective css selector.
+             * Each key is an element's property and its value is the selector.
              *
-             * @attribute slave-selector
-             * @type string
-             */
-            slaveSelector: {
-                reflectToAttribute: true,
-                type: String,
-                value: null
-            },
-
-            /**
-             * The `tagName` of the slaves.
-             *
-             * @attribute slave-tag
-             * @type string
-             */
-            slaveTag: {
-                reflectToAttribute: true,
-                type: String,
-                value: null
-            },
-
-            /**
-             * The master's slaves.
-             *
-             * @attribute slaves
-             * @type Array
+             * @attribute slaves-map
+             * @type Object
              * @notifies
              * @readonly
              */
-            slaves: {
+            slavesMap: {
                 notify: true,
                 readOnly: true,
-                type: Array,
-                value: function () { return []; }
+                type: Object,
+                value: null
             }
         },
 
         /*********************************************************************/
 
         // LISTENER
-        attached: function () {
-            this.listen(this.domHost, 'xp-slave-state', '_handleSlave');
+        ready: function () {
+            this._setSlavesMap(this._setupSlaves() || {});
         },
 
         /*********************************************************************/
 
         // HANDLER
-        _handleSlave: function (event) {
+        _slaveHandler: function (event) {
 
             // Vars
-            var self = this;
+            var self       = this,
+                coupler    = event.detail.coupler,
+                isAttached = event.detail.isAttached,
+                selector   = event.detail.selector,
+                slave      = event.detail.firer,
+                matches    = coupler && selector && slave && self !== slave && XP.matches(self, selector),
+                property   = matches && XP.mapOne(self.slavesMap, function (value, key) { if (XP.matches(slave, value)) { return key; } });
 
             // Checking
-            if (self.domHost === event.detail.firer) { return; }
-            if (self.slaveTag && self.slaveTag !== event.detail.firer.tagName.toLowerCase()) { return; }
-            if (self.slaveSelector && !XP.matches(event.detail.firer, self.slaveSelector)) { return; }
-            if (event.detail.masterTag && event.detail.masterTag !== self.domHost.tagName.toLowerCase()) { return; }
-            if (event.detail.masterSelector && !XP.matches(self.domHost, event.detail.masterSelector)) { return; }
+            if (!property) { return; }
 
             // Coupling (master side)
-            self[event.detail.isAttached ? '_couple' : '_decouple'](event.detail.firer);
+            self[isAttached ? '_coupleSlave' : '_decoupleSlave'](property, slave);
 
             // Coupling (slave side)
-            event.detail.coupler(self.domHost);
+            coupler(self);
 
             // Stopping
             event.stopPropagation();
         }
-    });
+    };
+
+    Polymer.XPMasterBehavior = [
+        Polymer.XPArrayBehavior,
+        Polymer.XPMasterBehaviorImp
+    ];
 </script><script>
     Polymer.XPInputBehaviorImp = {
 
@@ -26035,7 +26092,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         /*********************************************************************/
 
         /**
-         * Blurs the input.
+         * The method that will blur the input.
          *
          * @method focus
          * @abstract
@@ -26043,7 +26100,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         blur: XP.mock(),
 
         /**
-         * Focuses the input.
+         * The method that will focus the input.
          *
          * @method focus
          * @abstract
@@ -26051,7 +26108,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         focus: XP.mock(),
 
         /**
-         * Selects the input.
+         * The method that will select the input.
          *
          * @method select
          * @abstract
@@ -26061,16 +26118,16 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         /*********************************************************************/
 
         /**
-         * Set the adaptee.
+         * The method that will set the adaptee.
          *
          * @method _adapt
-         * @returns {Element}
+         * @abstract
          * @private
          */
         _adapt: XP.mock(),
 
         /**
-         * The operation used to reflect adapted input's `value` onto the element.
+         * The method that will reflect adapted input's `value` onto the element.
          *
          * @method _commitFrom
          * @abstract
@@ -26079,7 +26136,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         _commitFrom: XP.mock(),
 
         /**
-         * The operation used to reflect element's `value` onto the adapted input.
+         * The method that will reflect element's `value` onto the adapted input.
          *
          * @method _commitTo
          * @abstract
@@ -26088,7 +26145,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         _commitTo: XP.mock(),
 
         /**
-         * The operation used to reflect element's `tabIndex` onto the adapted input.
+         * The method that will reflect element's `tabIndex` onto the adapted input.
          *
          * @method _index
          * @abstract
@@ -26097,7 +26154,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         _index: XP.mock(),
 
         /**
-         * The operation used to sanitize adapted input's `value`.
+         * The method that will sanitize adapted input's `value`.
          *
          * @method _sanitize
          * @abstract
@@ -26106,7 +26163,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         _sanitize: XP.mock(),
 
         /**
-         * The operation used to update adapted input's attributes.
+         * The method that will update adapted input's attributes.
          *
          * @method _update
          * @abstract
@@ -26115,7 +26172,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         _update: XP.mock(),
 
         /**
-         * The operation used to validate adapted input's `value`.
+         * The method that will validate adapted input's `value`.
          *
          * @method _validate
          * @abstract
@@ -26601,7 +26658,7 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
             }
 
             // Mutating
-            Polymer.XPInputBehaviorImp.mutated.apply(self);
+            if (self.adaptee) { Polymer.XPInputBehaviorImp.mutated.apply(self); }
 
             // Refreshing
             self._refresh();
@@ -26710,19 +26767,24 @@ var r="";if(n=u(n),t=+t,1>t||!n||!_o(t))return r;do t%2&&(r+=n),t=eo(t/2),n+=n;w
         ready: function () {
 
             // Vars
-            var self = this;
+            var self     = this,
+                property = self.primitive === 'boolean' ? 'checked' : 'value';
 
-            // Setting
-            self.set('initial.checked', self.checked = self.model && self.primitive === 'boolean' ? true : self.checked || false);
-            self.set('initial.value', self.value = self.model && self.primitive !== 'boolean' ? self._toValue(self.model) : self.value || '');
-            self.set('initial.model', self.model = self.checked || (self.value ? self._toModel(self.value) : self.model || null));
-            self._setEmpty(self.primitive !== 'boolean' && !self.value);
+            // Delaying
+            XP.delay(function () {
 
-            // Adapting
-            self._adapt();
+                // Setting
+                self.set('initial.checked', self.checked = self.model && self.primitive === 'boolean' ? true : self.checked || false);
+                self.set('initial.value', self.value = self.model && self.primitive !== 'boolean' ? self._toValue(self.model) : self.value || '');
+                self.set('initial.model', self.model = self[property] ? self._toModel(self[property]) : (XP.isDefined(self.model) ? self.model : null));
+                self._setEmpty(self.primitive !== 'boolean' && !self.value);
 
-            // Committing
-            self._commitTo();
+                // Adapting
+                self._adapt();
+
+                // Committing
+                self._commitTo();
+            });
         },
 
         /*********************************************************************/
@@ -32504,7 +32566,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <template>
-        <template is="xp-slave-state" master="{{layer}}" master-tag="mat-paper"></template>
         <content id="content"></content>
     </template>
 
@@ -32517,7 +32578,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // BEHAVIORS
             behaviors: [
                 Polymer.MatPalette,
-                Polymer.XPSharedBehavior
+                Polymer.XPSharedBehavior,
+                Polymer.XPSlaveBehavior
             ],
 
             /*********************************************************************/
@@ -32533,6 +32595,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 var self = this;
                 XP.setStyle(self, 'color', !self.disabled && self._getColor(self.color));
                 return self;
+            },
+
+            /**
+             * Returns the masters map.
+             *
+             * @method _setupMasters
+             * @returns {Object}
+             * @private
+             */
+            _setupMasters: function () {
+                return {layer: 'mat-paper'};
             },
 
             /*********************************************************************/
@@ -32591,10 +32664,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                  * @attribute layer
                  * @type Element
                  * @notifies
+                 * @readonly
                  */
                 layer: {
                     notify: true,
                     observer: '_layerChanged',
+                    readOnly: true,
                     value: null
                 },
 
@@ -34110,9 +34185,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <template>
-        <template is="xp-master-state" slaves="{{inks}}" slave-tag="mat-ink"></template>
-        <template is="xp-master-state" slaves="{{papers}}" slave-tag="mat-paper"></template>
-        <template is="xp-slave-state" master="{{layer}}" master-tag="mat-paper"></template>
         <content id="content"></content>
     </template>
 
@@ -34125,7 +34197,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // BEHAVIORS
             behaviors: [
                 Polymer.MatPalette,
-                Polymer.XPSharedBehavior
+                Polymer.XPMasterBehavior,
+                Polymer.XPSharedBehavior,
+                Polymer.XPSlaveBehavior
             ],
 
             /*********************************************************************/
@@ -34190,6 +34264,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 var self = this;
                 XP.setStyle(self, 'background', !self.disabled && self._getColor(self.background));
                 return self;
+            },
+
+            /**
+             * Returns the masters map.
+             *
+             * @method _setupMasters
+             * @returns {Object}
+             * @private
+             */
+            _setupMasters: function () {
+                return {layer: 'mat-paper'};
+            },
+
+            /**
+             * Returns the slaves map.
+             *
+             * @method _setupSlaves
+             * @returns {Object}
+             * @private
+             */
+            _setupSlaves: function () {
+                return {inks: 'mat-ink', papers: 'mat-paper'};
             },
 
             /*********************************************************************/
@@ -34271,7 +34367,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                  */
                 inks: {
                     notify: true,
-                    type: Array
+                    readOnly: true,
+                    type: Array,
+                    value: function () { return []; }
                 },
 
                 /**
@@ -34284,6 +34382,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 layer: {
                     notify: true,
                     observer: '_layerChanged',
+                    readOnly: true,
                     value: null
                 },
 
@@ -34297,7 +34396,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                  */
                 papers: {
                     notify: true,
-                    type: Array
+                    readOnly: true,
+                    type: Array,
+                    value: function () { return []; }
                 },
 
                 /**
@@ -34502,10 +34603,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             margin: 0 !important;
             width: auto !important;
             z-index: 1;
-        }
-
-        :host ::content textarea {
-            display: none !important;
         }
 
         :host #matEditorWrapper,
@@ -34952,13 +35049,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     bottom: 0px;
   }
 
-  :host ::content.card-content {
+  :host ::content .card-content {
     padding: 16px;
     position:relative;
     @apply(--paper-card-content);
   }
 
-  :host ::content.card-actions {
+  :host ::content .card-actions {
     border-top: 1px solid #e8e8e8;
     padding: 5px 16px;
     position:relative;
@@ -35984,13 +36081,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       	'iron-resize': '_on_resize'
       },
       _complex_returns: function(){
-          return (this.returns.length > 1); // we assume the namesake is actually in the list
+          return (this.returns && this.returns.length > 1); // we assume the namesake is actually in the list
       },
       properties: {
   		name: {type: String,
-  			observer: '_contents_changed'},
+  			observer: '_contents_changed',
+        notify: true},
   		node_type: {type: String,
-  			observer: '_contents_changed'},
+  			observer: '_contents_changed',
+        notify: true},
   		is_moving: {type: Boolean,
   				value: false,
   				reflectToAttribute: true,
@@ -36014,12 +36113,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    					observer: '_pos_changed',},
    		width: {type: Number,
    				value: 0,
-   				notify: true,
-   				readOnly: true},
+   				notify: true},  
    		height: {type: Number,
    				value: 0,
-   				notify: true,
-   				readOnly: true},
+   				notify: true},
       returns: {type: Array,
             value: function(){return [];},
               observer: '_contents_changed'},
@@ -36043,8 +36140,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 		// I opened an issue here: https://github.com/PolymerElements/iron-resizable-behavior/issues/7
       	var el = e.currentTarget;
       	this.debounce('update_size', function(){
-	      	this._setWidth(el.clientWidth);
-	      	this._setHeight(el.clientHeight);
+	      	this.set('width',el.clientWidth);
+	      	this.set('height',el.clientHeight);
 	    }, 1)
       },
       _on_track: function(e){
@@ -37002,7 +37099,7 @@ if (!Array.prototype.findIndex) {
   </div>
   <div class="buttons">
     <paper-button dialog-dismiss="">Close</paper-button>
-    <paper-button dialog-confirm="">Apply Changes</paper-button>
+    <paper-button dialog-confirm="" id="update_xml_button">Apply Changes</paper-button>
   </div>
   </paper-dialog>
 
@@ -37026,7 +37123,10 @@ if (!Array.prototype.findIndex) {
     window.dialog_xml_source = document.getElementById("dialog_xml_source");
     window.xml_source_editor = document.getElementById("xml_source_editor");
     window.dialog_node_tabs = document.getElementById("dialog_node_tabs");
+    window.update_xml_button = document.getElementById("update_xml_button");
     
+
+
     x_main.tab_selected = 0;
 
     save_button.addEventListener("click",function(e){
@@ -37047,6 +37147,12 @@ if (!Array.prototype.findIndex) {
     ajax_load.addEventListener("response", function(e){
       the_graph.load_from_xml(e.detail.response.childNodes);
     });
+    update_xml_button.addEventListener("click", function(e){
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(xml_source_editor.value, "application/xml");
+      the_graph.load_from_xml(doc.childNodes);
+    });
+
     ajax_load.params = {dummy: Math.random().toString(36).slice(2)}; //prevent caching
     ajax_load.generateRequest();
     ajax_save.addEventListener("response", function(e){

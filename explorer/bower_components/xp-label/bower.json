@@ -1,7 +1,7 @@
 {
   "name": "xp-label",
   "license": "BSD-3-Clause",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "A custom element used to add shadow traverse capabilities on an HTML label",
   "homepage": "http://expandjs.com/elements/xp-label",
   "authors": [
@@ -22,7 +22,7 @@
     "**/.*"
   ],
   "dependencies": {
-    "expandjs": "ExpandJS/expandjs#0.9.5",
+    "expandjs": "ExpandJS/expandjs#0.9.6",
     "polymer": "Polymer/polymer#^1.0.0"
   }
 }

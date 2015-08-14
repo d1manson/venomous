@@ -7,7 +7,19 @@ The complete set of contributors may be found at https://expandjs.github.io/CONT
 -->
 
 <!--
-This style provides css variables for material shadows.
+CSS variables that provide [Material Design elevation shadows](http://www.google.com/design/spec/what-is-material/elevation-shadows.html#).
+
+All 24 levels of elevation are provided.
+
+```html
+<style>
+    #cardPaper   { @apply(--mat-shadow-z2); }
+    #dialogPaper { @apply(--mat-shadow-z24); }
+</style>
+
+<div id="cardPaper"></div>
+<div id="dialogPaper"></div>
+```
 
 @element mat-shadow
 @description A custom style used to provide css variables for Material Design shadows
@@ -17,7 +29,7 @@ This style provides css variables for material shadows.
 @repository https://github.com/ExpandJS/mat-shadow
 
 @dependency polymer Polymer/polymer#^1.0.0
-@dependency expandjs ExpandJS/expandjs#0.9.5
+@dependency expandjs ExpandJS/expandjs#0.9.6
 -->
 
 <link rel="import" href="../polymer/polymer.html">
