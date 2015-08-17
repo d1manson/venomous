@@ -12,13 +12,7 @@ The benefit of using Venomous is that it modularises each stage of the analysis 
 
 In summary, by declaring your analysis pipeline using the Venomous XML/C++ syntax you will find that a range of benefits naturally arrise, at least in principle. And since Venomous is open source, you can help contribute any features that you feel are missing.
 
-**Example 1:** *An application simulating the temporal evolution of a system of differential equations.*    
- ![example1](/img/example1.png)  
-
-**Example 2:** *An application showing separate summary plots for each of the many clusters within a dataset, where the user can modify the cluster assignment, with full redo-undo capabilities.*
- ![example2](/img/example2.png)  
- This is the usage case that motivated the development of Venomous.  See the [waveform project](http://www.github.com/d1manson/waveform) for a poorly-structured implementation that doesn't use Venomous.  And, more importantly, see the draft of the new Venomous xml/c++ implementation - available [here](http://d1manson.github.io/venomous/explorer/) with the online Venomous Explorer.
-
+**Venomous is different from [other pipeline tools](https://github.com/pditommaso/awesome-pipeline)**: it does't just take a list of tasks and run them on separate cores/across a cluster; it doesn't compile a restricted library of processing "blocks" into a super optimised one-input-one-output kernel; it doesn't deal with database querying/filtering in any special ways; it doesn't come pre-loaded with connections to online data sources.  Instead, it's a bit like a modern web browser in terms of providing a platform that tries to automatically squeeze as much as possible out of the local hardware in order to create the most interactive experience posible for the end-user, exposing a scripting language/API to the developer to let them join in with this quest for extreme performance.
 
 ### Roadmap   
 There is a lot of work to be done to even get a basic bare-bones example running.  The first step is to write a sample xml/c++ document for a full realworld pipeline, establishing a rough syntax for Venomous to use at the design end.  In parallel with this effort some C++ code will need to be written for the behind-the-scenes part of the engine, and the structure of the C++ output from the Venomous compiler needs to be decided.   Then the actual compiler needs to be constructed: this will be done in python, initially using a selection of very fragile regex manipulations, and possibly using libclang at a later date.    
