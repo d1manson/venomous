@@ -21,5 +21,13 @@ Initially the implementation will ignore many of the optimisation hints from the
 
 At some point an auto-generated Matlab/Python binding should be created, and some effort should be made to get Venomous outputting to asm.js, NaCl, or other web technology. 
 
+### Motivating example
+The need for a framework like Venomous was identified during development of the [waveform project](https://github.com/d1manson/waveform/).  At a gross level, that project's pipeline looks roughly as follows:
+
+![dummy_example](/img/dummy_example.png) 
+
+The full design document for the Venomous implementation of Waveform can be viewed using the Venomous Explorer tool [here](http://d1manson.github.io/venomous/explorer/).  Note that it consits of a web of over 50 nodes, with more than one "chain" and a variety of topological motifs.
+
+
 
 

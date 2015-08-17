@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+  <engine>
+<input name="param_1"/>
+<input name="param_2"/>
+<input name="param_3"/>
+<input name="filename"/>
+<input name="delta"/>
+<chain name="modifications_chain"><delta name="delta"/></chain>
+<compute name="parsed_file_contents"><arg name="filename"/></compute>
+<compute name="summary_a"><arg name="param_1"/><arg name="parsed_file_contents"/></compute>
+<compute name="current_state"><arg name="parsed_file_contents"/><chain name="modifications_chain"/></compute>
+<compute name="summary_b"><arg name="current_state"/><arg name="param_2"/></compute>
+<compute name="summary_c"><arg name="current_state"/><arg name="param_2"/><arg name="param_3"/></compute>
+</engine>
+  <layout>
+    <box name="param_1" left="572" top ="281" />
+    <box name="param_2" left="343" top ="460" />
+    <box name="param_3" left="552" top ="459" />
+    <box name="filename" left="403" top ="174" />
+    <box name="delta" left="170" top ="242" />
+    <box name="parsed_file_contents" left="359" top ="242" />
+    <box name="summary_a" left="485" top ="329" />
+    <box name="current_state" left="315" top ="379" />
+    <box name="summary_b" left="220" top ="514" />
+    <box name="summary_c" left="462" top ="513" />
+    <box name="modifications_chain" left="191" top ="306" />
+    <offset left="5000" top="5000" />
+  </layout>
+</document>
