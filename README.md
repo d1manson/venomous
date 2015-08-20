@@ -38,9 +38,9 @@ When developing with Venomous you have **two completely separate roles**:
 All the benefits of Venomous arrise as a result of this logical division, so it is critical that you understand it before going forward.
 
 **In the designer role**, you create a directed-(nearly)acyclcic-graph, which consists of three types of nodes:
-1. "input" nodes. Examples: file handle, smoothing kernel shape, region of interest.
-2. "compute" nodes. Examples: node that reads a file off disk and parses its contents, node that creates a histogram from some raw data, node that finds a circle in an image.
-3. "chain" nodes. This is more complciated - it's why the graph is only "nearly" asyclic. We'll come back to this later.
+  1. "input" nodes. Examples: file handle, smoothing kernel shape, region of interest.
+  2. "compute" nodes. Examples: node that reads a file off disk and parses its contents, node that creates a histogram from some raw data, node that finds a circle in an image.
+  3. "chain" nodes. This is more complciated - it's why the graph is only "nearly" asyclic. We'll come back to this later.
 
 A stupidly **simple example of a design** using one input and one compute might look like this:
 ```
