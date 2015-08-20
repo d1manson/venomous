@@ -52,14 +52,14 @@ planetary_greeting = "hello " + planet;
 ```
 Note that this example is *stupidly simple*: a real-life compute node wll normally take at least 1000 cycles to do its job and may take as long as several miliseconds or even seconds.
 
-**In the API-conumer role**, you can have two main interactions with Venomous:
-1. You create new instances of input nodes, assigning data to them at the point of creation.
-2. You set callbacks to listen on the results of compute nodes.
+**In the API-consumer role**, you can have two main interactions with Venomous:
+  1. You create new instances of input nodes, assigning data to them at the point of creation.
+  2. You set callbacks to listen on the results of compute nodes.
 
 **Continuing the `planetary_greeting` example above**, but now in the API-conumer role, lets say you want to display your planteary greeting at the top of the window. To do so, you must register a callback on the `planetary_greeting` compute node, and as part of this registration action you must specify which `planet` you want to be the input to your `planetary_greeting`.  There are three ways to specify this:
-1. You can assign an *immutable instance* of the `planet` node. You create such instances using real data, such as the string `"Earth"`,
-2. You can assign a *variable instance* of the `planet` node. Such instances are used for holding immutable instances - here you are free to swap the current immutable instance with another one as an when needed.
-3. You can assign a "pointer instance* of the `planet` node. Such instances point to variable instances, using the current immutable instance within the pointed-to  variable instance.  In simple applications these instances are usually not needed.
+  1. You can assign an *immutable instance* of the `planet` node. You create such instances using real data, such as the string `"Earth"`,
+  2. You can assign a *variable instance* of the `planet` node. Such instances are used for holding immutable instances - here you are free to swap the current immutable instance with another one as an when needed.
+  3. You can assign a "pointer instance* of the `planet` node. Such instances point to variable instances, using the current immutable instance within the pointed-to  variable instance.  In simple applications these instances are usually not needed.
  
 Note that only input (and chain) nodes can be instanteated in the above three ways - compute nodes are either private (i.e. not exposed at all by the API) or are only accessible in terms of being objects to register callbacks on.
 
