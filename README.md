@@ -29,5 +29,48 @@ The need for a framework like Venomous was identified during development of the 
 The full design document for the Venomous implementation of Waveform can be viewed using the Venomous Explorer tool [here](http://d1manson.github.io/venomous/explorer/).  Note that it consits of a web of over 50 nodes, with more than one "chain" and a variety of topological motifs.
 
 
+### Venomous tutorial 
+
+When developing with Venomous you have **two completely separate roles**:
+1. You are the designer of an API: using the Venomous C++/XML syntax you define both the "public" interface and the innards of your custom analysis/simulation engine.  You then give your design to the Venmous compiler, which converts it into pure C++ code.
+2. You are the consumer of the API: using the pure C++ code provide by the above process you write an application which lets an end-user interact with that API through some kind of user interface.  
+
+All the benefits of Venomous arrise as a result of this logical division, so it is critical that you understand it before going forward.
+
+**In the designer role**, you create a directed-(nearly)acyclcic-graph, which consists of three types of nodes:
+1. "input" nodes. Examples: file handle, smoothing kernel shape, region of interest.
+2. "compute" nodes. Examples: node that reads a file off disk and parses its contents, node that creates a histogram from some raw data, node that finds a circle in an image.
+3. "chain" nodes. This is more complciated - it's why the graph is only "nearly" asyclic. We'll come back to this later.
+
+A stupidly **simple example of a design** using one input and one compute might look like this:
+```
+TODO: show planet -> planetary_greeting
+```
+Here the `planet` is an input node, which must be a `string` and `planetary_greeting` is a very simple compute node contain the following code: 
+```
+planetary_greeting = "hello " + planet;
+```
+Note that this example is *stupidly simple*: a real-life compute node wll normally take at least 1000 cycles to do its job and may take as long as several miliseconds or even seconds.
+
+**In the API-conumer role**, you can have two main interactions with Venomous:
+1. You create new instances of input nodes, assigning data to them at the point of creation.
+2. You set callbacks to listen on the results of compute nodes.
+
+**Continuing the `planetary_greeting` example above**, but now in the API-conumer role, lets say you want to display your planteary greeting at the top of the window. To do so, you must register a callback on the `planetary_greeting` compute node, and as part of this registration action you must specify which `planet` you want to be the input to your `planetary_greeting`.  There are three ways to specify this:
+1. You can assign an *immutable instance* of the `planet` node. You create such instances using real data, such as the string `"Earth"`,
+2. You can assign a *variable instance* of the `planet` node. Such instances are used for holding immutable instances - here you are free to swap the current immutable instance with another one as an when needed.
+3. You can assign a "pointer instance* of the `planet` node. Such instances point to variable instances, using the current immutable instance within the pointed-to  variable instance.  In simple applications these instances are usually not needed.
+ 
+Note that only input (and chain) nodes can be instanteated in the above three ways - compute nodes are either private (i.e. not exposed at all by the API) or are only accessible in terms of being objects to register callbacks on.
+
+Consider **a slightly more interesting example** in which there are now two inputs.
+```
+TODO: show (raw_img , filter) -> filtered_img 
+```
+Now in our applciation we may want to have several `raw_img`s, but only one global filter setting.  To set this up, we would create an immutable `raw_img` instance for each of our various images, and we would create a variable `filter` instance (which we would then populate with some starting immutable `filter` instance).  Then for each slot that needs to display an image we would register a callback on `filtered_img`, providing a specific immutable `raw_img` as one input and the variable `filter` as the other input.  Thus, whenever we change the filter all the callbacks will be triggered.
+
+Note that in real-life examples there will probably be several stages of compute before you reach the "public" output compute node.  The important thing to remember is that when requesting a callback you have to **specify the complete set of input nodes** for the given compute node, i.e. the intermediary compute nodes are irrelevant, all that matters is the top-level inputs for the given output compute.  We will discuss how this works for chain nodes in a moment.  Also, note that when registering a callback, for each of the inputs we can independandlt choose to use either an immutable, a variable, or a pointer.
+
+
 
 
