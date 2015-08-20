@@ -28,7 +28,6 @@ The need for a framework like Venomous was identified during development of the 
 
 The full design document for the Venomous implementation of Waveform can be viewed using the Venomous Explorer tool [here](http://d1manson.github.io/venomous/explorer/).  Note that it consits of a web of over 50 nodes, with more than one "chain" and a variety of topological motifs.
 
-
 ### Venomous tutorial 
 
 When developing with Venomous you have **two completely separate roles**:
@@ -53,7 +52,7 @@ planetary_greeting = "hello " + planet;
 Note that this example is *stupidly simple*: a real-life compute node wll normally take at least 1000 cycles to do its job and may take as long as several miliseconds or even seconds.
 
 **In the API-consumer role**, you can have two main interactions with Venomous:
-  1. You create new instances of input nodes, assigning data to them at the point of creation.
+  1. You create new instances of input nodes.
   2. You set callbacks to listen on the results of compute nodes.
 
 **Continuing the `planetary_greeting` example above**, but now in the API-conumer role, lets say you want to display your planteary greeting at the top of the window. To do so, you must register a callback on the `planetary_greeting` compute node, and as part of this registration action you must specify which `planet` you want to be the input to your `planetary_greeting`.  There are three ways to specify this:
@@ -70,6 +69,15 @@ TODO: show (raw_img , filter) -> filtered_img
 Now in our applciation we may want to have several `raw_img`s, but only one global filter setting.  To set this up, we would create an immutable `raw_img` instance for each of our various images, and we would create a variable `filter` instance (which we would then populate with some starting immutable `filter` instance).  Then for each slot that needs to display an image we would register a callback on `filtered_img`, providing a specific immutable `raw_img` as one input and the variable `filter` as the other input.  Thus, whenever we change the filter all the callbacks will be triggered.
 
 Note that in real-life examples there will probably be several stages of compute before you reach the "public" output compute node.  The important thing to remember is that when requesting a callback you have to **specify the complete set of input nodes** for the given compute node, i.e. the intermediary compute nodes are irrelevant, all that matters is the top-level inputs for the given output compute.  We will discuss how this works for chain nodes in a moment.  Also, note that when registering a callback, for each of the inputs we can independandlt choose to use either an immutable, a variable, or a pointer.
+
+Let's now consider an **example with a chain** node.  Many simpler Venomous applications may not need to use chains at all, however if your design calls for a departure from absolute acyclicness you will have to reach for a chain node.  Let's continue the image filtering example, and say that rather than simply applying one filter to a `raw_img`, the user may in fact want to apply several filters, one after the other:
+```
+TODO: show (filter->filter_chain , raw_img) -> filtered_img
+```
+This system is pseudo-cyclic because the current `filtered_img` depends upon the previous state of the `filtered_img`.  If you are familiar with `git`-like version control, you can think of the `filter_chain` as being similar to a commit reference, i.e. it is defined by it's prarent commit and some delta.  If you are not familiar with `git` then you are probably out of your depth here, but you can still try analagising the chain concept to the `undo` history in your famourite word prcessor (no doubt Microsoft Word): each action you take is tagged on to a list of previous actions.  Assuming you roughly understand that, lets continute. Right, now when requesting a callback on `filtered_img`, you now need to explcitly state which point on the `filter_chain` you want to use, although - as with simple input nodes - this could be a variable or pointer `filter_chain` instance rather than an immutable.  Using this arrangement, you can easily undo, redo, and even branch on the `filter_chain` (but not merge!). Note that `filtered_img` is now defined recursively: each computation is fed the output of the "previous" computation obtained with the specified `filter_chain`-minus-the-last-delta, this is possible even if the "previous" computation is yet to actually be started (just keep going back down the `filter_chain` till you find a matching `filtered_img` which has actually been computed).
+
+Note that a chain takes at most one delta: you can have a chain taking no deltas, if you want a simple loop-like construct.  The delta can be an input node as shown here, or it can be a compute node: when using a compute node you pass in the callback rather than actually waiting for the value to be computed (TODO: it's confusing calling these things "callback"s given that they are acting more like actual instances here!!).  You may find that you want more than one kind of chain in your API, this is absolutely fine.  You may occasionally also find that you want more than one compute to share the same chain. This is also possible, and you can have a connection between these computes, but it can only go one way, i.e.  `A` and `B` can both depend on their own previous state, and `B` can depend additionally on the current state of `A`, but in that case `A` can never depend on `B`.  If you require and actual cycle between `A` and `B` then you need to put them inside a single compute and deal with the details yourself.
+
 
 
 
