@@ -32,8 +32,8 @@ The full design document for the Venomous implementation of Waveform can be view
 ### Venomous tutorial 
 
 When developing with Venomous you have **two completely separate roles**:
-1. You are the designer of an API: using the Venomous C++/XML syntax you define both the "public" interface and the innards of your custom analysis/simulation engine.  You then give your design to the Venmous compiler, which converts it into pure C++ code.
-2. You are the consumer of the API: using the pure C++ code provide by the above process you write an application which lets an end-user interact with that API through some kind of user interface.  
+  1. You are the designer of an API: using the Venomous C++/XML syntax you define both the "public" interface and the innards of your custom analysis/simulation engine.  You then give your design to the Venmous compiler, which converts it into pure C++ code.
+  2. You are the consumer of the API: using the pure C++ code provide by the above process you write an application which lets an end-user interact with that API through some kind of user interface.  
 
 All the benefits of Venomous arrise as a result of this logical division, so it is critical that you understand it before going forward.
 
