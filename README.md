@@ -78,7 +78,12 @@ This system is pseudo-cyclic because the current `filtered_img` depends upon the
 
 Note that a chain takes at most one delta: you can have a chain taking no deltas, if you want a simple loop-like construct.  The delta can be an input node as shown here, or it can be a compute node: when using a compute node you pass in the callback rather than actually waiting for the value to be computed (TODO: it's confusing calling these things "callback"s given that they are acting more like actual instances here!!).  You may find that you want more than one kind of chain in your API, this is absolutely fine.  You may occasionally also find that you want more than one compute to share the same chain. This is also possible, and you can have a connection between these computes, but it can only go one way, i.e.  `A` and `B` can both depend on their own previous state, and `B` can depend additionally on the current state of `A`, but in that case `A` can never depend on `B`.  If you require and actual cycle between `A` and `B` then you need to put them inside a single compute and deal with the details yourself.
 
+Venomous provides a variety of **optimization-orientated features** to the API/engine designer.  These features are intended to be powerful, while only adding mildly more complexity to the C++/XML. The first one we consider is the **multiple return values of a compute**.  You can return data in a custom C++ `const` data structure, and sometimes that makes sense, but if you have a number of separate items to return, with:
+  1. One or more items being very large (i.e. several KB)  ...or...
+  2. One or more items taking a long time to compute ...or...
+  3. The usage pattern of the individual items (by downstream computes/callbacks) being highly variable (i.e. uncorrelated) across items...
 
+...then you should consider splitting up the strcture and explicitly telling Venomous about the multiple returned items. Venomous can then deal with them separately in cache and can indicate to your code which items are actually required during a given compute execution. 
 
 
 
