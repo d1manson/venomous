@@ -12,6 +12,20 @@
 <compute name="current_state"><arg name="parsed_file_contents"/><chain name="modifications_chain"/></compute>
 <compute name="summary_b"><arg name="current_state"/><arg name="param_2"/></compute>
 <compute name="summary_c"><arg name="current_state"/><arg name="param_2"/><arg name="param_3"/></compute>
+      
+      
+ <input name="planet"/>
+ <compute name="planetary_greeting"><arg name="planet"/></compute>
+      
+ <input name="raw_img_"/>
+ <input name="filter_"/>      
+ <compute name="filtered_img_"><arg name="raw_img_"/><arg name="filter_"/></compute>
+
+  <input name="raw_img"/>
+ <input name="filter"/>
+      <chain name="filter_chain"><delta name="filter"/></chain>
+ <compute name="filtered_img"><arg name="raw_img"/><chain name="filter_chain"/></compute>
+     
 </engine>
   <layout>
     <box name="param_1" left="572" top ="281" />
@@ -19,12 +33,21 @@
     <box name="param_3" left="552" top ="459" />
     <box name="filename" left="403" top ="174" />
     <box name="delta" left="170" top ="242" />
+    <box name="planet" left="-238" top ="231" />
+    <box name="raw_img_" left="174" top ="703" />
+    <box name="filter_" left="72" top ="668" />
+    <box name="raw_img" left="-146" top ="554" />
+    <box name="filter" left="-278" top ="482" />
     <box name="parsed_file_contents" left="359" top ="242" />
     <box name="summary_a" left="485" top ="329" />
     <box name="current_state" left="315" top ="379" />
     <box name="summary_b" left="220" top ="514" />
     <box name="summary_c" left="462" top ="513" />
+    <box name="planetary_greeting" left="-281" top ="296" />
+    <box name="filtered_img_" left="103" top ="768" />
+    <box name="filtered_img" left="-214" top ="624" />
     <box name="modifications_chain" left="191" top ="306" />
-    <offset left="5000" top="5000" />
+    <box name="filter_chain" left="-296" top ="541" />
+    <offset left="4426" top="4839" />
   </layout>
 </document>

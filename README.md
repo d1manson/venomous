@@ -42,9 +42,9 @@ All the benefits of Venomous arrise as a result of this logical division, so it 
   3. "chain" nodes. This is more complciated - it's why the graph is only "nearly" asyclic. We'll come back to this later.
 
 A stupidly **simple example of a design** using one input and one compute might look like this:
-```
-TODO: show planet -> planetary_greeting
-```
+
+![hello world](/img/hello_world.png) 
+
 Here the `planet` is an input node, which must be a `string` and `planetary_greeting` is a very simple compute node contain the following code: 
 ```
 planetary_greeting = "hello " + planet;
@@ -63,17 +63,17 @@ Note that this example is *stupidly simple*: a real-life compute node wll normal
 Note that only input (and chain) nodes can be instanteated in the above three ways - compute nodes are either private (i.e. not exposed at all by the API) or are only accessible in terms of being objects to register callbacks on.
 
 Consider **a slightly more interesting example** in which there are now two inputs.
-```
-TODO: show (raw_img , filter) -> filtered_img 
-```
+ 
+![simple image filtering](/img/img_filtering_simple.png) 
+
 Now in our applciation we may want to have several `raw_img`s, but only one global filter setting.  To set this up, we would create an immutable `raw_img` instance for each of our various images, and we would create a variable `filter` instance (which we would then populate with some starting immutable `filter` instance).  Then for each slot that needs to display an image we would register a callback on `filtered_img`, providing a specific immutable `raw_img` as one input and the variable `filter` as the other input.  Thus, whenever we change the filter all the callbacks will be triggered.
 
 Note that in real-life examples there will probably be several stages of compute before you reach the "public" output compute node.  The important thing to remember is that when requesting a callback you have to **specify the complete set of input nodes** for the given compute node, i.e. the intermediary compute nodes are irrelevant, all that matters is the top-level inputs for the given output compute.  We will discuss how this works for chain nodes in a moment.  Also, note that when registering a callback, for each of the inputs we can independandlt choose to use either an immutable, a variable, or a pointer.
 
 Let's now consider an **example with a chain** node.  Many simpler Venomous applications may not need to use chains at all, however if your design calls for a departure from absolute acyclicness you will have to reach for a chain node.  Let's continue the image filtering example, and say that rather than simply applying one filter to a `raw_img`, the user may in fact want to apply several filters, one after the other:
-```
-TODO: show (filter->filter_chain , raw_img) -> filtered_img
-```
+
+![img filtering chain](/img/img_filtering_chain.png) 
+
 This system is pseudo-cyclic because the current `filtered_img` depends upon the previous state of the `filtered_img`.  If you are familiar with `git`-like version control, you can think of the `filter_chain` as being similar to a commit reference, i.e. it is defined by it's prarent commit and some delta.  If you are not familiar with `git` then you are probably out of your depth here, but you can still try analagising the chain concept to the `undo` history in your famourite word prcessor (no doubt Microsoft Word): each action you take is tagged on to a list of previous actions.  Assuming you roughly understand that, lets continute. Right, now when requesting a callback on `filtered_img`, you now need to explcitly state which point on the `filter_chain` you want to use, although - as with simple input nodes - this could be a variable or pointer `filter_chain` instance rather than an immutable.  Using this arrangement, you can easily undo, redo, and even branch on the `filter_chain` (but not merge!). Note that `filtered_img` is now defined recursively: each computation is fed the output of the "previous" computation obtained with the specified `filter_chain`-minus-the-last-delta, this is possible even if the "previous" computation is yet to actually be started (just keep going back down the `filter_chain` till you find a matching `filtered_img` which has actually been computed).
 
 Note that a chain takes at most one delta: you can have a chain taking no deltas, if you want a simple loop-like construct.  The delta can be an input node as shown here, or it can be a compute node: when using a compute node you pass in the callback rather than actually waiting for the value to be computed (TODO: it's confusing calling these things "callback"s given that they are acting more like actual instances here!!).  You may find that you want more than one kind of chain in your API, this is absolutely fine.  You may occasionally also find that you want more than one compute to share the same chain. This is also possible, and you can have a connection between these computes, but it can only go one way, i.e.  `A` and `B` can both depend on their own previous state, and `B` can depend additionally on the current state of `A`, but in that case `A` can never depend on `B`.  If you require and actual cycle between `A` and `B` then you need to put them inside a single compute and deal with the details yourself.
