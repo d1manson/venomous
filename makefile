@@ -4,6 +4,7 @@ CXX=clang++
 CXXFLAGS=-std=c++11
 
 all: build/$(APPNAME)
+	build/$(APPNAME)
 
 build/$(APPNAME): build/main.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o build/$(APPNAME) $< $(LDLIBS)
