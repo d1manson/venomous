@@ -123,19 +123,58 @@ private:
 
 };
 
+#define NDEBUG
+#include "variant.h"
 
 
+struct custom{
+	float my_value;
+	custom(){}
+	~custom(){
+		std::cout<< "destroying custom " << my_value <<  std::endl;
+	}
+};
 // Main loop
 int main(int argc, char **argv)
 {
+	
 	auto po = PostOffice<id_t, 2, 6, 14>();
 	std::array<id_t, 2> x{3, 44};
 	po.find(x);
+	/*
 	// TODO: check this is reasonably fast
 	for(int i=0;i<32000;i++){
 		x[0] = i;
 		po.find(x);
 	}
+	*/
 	std::cout << "hello world" << std::endl;
+
+	variant<uint16_t, int, float, double, custom, char[8]> dummy( (custom()) ); //most vexing parse!!
+	auto& d_float = dummy.get<float>();
+	auto& d_float_other = dummy.get<float>();
+	auto& d_double = dummy.get<double>();
+	auto& d_char8 = dummy.get<char[8]>();
+	auto& d_custom = dummy.get<custom>();
+
+	auto& d_int = dummy.get<int>(); // run-time assert fails
+	auto& d_int_other = dummy.get<int>(); // run-time assert fails
+	
+
+	for(size_t i=0; i< 8; i++)
+		std::cout << int(d_char8[i]) << ".";
+	std::cout << std::endl;
+	
+	d_int_other = 25; // if NDEBUG then we reach here and modify the value as though it were an int 
+	
+	for(size_t i=0; i< 8; i++)
+		std::cout << int(d_char8[i]) << ".";
+	std::cout << std::endl;
+	
+	d_float_other = 99.2;
+		
+	for(size_t i=0; i< 8; i++)
+		std::cout << int(d_char8[i]) << ".";
+	std::cout << std::endl;
 	return 0;
 }
