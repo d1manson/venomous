@@ -3,25 +3,38 @@
 #include <string>
 #include <memory>
 #include <cassert>
+#include <vector>
 #include <unordered_map>
 #include <tuple>
 #include <iterator>
 #include <type_traits>
+
 
 #include "farmhash.h"
 
 template <class T, std::size_t N>
 std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr){
 	// adapted from: http://stackoverflow.com/a/19152438/2399799
-	o.put('[');
+	o << "arr[";
 	if(arr.size() > 0){
 	    std::copy(arr.cbegin(), arr.cend()-1, std::ostream_iterator<T>(o, ", "));
 	    o << arr.back();	
 	}
-	o.put(']');
+	o << ']';
 	return o;
 }
 
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec){
+	// adapted from: http://stackoverflow.com/a/19152438/2399799
+	o << "vec[";
+	if(vec.size() > 0){
+	    std::copy(vec.cbegin(), vec.cend()-1, std::ostream_iterator<T>(o, ", "));
+	    o << vec.back();	
+	}
+	o << ']';
+	return o;
+}
 
 
 using id_t = size_t;
@@ -126,55 +139,49 @@ private:
 #define NDEBUG
 #include "variant.h"
 
-
-struct custom{
-	float my_value;
-	custom(){}
-	~custom(){
-		std::cout<< "destroying custom " << my_value <<  std::endl;
+template<typename T>
+struct wector : public std::vector<T>{
+	static int counter;
+	int my_idx;
+	wector(){
+		my_idx = counter++;
+		std::cout << "constructed wector #" << my_idx << std::endl;
 	}
+	wector(wector<T>&& other) : std::vector<T>(std::move(other)) {
+		my_idx = counter++;
+		std::cout << "move-constructed vector #" << my_idx << ": " << *this << ", from vector #" << other.my_idx << ", which is now: " << other << std::endl;
+	}
+	wector(wector<T> const& other) : std::vector<T>(other) {
+		my_idx = counter++;
+		std::cout << "copy-constructed vector #" << my_idx << ": " << *this << ", from vector #" << other.my_idx << ", which is now: " << other << std::endl;
+	}
+	~wector(){
+		std::cout << "destructing wector #" << my_idx << ": " << *this << std::endl;
+	}
+
 };
+
+template<typename T>
+int wector<T>::counter = 0;
+
 // Main loop
 int main(int argc, char **argv)
 {
 	
-	auto po = PostOffice<id_t, 2, 6, 14>();
-	std::array<id_t, 2> x{3, 44};
-	po.find(x);
-	/*
-	// TODO: check this is reasonably fast
-	for(int i=0;i<32000;i++){
-		x[0] = i;
-		po.find(x);
-	}
-	*/
-	std::cout << "hello world" << std::endl;
+	wector<int> w1;
+	w1.push_back(23);
+	w1.push_back(60);
 
-	variant<uint16_t, int, float, double, custom, char[8]> dummy( (custom()) ); //most vexing parse!!
-	auto& d_float = dummy.get<float>();
-	auto& d_float_other = dummy.get<float>();
-	auto& d_double = dummy.get<double>();
-	auto& d_char8 = dummy.get<char[8]>();
-	auto& d_custom = dummy.get<custom>();
+	variant<uint16_t, float, wector<int>> dummy( w1 );
+	w1.push_back(99);
+	variant<uint16_t, float, wector<int>> dummy2( std::move(dummy) );
 
-	auto& d_int = dummy.get<int>(); // run-time assert fails
-	auto& d_int_other = dummy.get<int>(); // run-time assert fails
+	auto& d2_vector_int = dummy2.get<wector<int> >();
+	auto& d2_float = dummy2.get<float>();
+	
+	std::cout << "dummy2_float: " << d2_float 
+			  << ", dummy2_vector_int: " << d2_vector_int <<  std::endl; //float is gibberish, int is 23
 	
 
-	for(size_t i=0; i< 8; i++)
-		std::cout << int(d_char8[i]) << ".";
-	std::cout << std::endl;
-	
-	d_int_other = 25; // if NDEBUG then we reach here and modify the value as though it were an int 
-	
-	for(size_t i=0; i< 8; i++)
-		std::cout << int(d_char8[i]) << ".";
-	std::cout << std::endl;
-	
-	d_float_other = 99.2;
-		
-	for(size_t i=0; i< 8; i++)
-		std::cout << int(d_char8[i]) << ".";
-	std::cout << std::endl;
 	return 0;
 }
