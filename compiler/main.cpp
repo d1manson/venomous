@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec){
 }
 
 
-using id_t = size_t;
+using id_t = uint32_t;
 
 template<typename T, size_t... width_args>
 class PostOffice{ // ignore the name for now, maybe can find something better later
@@ -136,8 +136,6 @@ private:
 
 };
 
-#define NDEBUG
-#include "variant.h"
 
 template<typename T>
 struct wector : public std::vector<T>{
@@ -164,24 +162,76 @@ struct wector : public std::vector<T>{
 template<typename T>
 int wector<T>::counter = 0;
 
+
+struct custom_a : public wector<int>{
+	static const auto accompanying_arr_n = 3;
+};
+
+struct custom_b : public wector<float>{
+	static const auto  accompanying_arr_n = 5;
+};
+
+struct custom_c : public wector<double>{
+	static const auto  accompanying_arr_n = 1;
+};
+
+struct cache_line_flag{
+	const uint8_t _idx;
+	auto idx() const{
+		return _idx;
+	}
+	cache_line_flag(uint8_t idx_in) : _idx(idx_in) {}
+};
+
+//#define NDEBUG
+#include "packed_cache_line.h"
+
+
+using cache_line = packed_cache_line<cache_line_flag, id_t, custom_a, custom_b, custom_c>;
+
+// std::static_assert<sizeof(node)==64, "node should be 64bytes to match x86 cache line length.">
+
 // Main loop
 int main(int argc, char **argv)
 {
 	
-	wector<int> w1;
-	w1.push_back(23);
-	w1.push_back(60);
-
-	variant<uint16_t, float, wector<int>> dummy( w1 );
-	w1.push_back(99);
-	variant<uint16_t, float, wector<int>> dummy2( std::move(dummy) );
-
-	auto& d2_vector_int = dummy2.get<wector<int> >();
-	auto& d2_float = dummy2.get<float>();
+	//std::cout << "sizeof(node): " << sizeof(node) << ", sizeof(vector<float>): " << sizeof(std::vector<float>) << std::endl;
 	
+	custom_a a1;
+	std::array<id_t,3> ah = {34, 12, 45};
+	a1.push_back(23);
+	a1.push_back(60);
+	cache_line cc(ah, std::move(a1));
+
+	a1.push_back(99);
+
+	auto& cc_a1 = cc.get<custom_a>();
+	cc_a1.push_back(44);
+
+	
+	std::cout << "accompanying_arr_n_table: " << cc.accompanying_arr_n_table << std::endl;
+	//ah[2] = 42;
+	//auto& d2_vector_int = dummy2.get<wector<int> >();
+	//auto& d2_float = dummy2.get<float>();
+	
+	/*
 	std::cout << "dummy2_float: " << d2_float 
 			  << ", dummy2_vector_int: " << d2_vector_int <<  std::endl; //float is gibberish, int is 23
 	
+	*/
 
+	cache_line cc2( std::move(cc));
+	auto& cc_a2 = cc2.get<custom_a>();
+	cc_a2.push_back(817);
+	cc_a1.push_back(404);
+	auto& cc_ah = cc.get_array_before<custom_a>();
+	auto& cc2_ah = cc2.get_array_before<custom_a>();
+
+	if (std::equal(cc2_ah.begin(), cc2_ah.end(),
+				cc.begin_array(), cc.end_array()))
+		std::cout << "arrays are equal" << std::endl;
+	
+	std::cout << "cc_ah: " << cc_ah << std::endl;
+    
 	return 0;
 }
