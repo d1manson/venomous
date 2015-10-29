@@ -9,8 +9,8 @@
 #include <iterator>
 #include <type_traits>
 
-
-#include "farmhash.h"
+#include "utils/dense_hash_map.h"
+#include "utils/farmhash.h"
 
 template <class T, std::size_t N>
 std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr){
@@ -162,16 +162,17 @@ struct wector : public std::vector<T>{
 template<typename T>
 int wector<T>::counter = 0;
 
+using std::vector;
 
-struct custom_a : public wector<int>{
+struct custom_a : public vector<int>{
 	static const auto accompanying_arr_n = 3;
 };
 
-struct custom_b : public wector<float>{
+struct custom_b : public vector<float>{
 	static const auto  accompanying_arr_n = 5;
 };
 
-struct custom_c : public wector<double>{
+struct custom_c : public vector<double>{
 	static const auto  accompanying_arr_n = 1;
 };
 
@@ -208,8 +209,9 @@ int main(int argc, char **argv)
 	auto& cc_a1 = cc.get<custom_a>();
 	cc_a1.push_back(44);
 
-	
+	google::dense_hash_map<int, int> test;
 	std::cout << "accompanying_arr_n_table: " << cc.accompanying_arr_n_table << std::endl;
+
 	//ah[2] = 42;
 	//auto& d2_vector_int = dummy2.get<wector<int> >();
 	//auto& d2_float = dummy2.get<float>();
@@ -220,6 +222,7 @@ int main(int argc, char **argv)
 	
 	*/
 
+	/*
 	cache_line cc2( std::move(cc));
 	auto& cc_a2 = cc2.get<custom_a>();
 	cc_a2.push_back(817);
@@ -232,6 +235,7 @@ int main(int argc, char **argv)
 		std::cout << "arrays are equal" << std::endl;
 	
 	std::cout << "cc_ah: " << cc_ah << std::endl;
+	*/
     
 	return 0;
 }

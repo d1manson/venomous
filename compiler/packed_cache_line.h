@@ -199,10 +199,10 @@ public:
 		return reinterpret_cast<ArrT*>(&as_u8_array[0]);
 	}
 	ArrT const* cend_array() const {
-		return reinterpret_cast<ArrT*>(&as_u8_array[accompanying_arr_n_table[flag.idx()]*sizeof(ArrT)]);
+		return reinterpret_cast<ArrT const*>(&as_u8_array[accompanying_arr_n_table[flag.idx()]*sizeof(ArrT)]);
 	}
 	ArrT const* cbegin_array() const {
-		return reinterpret_cast<ArrT*>(&as_u8_array[0]);
+		return reinterpret_cast<ArrT const*>(&as_u8_array[0]);
 	}
 
 
