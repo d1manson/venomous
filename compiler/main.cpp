@@ -171,11 +171,20 @@ struct custom_c : public vector<double>{
 };
 
 struct cache_line_flag{
-	const uint8_t _idx;
-	auto idx() const{
-		return _idx;
+	using type_id_t = uint8_t;
+	const type_id_t _type_id; 
+	bool is_null() const{
+		return _type_id == 0;
 	}
-	cache_line_flag(uint8_t idx_in) : _idx(idx_in) {}
+	bool safe_to_read() const{
+		return true; // TODO: implement thread-wise bit fields indicating read lock reference.
+	}
+	auto type_id() const{
+		return _type_id - 1; // note that we +1 when setting and -1 when getting
+						 // this means that we can use 0 for null.
+	}
+	cache_line_flag(type_id_t _type_id_in) 
+					: _type_id(_type_id_in +1) {}
 };
 
 //#define NDEBUG
@@ -196,7 +205,6 @@ int main(int argc, char **argv)
 {
 	
 	//std::cout << "sizeof(node): " << sizeof(node) << ", sizeof(vector<float>): " << sizeof(std::vector<float>) << std::endl;
-	
 	custom_b a1;
 	std::array<id_t,3> ah = {34, 12, 45};
 	//a1.push_back(23);
