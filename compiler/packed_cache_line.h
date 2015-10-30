@@ -53,6 +53,9 @@
 #include <cassert>
 #include <type_traits>
 
+#include "utils/murmur3.h"
+#define HASH_NAMESPACE murmur3
+
 namespace packed_cache_line_impl{
 
 template <typename Q, typename PCL>
@@ -213,6 +216,12 @@ public:
 		return *reinterpret_cast<std::array<ArrT,max_arr_len>*>(&as_u8_array[0]);	
 	}
 
+	auto hash() const {
+		return  HASH_NAMESPACE::hash<ArrT>(
+				cbegin_array(),
+				accompanying_arr_n_table[flag.idx()],
+				flag.idx());
+	}
 
 };
 

@@ -8,9 +8,7 @@
 #include <tuple>
 #include <iterator>
 #include <type_traits>
-
-#include "utils/dense_hash_map.h"
-#include "utils/farmhash.h"
+#include <algorithm>
 
 template <class T, std::size_t N>
 std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr){
@@ -76,11 +74,7 @@ private:
 	struct hash{
 		auto operator()(std::array<T, width> const& key) const{
 			
-			static_assert(sizeof(char) == 1, "char was expected to be 1 byte");
-			auto hashed = util::Hash32(reinterpret_cast<const char*>(key.data()), 
-									   key.size() * sizeof(T)); 
-			//std::cout << "hashed key " << key << " to " << hashed << std::endl;
-			return hashed;
+			return 0;
 		}
 	};
 
@@ -169,7 +163,7 @@ struct custom_a : public vector<int>{
 };
 
 struct custom_b : public vector<float>{
-	static const auto  accompanying_arr_n = 5;
+	static const auto  accompanying_arr_n = 3;
 };
 
 struct custom_c : public vector<double>{
@@ -190,7 +184,12 @@ struct cache_line_flag{
 
 using cache_line = packed_cache_line<cache_line_flag, id_t, custom_a, custom_b, custom_c>;
 
+
 // std::static_assert<sizeof(node)==64, "node should be 64bytes to match x86 cache line length.">
+
+#include <chrono>
+#include <random>
+#include <atomic>
 
 // Main loop
 int main(int argc, char **argv)
@@ -198,20 +197,46 @@ int main(int argc, char **argv)
 	
 	//std::cout << "sizeof(node): " << sizeof(node) << ", sizeof(vector<float>): " << sizeof(std::vector<float>) << std::endl;
 	
-	custom_a a1;
+	custom_b a1;
 	std::array<id_t,3> ah = {34, 12, 45};
-	a1.push_back(23);
-	a1.push_back(60);
+	//a1.push_back(23);
+	//a1.push_back(60);
 	cache_line cc(ah, std::move(a1));
 
-	a1.push_back(99);
+	//a1.push_back(99);
 
-	auto& cc_a1 = cc.get<custom_a>();
-	cc_a1.push_back(44);
+	auto& cc_a1 = cc.get<custom_b>();
+	//cc_a1.push_back(44);
 
-	google::dense_hash_map<int, int> test;
-	std::cout << "accompanying_arr_n_table: " << cc.accompanying_arr_n_table << std::endl;
+	
+	//std::cout << "accompanying_arr_n_table: " << cc.accompanying_arr_n_table << std::endl;
 
+
+	auto BIG_N = 33554432-1; // 2^25-1
+	std::vector<uint32_t> v;
+	v.reserve(BIG_N);
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<uint32_t> D(0, BIG_N-1);
+	for(int i=0; i< BIG_N; i++)
+		v[i] = D(gen);
+	std::cout << *std::max_element(v.begin(), v.end()) << " max\n";
+	auto start_time = std::chrono::high_resolution_clock::now();
+	uint32_t p = 0;
+	for(uint32_t i=0; i< BIG_N; i++){
+		p += v[i];//(p+i) & BIG_N];
+	}
+	auto end_time = std::chrono::high_resolution_clock::now();
+	std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(
+				end_time - start_time).count() / static_cast<float>(BIG_N) 
+				<< "ns/iteration,  p=" << p << std::endl;
+	/*
+	uint32_t h = 0;
+	for(int i=0;i<1000000;i++)
+		h += cc.hash_for<custom_b>();
+
+	std::cout << "sum=" << h;
+	*/
 	//ah[2] = 42;
 	//auto& d2_vector_int = dummy2.get<wector<int> >();
 	//auto& d2_float = dummy2.get<float>();

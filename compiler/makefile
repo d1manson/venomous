@@ -7,13 +7,9 @@ ASMFLAGS=-S -fverbose-asm
 all: build/$(APPNAME).exe
 	build/$(APPNAME).exe
 
-build/$(APPNAME).exe: main.cpp packed_cache_line.h build/farmhash.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $< -o build/$(APPNAME).exe $(LDLIBS) build/farmhash.o
+build/$(APPNAME).exe: main.cpp packed_cache_line.h utils/murmur3.h
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $< -o build/$(APPNAME).exe $(LDLIBS)
 	# $(CXX) $(CXXFLAGS) $(ASMFLAGS) $(LDFLAGS) $< -o build/$(APPNAME).txt $(LDLIBS) build/farmhash.o
-
-build/farmhash.o: utils/farmhash.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c $< -o build/farmhash.o $(LDLIBS)
-
 
 clean:
 	rm -f build/*.o build/*.exe build/*.txt
