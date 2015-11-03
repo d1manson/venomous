@@ -16,7 +16,6 @@
 using id_t = uint32_t;
 
 
-
 template<typename T>
 struct wector : public std::vector<T>{
 	static int counter;
@@ -49,13 +48,12 @@ struct custom_a : public vector<int>{
 };
 
 struct custom_b : public vector<float>{
-	static const auto  accompanying_key_n = 3;
+	static const auto accompanying_key_n = 3;
 };
 
 struct custom_c : public vector<double>{
-	static const auto  accompanying_key_n = 1;
+	static const auto accompanying_key_n = 1;
 };
-
 
 
 //#define NDEBUG
@@ -64,9 +62,6 @@ struct custom_c : public vector<double>{
 
 using kvp_t = key_value_pair<KeyPrefix, id_t, custom_a, custom_b, custom_c>;
 
-
-// std::static_assert<sizeof(node)==64, "node should be 64bytes to match x86 cache line length.">
-
 #include <chrono>
 #include <random>
 #include <atomic>
@@ -74,7 +69,6 @@ using kvp_t = key_value_pair<KeyPrefix, id_t, custom_a, custom_b, custom_c>;
 
 unordered_map<kvp_t, 64> map;
 
-// Main loop
 int main(int argc, char **argv)
 {
 	
@@ -82,8 +76,8 @@ int main(int argc, char **argv)
 	custom_a a1;
 	a1.push_back(23);
 	
-	for(uint32_t k=0; k<44; k++){
-		std::array<id_t, 3> h = {k, 17, 45};
+	for(uint32_t k=0; k<50; k++){
+		std::array<id_t, 3> h = {k, 17, 42};
 		kvp_t* cc_p = map.insert(0, h.begin(), h.end());
 		assert(cc_p != nullptr);	
 		if(k==5){
@@ -92,8 +86,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-
-	std::array<id_t, 3> h_1a = {5, 17, 45};
+	std::array<id_t, 3> h_1a = {5, 17, 42};
 	std::array<id_t, 1> h_2c = {19};
 	std::array<id_t, 1> h_3c = {20};
 		
@@ -112,7 +105,6 @@ int main(int argc, char **argv)
 	kvp_t& cc3 = *cc_p;
 
 	std::cout << map;
-
 	
 	std::cout << static_cast<size_t>(cc1.prefix.type_id()) << "\n";
 	a1.push_back(99);
@@ -120,8 +112,6 @@ int main(int argc, char **argv)
 	auto& cc1_a = cc1.get<custom_a>();
 	cc1_a.push_back(44);
 
-	
-	//std::cout << "accompanying_key_n_table: " << cc.accompanying_key_n_table << std::endl;
 
 	/*
 	auto BIG_N = 33554432-1; // 2^25-1
@@ -144,31 +134,7 @@ int main(int argc, char **argv)
 				<< "ns/iteration,  p=" << p << std::endl;
 	*/
 
-	/*
-	uint32_t h = 0;
-	for(int i=0;i<1000000;i++)
-		h += cc.hash_for<custom_b>();
 
-	std::cout << "sum=" << h;
-	*/
-
-	//h_1a[2] = 42;
-	//auto& d2_vector_int = dummy2.get<wector<int> >();
-	//auto& d2_float = dummy2.get<float>();
-	
-	/*
-	std::cout << "dummy2_float: " << d2_float 
-			  << ", dummy2_vector_int: " << d2_vector_int <<  std::endl; //float is gibberish, int is 23
-	
-	*/
-
-	
-	//kvp_t cc2( std::move(cc));
-	//auto& cc_a2 = cc2.get<custom_a>();
-	//cc_a2.push_back(817);
-	//cc1_a.push_back(404);
-	//auto& cc_h_1a = cc.get_array_before<custom_a>();
-	//auto& cc2_h_1a = cc2.get_array_before<custom_a>();
 
 
 	if (std::equal(cc1.begin_key(), cc1.end_key(), h_1a.begin(), h_1a.end()))
@@ -178,15 +144,25 @@ int main(int argc, char **argv)
 	std::cout << "a1: " << a1 << std::endl;
 	
 
-	for(uint32_t k=0; k<44; k++){
-		std::array<id_t, 3> h = {(k+4)%44, 17, 45};
+	for(uint32_t k=0; k<10; k++){
+		std::array<id_t, 3> h = {(k+4)%50, 17, 42};
 		map.delete_(0, h.begin(), h.end());
 	}
-	std::cout << map << std::flush;
+	std::cout << "after minor delete \n" << map << std::flush;
 
 	map.attempt_clear_tombstones();
 
-	std::cout << map;
-    
+	std::cout << "after cleanup\n" << map;
+
+	for(uint32_t k=10; k<50; k++){
+		std::array<id_t, 3> h = {(k+4)%50, 17, 42};
+		map.delete_(0, h.begin(), h.end());
+	}
+
+	
+	std::cout << "after major delete\n" << map;
+	map.attempt_clear_tombstones();
+    std::cout << "after cleanup\n" << map;
+
 	return 0;
 }

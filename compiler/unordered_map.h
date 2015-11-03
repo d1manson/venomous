@@ -40,35 +40,32 @@ struct ExtraStorageInfo{
 public:
 	static const size_t null_kvp = -1;
 	static const size_t tombstone_kvp = -2;
-	size_t probe_count = 0; // the number of entries in the hash table that probed this kvp in order to reach their final insertion destination	
+	size_t probes_passing_through = 0; // the number of entries in the hash table that probed this kvp in order to reach their final insertion destination	
 private:
-	size_t idx_or_flag = null_kvp; // the original index to which this kvp was hashed, from which any probing would have started
+	size_t flag_or_probes_used = null_kvp; // the original index to which this kvp was hashed, from which any probing would have started
 public:
 	bool is_null() const {
-		return idx_or_flag == null_kvp;
+		return flag_or_probes_used == null_kvp;
 	}
 	bool is_tombstone() const {
-		return idx_or_flag == tombstone_kvp;
+		return flag_or_probes_used == tombstone_kvp;
 	}
-	static bool is_valid_idx(size_t idx_or_flag_in){
-		return !(idx_or_flag_in == null_kvp || idx_or_flag_in == tombstone_kvp);
-	}
-	bool is_valid_idx() const {
-		return is_valid_idx(idx_or_flag);
+	bool is_valid_probes_used() const {
+		return !(flag_or_probes_used == null_kvp || flag_or_probes_used == tombstone_kvp);
 	}
 	void set_to_null(){
-		idx_or_flag = null_kvp;
+		flag_or_probes_used = null_kvp;
 	}	
 	void set_to_tombstone() {
-		idx_or_flag = tombstone_kvp;
+		flag_or_probes_used = tombstone_kvp;
 	}
-	void set_to_idx(size_t idx_in){
-		assert(idx_in != null_kvp && idx_in != tombstone_kvp);
-		idx_or_flag = idx_in;
+	void set_to_probes_used(size_t probes_used){
+		assert(probes_used != null_kvp && probes_used != tombstone_kvp);
+		flag_or_probes_used = probes_used;
 	}
-	size_t desired_idx() const{
-		assert(is_valid_idx());
-		return idx_or_flag;
+	size_t probes_used() const{
+		assert(is_valid_probes_used());
+		return flag_or_probes_used;
 	}
 };
 
@@ -82,7 +79,7 @@ public:
 	using key_element_t = typename KVP::key_element_t_;
 	using prefix_type_id_t = typename prefix_t::type_id_t;
 	static const auto capacity_ = capacity;
-	
+	static const size_t invalid_index = -1;
 
 private:
 	// these large arrays might be better off on the heap, with unique ptrs
@@ -99,8 +96,11 @@ private:
 	}
 
 	static auto probe_i_from(size_t base_idx, size_t i){
-		std::cout << "probe_i_from(" << base_idx << ", " << i << "): " << modulo_capacity(base_idx + i*i) << "\n";
 		return modulo_capacity(base_idx + i*i);
+	}
+	static auto base_from_probe_i(size_t probe_idx, size_t i){
+		// inverse of probe_i_from
+		return modulo_capacity(probe_idx - i*i);
 	}
 	static auto get_hashed_idx(prefix_type_id_t prefix_type_id,
 						     key_element_t const* begin, key_element_t const* end) {
@@ -125,17 +125,17 @@ public:
 
 			if(extra_storage_info[idx].is_null() || extra_storage_info[idx].is_tombstone()){
 				// probe i was successfull
-				// note that if it was a tombstone, then its probe_count may be >0.
+				// note that if it was a tombstone, then its probes_passing_through may be >0.
 				assert(!store[idx].prefix.is_valid_type());
 
-				extra_storage_info[idx].set_to_idx(base_idx);
+				extra_storage_info[idx].set_to_probes_used(i);
 				valid_count++;
 				KVP& kvp = store[idx];
 				kvp.placement_new_key(prefix_type_id, begin, end);
 				return &kvp;
 			}else{
 				// probe i was unsuccessful, do more probing
-				extra_storage_info[idx].probe_count++; 
+				extra_storage_info[idx].probes_passing_through++; 
 			}
 
 		}
@@ -160,7 +160,7 @@ public:
 			size_t idx = probe_i_from(base_idx, i);
 			KVP& kvp = store[idx];
 			if(kvp.prefix.is_null())
-				return utils::conditional_value<return_as_size_t>()(ExtraStorageInfo::null_kvp, nullptr);
+				return utils::conditional_value<return_as_size_t>()(invalid_index, nullptr);
 
 			if(!kvp.prefix.safe_to_read(thread_id))
 				continue; // this may be a match, but it's not safe to check
@@ -172,7 +172,7 @@ public:
 				return utils::conditional_value<return_as_size_t>()(idx, &store[idx]);
 		} // for i
 
-		return utils::conditional_value<return_as_size_t>()(ExtraStorageInfo::null_kvp, nullptr);
+		return utils::conditional_value<return_as_size_t>()(invalid_index, nullptr);
      	// either the kvp doesn't exist (so it needs to be made de novo), 
 		// or it's not safe to read it from this thread at the moment (so it needs to be locked)
 		// or we gave up after max_probing attempts (so the store is probably too full)
@@ -184,44 +184,46 @@ public:
 		//TODO: assert(is_on_main_thread);
 
 		size_t tombstone_idx = find<size_t>(prefix_type_id, begin, end, main_thread_id);
-		if(!ExtraStorageInfo::is_valid_idx(tombstone_idx))
+		if(tombstone_idx == invalid_index)
 			return;
 
-
-		decrement_upstream_probe_count(tombstone_idx, extra_storage_info[tombstone_idx].desired_idx());
+		decrement_upstream_probes_of(tombstone_idx);
 		store[tombstone_idx].destruct_to_tombstone();
 		extra_storage_info[tombstone_idx].set_to_tombstone();
 		valid_count--;
 		tombstone_count++;
 
-		if(extra_storage_info[tombstone_idx].probe_count == 0)
+		if(extra_storage_info[tombstone_idx].probes_passing_through == 0)
 			tombstone_to_null(tombstone_idx);
 			
 	}
 
 private:
-	void decrement_upstream_probe_count(size_t end_idx, size_t base_idx, size_t start_idx){
-		/* decrements probe count from start_idx to end_idx, using base_idx as base.
-		   The probe count for end_idx's itself is not decremented, but the one for 
-		   start_idx is decremented.	By "to" and "from"	we are talking in the probe-chain
-		   sense, i.e. quadratic from base_idx, modulo capactiy.
+	void decrement_upstream_probes_of(size_t end_idx, size_t start_probe_i){
+		/* finds the base_idx for end_idx, using extra_storage.probes_used.
+		   It then decrements all probe steps from start_probe_i to end_idx, excluding 
+		   end_idx itself.
 		   If decrementing probe count gets to zero for a tombstone then we convert the tombstone 
 		   to null. */
-		bool reached_start = false;
-		for(size_t i=0; probe_i_from(base_idx, i) != end_idx; i++){
+		
+		size_t n_probes = extra_storage_info[end_idx].probes_used();
+		size_t base_idx = base_from_probe_i(end_idx, n_probes);
+
+		for(size_t i=start_probe_i; i<n_probes; i++){
 			size_t idx = probe_i_from(base_idx, i);
-			reached_start |= (idx == start_idx);
-			assert(extra_storage_info[idx].probe_count > 0);
-			if(reached_start){
-				extra_storage_info[idx].probe_count--; 
-				if(extra_storage_info[idx].probe_count == 0 && extra_storage_info[idx].is_tombstone())
-					tombstone_to_null(idx);
-			} // if reached_start
+			assert(extra_storage_info[idx].probes_passing_through > 0);
+			extra_storage_info[idx].probes_passing_through--; 
+			if(extra_storage_info[idx].probes_passing_through == 0 && extra_storage_info[idx].is_tombstone())
+				tombstone_to_null(idx);
 		} // for i
 	}
 
+	void decrement_upstream_probes_of(size_t end_idx){
+		decrement_upstream_probes_of(end_idx, 0);
+	}
+
 	void tombstone_to_null(size_t idx){
-		assert(extra_storage_info[idx].probe_count == 0
+		assert(extra_storage_info[idx].probes_passing_through == 0
 				 && extra_storage_info[idx].is_tombstone()
 				 && store[idx].prefix.is_tombstone());
 		store[idx].tombstone_to_null();
@@ -229,9 +231,7 @@ private:
 		tombstone_count--;
 	}
 
-	void decrement_upstream_probe_count(size_t end_idx, size_t start_idx){
-		decrement_upstream_probe_count(end_idx, start_idx, start_idx);
-	}
+
 
 public:
 	void attempt_clear_tombstones(){
@@ -247,43 +247,49 @@ public:
 		//TODO: assert(is_on_main_thread);
 
 		for(size_t idx=0; idx<capacity; idx++){
-			if(extra_storage_info[idx].is_null())
-				continue; //nothing to see here
-
-			if(extra_storage_info[idx].is_tombstone()){
-				if(extra_storage_info[idx].probe_count == 0){
+			//std::cout << idx << ".  " <<  *this << std::endl;
+			if(extra_storage_info[idx].is_null()){
+				//nothing to see here
+			}else if(extra_storage_info[idx].is_tombstone()){
+				if(extra_storage_info[idx].probes_passing_through == 0){
 					// we've found a tombstone already ripe for deletion
 					// TODO: check whether this can ever happen
 					tombstone_to_null(idx);
 				}
-
-			}else if(extra_storage_info[idx].desired_idx() != idx 
+			}else if(extra_storage_info[idx].probes_used() != 0 
 				  && store[idx].prefix.main_thread_only_ref()){
 				// we've found an actual kvp (not null or tombstone), which is not
 				// at probe 0, and it is moveable. Lets try moving it.
-				size_t base_idx = extra_storage_info[idx].desired_idx();
+				size_t base_idx = base_from_probe_i(idx, extra_storage_info[idx].probes_used());
 
-				for(size_t i=0; probe_i_from(base_idx, i) != idx; i++){
-					if(extra_storage_info[probe_i_from(base_idx, i)].is_tombstone()){
+				for(size_t i=0; i< extra_storage_info[idx].probes_used(); i++){
+					size_t new_idx = probe_i_from(base_idx, i);
+					assert(new_idx != idx); // if we could insert here previously we would have used the lowest possible probe count to reach this spot
+						
+					if(extra_storage_info[new_idx].is_tombstone()){
 						// we've found an available upstream location
-						size_t new_idx = probe_i_from(base_idx, i);
+						
+						// update probes_used_passing_through upstream tombstones/valid entries
+						// and possibly convert some tombstones to null (both in extra and store).
+						decrement_upstream_probes_of(idx, i);					
 
-						// update storage for new_idx and idx
+						// keep the tombstone count up to date (undo decrement
+						// that occured if above call converted new_idx from tombstone to null).
+						if(extra_storage_info[new_idx].is_null())
+							tombstone_count++;
+						
+						// move idx into the new_idx
+						extra_storage_info[new_idx].set_to_probes_used(i);	
 						store[new_idx] = std::move(store[idx]);
+
+						// clean up the old idx
 						store[idx].destruct_to_tombstone();
-
-						// update extra_storage_info, and possibly convert some 
-						// tombstones in store to null
-						decrement_upstream_probe_count(idx, base_idx, new_idx); //may call tombstone_to_null
-						extra_storage_info[new_idx].set_to_idx(base_idx);						
 						extra_storage_info[idx].set_to_tombstone();
-						if(extra_storage_info[idx].probe_count == 0)
+						if(extra_storage_info[idx].probes_passing_through == 0)
 							tombstone_to_null(idx);
-
 						break; // break out of for-i, continue next idx
 					}
 				} // for i
-
 			} // if tombstone else-if moveable
 		} // for idx
 
@@ -321,7 +327,7 @@ public:
 				os << "-";
 			else if(map.extra_storage_info[i].is_tombstone())
 				os << "t";
-			else if(map.extra_storage_info[i].desired_idx() == i)
+			else if(map.extra_storage_info[i].probes_used() == 0)
 				os << "#";
 			else 
 				os << "<";
@@ -329,10 +335,10 @@ public:
 		os << (map.capacity_ > head_size ? "..." : "") << "\n";
 		os << "\t            ";
 		for(size_t i=0; i<map.capacity_ && i<head_size; i++){
-			if(map.extra_storage_info[i].probe_count==0)
+			if(map.extra_storage_info[i].probes_passing_through==0)
 				os << "-";
-			else if(map.extra_storage_info[i].probe_count < 10)
-				os << map.extra_storage_info[i].probe_count;
+			else if(map.extra_storage_info[i].probes_passing_through < 10)
+				os << map.extra_storage_info[i].probes_passing_through;
 			else
 				os << "+";
 		}
