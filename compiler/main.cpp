@@ -10,125 +10,11 @@
 #include <type_traits>
 #include <algorithm>
 
-template <class T, std::size_t N>
-std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr){
-	// adapted from: http://stackoverflow.com/a/19152438/2399799
-	o << "arr[";
-	if(arr.size() > 0){
-	    std::copy(arr.cbegin(), arr.cend()-1, std::ostream_iterator<T>(o, ", "));
-	    o << arr.back();	
-	}
-	o << ']';
-	return o;
-}
-
-template <class T>
-std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec){
-	// adapted from: http://stackoverflow.com/a/19152438/2399799
-	o << "vec[";
-	if(vec.size() > 0){
-	    std::copy(vec.cbegin(), vec.cend()-1, std::ostream_iterator<T>(o, ", "));
-	    o << vec.back();	
-	}
-	o << ']';
-	return o;
-}
+#include "tmp_utils.h"
 
 
 using id_t = uint32_t;
 
-template<typename T, size_t... width_args>
-class PostOffice{ // ignore the name for now, maybe can find something better later
-private:
-
-	template<size_t width>
-	struct value{
-		// TODO: make sure this struct is sensibly laid out, i.e. including the choice of widths and union stuff
-
-		enum union_state : uint8_t{
-			EMPTY=0,
-			POD=1,
-			VECTOR=2, // TODO: this is a problem...vector needs to be specialised properly otherwise we cant destruct contents etc.
-			STRING=3 
-		};
-		const std::array<T, width> key;
-		size_t ref_count = 0;
-		union_state flag = EMPTY;
-		union{
-
-		};
-		value(std::array<T, width> key_in) : key(key_in) {};
-	};
-
- 
-	template<size_t width>
-	struct values_equal{
-		bool operator()(const value<width>& a, const value<width>& b) const{
-			std::cout << "comparing keys " << a.key << " and " << b.key << std::endl;
-			return std::equal(a.key.begin(), a.key.end(),
-					          b.key.begin(), b.key.end());
-		}
-	};
-
-	template<size_t width>
-	struct hash{
-		auto operator()(std::array<T, width> const& key) const{
-			
-			return 0;
-		}
-	};
-
-	static constexpr std::array< size_t, 3> map_key_widths{width_args...};
-	std::tuple<std::unordered_map<std::array<T, width_args>,
-						          value<width_args>,
-						          hash<width_args>,
-						          values_equal<width_args> > ...> maps; 
-	
-public:
-	template<size_t width>
-	auto insert(std::array<T, width> key){
-		// TODO: "loop" through width_args until you find width <= width_args[i]
-		return insert_helper<0>(key);
-	}
-
-	template<size_t width>
-	auto find(std::array<T, width> key){
-		// TODO: "loop" through width_args until you find width <= width_args[i]
-		return find_helper<0>(key);
-	}
-
-	PostOffice(){
-		
-			
-	}
-
-private:
-
-	template<size_t map_idx, size_t width>
-	auto insert_helper(std::array<T, width> key){
-		// copy key into zero-padded array of length map_key_widths[0] or map_key_widths[1] etc.
-		// TODO: if width == map_key_widths[map_idx] then we don't need zero padding
-
-		std::array<T, std::get<map_idx>(map_key_widths)> padded_key;
-		auto pad_start = std::copy(key.begin(), key.end(), padded_key.begin());
-		std::fill(pad_start, padded_key.end(), 0); 
-
-		return std::get<map_idx>(maps).emplace(std::make_pair(padded_key, padded_key));
-	}
-
-	template<size_t map_idx, size_t width>
-	auto find_helper(std::array<T, width> key){
-		// copy key into zero-padded array of length map_key_widths[0] or map_key_widths[1] etc.
-		// TODO: if width == map_key_widths[map_idx] then we don't need zero padding
-
-		std::array<T, std::get<map_idx>(map_key_widths)> padded_key;
-		auto pad_start = std::copy(key.begin(), key.end(), padded_key.begin());
-		std::fill(pad_start, padded_key.end(), 0); 
-
-		return std::get<map_idx>(maps).find(padded_key);
-	}
-
-};
 
 
 template<typename T>
@@ -159,39 +45,24 @@ int wector<T>::counter = 0;
 using std::vector;
 
 struct custom_a : public vector<int>{
-	static const auto accompanying_arr_n = 3;
+	static const auto accompanying_key_n = 3;
 };
 
 struct custom_b : public vector<float>{
-	static const auto  accompanying_arr_n = 3;
+	static const auto  accompanying_key_n = 3;
 };
 
 struct custom_c : public vector<double>{
-	static const auto  accompanying_arr_n = 1;
+	static const auto  accompanying_key_n = 1;
 };
 
-struct cache_line_flag{
-	using type_id_t = uint8_t;
-	const type_id_t _type_id; 
-	bool is_null() const{
-		return _type_id == 0;
-	}
-	bool safe_to_read() const{
-		return true; // TODO: implement thread-wise bit fields indicating read lock reference.
-	}
-	auto type_id() const{
-		return _type_id - 1; // note that we +1 when setting and -1 when getting
-						 // this means that we can use 0 for null.
-	}
-	cache_line_flag(type_id_t _type_id_in) 
-					: _type_id(_type_id_in +1) {}
-};
+
 
 //#define NDEBUG
-#include "packed_cache_line.h"
+#include "key_value_pair.h"
 
 
-using cache_line = packed_cache_line<cache_line_flag, id_t, custom_a, custom_b, custom_c>;
+using kvp_t = key_value_pair<KeyPrefix, id_t, custom_a, custom_b, custom_c>;
 
 
 // std::static_assert<sizeof(node)==64, "node should be 64bytes to match x86 cache line length.">
@@ -199,27 +70,60 @@ using cache_line = packed_cache_line<cache_line_flag, id_t, custom_a, custom_b, 
 #include <chrono>
 #include <random>
 #include <atomic>
+#include "unordered_map.h"
+
+unordered_map<kvp_t, 64> map;
 
 // Main loop
 int main(int argc, char **argv)
 {
 	
 	//std::cout << "sizeof(node): " << sizeof(node) << ", sizeof(vector<float>): " << sizeof(std::vector<float>) << std::endl;
-	custom_b a1;
-	std::array<id_t,3> ah = {34, 12, 45};
-	//a1.push_back(23);
-	//a1.push_back(60);
-	cache_line cc(ah, std::move(a1));
+	custom_a a1;
+	a1.push_back(23);
+	
+	for(uint32_t k=0; k<44; k++){
+		std::array<id_t, 3> h = {k, 17, 45};
+		kvp_t* cc_p = map.insert(0, h.begin(), h.end());
+		assert(cc_p != nullptr);	
+		if(k==5){
+			cc_p->placement_new_value<custom_a>(std::move(a1));
+			cc_p->get<custom_a>().push_back(81);
+		}
+	}
 
-	//a1.push_back(99);
 
-	auto& cc_a1 = cc.get<custom_b>();
-	//cc_a1.push_back(44);
+	std::array<id_t, 3> h_1a = {5, 17, 45};
+	std::array<id_t, 1> h_2c = {19};
+	std::array<id_t, 1> h_3c = {20};
+		
+	kvp_t* cc_p = map.find(0, h_1a.begin(), h_1a.end(), 0);
+	assert(cc_p != nullptr);
+	kvp_t& cc1 = *cc_p;
+
+	std::cout << map;
+
+	cc_p = map.insert(2, h_2c.begin(), h_2c.end());
+	assert(cc_p != nullptr);
+	kvp_t& cc2 = *cc_p;
+	
+	cc_p = map.insert(2, h_3c.begin(), h_3c.end());
+	assert(cc_p != nullptr);
+	kvp_t& cc3 = *cc_p;
+
+	std::cout << map;
 
 	
-	//std::cout << "accompanying_arr_n_table: " << cc.accompanying_arr_n_table << std::endl;
+	std::cout << static_cast<size_t>(cc1.prefix.type_id()) << "\n";
+	a1.push_back(99);
+	
+	auto& cc1_a = cc1.get<custom_a>();
+	cc1_a.push_back(44);
 
+	
+	//std::cout << "accompanying_key_n_table: " << cc.accompanying_key_n_table << std::endl;
 
+	/*
 	auto BIG_N = 33554432-1; // 2^25-1
 	std::vector<uint32_t> v;
 	v.reserve(BIG_N);
@@ -238,6 +142,8 @@ int main(int argc, char **argv)
 	std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(
 				end_time - start_time).count() / static_cast<float>(BIG_N) 
 				<< "ns/iteration,  p=" << p << std::endl;
+	*/
+
 	/*
 	uint32_t h = 0;
 	for(int i=0;i<1000000;i++)
@@ -245,7 +151,8 @@ int main(int argc, char **argv)
 
 	std::cout << "sum=" << h;
 	*/
-	//ah[2] = 42;
+
+	//h_1a[2] = 42;
 	//auto& d2_vector_int = dummy2.get<wector<int> >();
 	//auto& d2_float = dummy2.get<float>();
 	
@@ -255,20 +162,31 @@ int main(int argc, char **argv)
 	
 	*/
 
-	/*
-	cache_line cc2( std::move(cc));
-	auto& cc_a2 = cc2.get<custom_a>();
-	cc_a2.push_back(817);
-	cc_a1.push_back(404);
-	auto& cc_ah = cc.get_array_before<custom_a>();
-	auto& cc2_ah = cc2.get_array_before<custom_a>();
-
-	if (std::equal(cc2_ah.begin(), cc2_ah.end(),
-				cc.begin_array(), cc.end_array()))
-		std::cout << "arrays are equal" << std::endl;
 	
-	std::cout << "cc_ah: " << cc_ah << std::endl;
-	*/
+	//kvp_t cc2( std::move(cc));
+	//auto& cc_a2 = cc2.get<custom_a>();
+	//cc_a2.push_back(817);
+	//cc1_a.push_back(404);
+	//auto& cc_h_1a = cc.get_array_before<custom_a>();
+	//auto& cc2_h_1a = cc2.get_array_before<custom_a>();
+
+
+	if (std::equal(cc1.begin_key(), cc1.end_key(), h_1a.begin(), h_1a.end()))
+		std::cout << "keys are equal" << std::endl;
+	
+	std::cout << "cc1_a: " << cc1_a << std::endl;
+	std::cout << "a1: " << a1 << std::endl;
+	
+
+	for(uint32_t k=0; k<44; k++){
+		std::array<id_t, 3> h = {(k+4)%44, 17, 45};
+		map.delete_(0, h.begin(), h.end());
+	}
+	std::cout << map << std::flush;
+
+	map.attempt_clear_tombstones();
+
+	std::cout << map;
     
 	return 0;
 }
