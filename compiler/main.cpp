@@ -60,7 +60,8 @@ struct custom_c : public vector<double>{
 #include "key_value_pair.h"
 
 
-using kvp_t = key_value_pair<KeyPrefix, id_t, custom_a, custom_b, custom_c>;
+using kvp_t = KeyValuePair<KeyValueHeader, id_t, custom_a, custom_b, custom_c>;
+static_assert(sizeof(kvp_t) <= 2* kvp_t::minimum_alignment, "KVP is larger than 2 cache lines");
 
 #include <chrono>
 #include <random>
@@ -72,12 +73,13 @@ unordered_map<kvp_t, 64> map;
 int main(int argc, char **argv)
 {
 	
+
 	//std::cout << "sizeof(node): " << sizeof(node) << ", sizeof(vector<float>): " << sizeof(std::vector<float>) << std::endl;
 	custom_a a1;
 	a1.push_back(23);
 	
 	for(uint32_t k=0; k<50; k++){
-		std::array<id_t, 3> h = {k, 17, 42};
+		std::array<id_t, 3> h = {k, 18, 49};
 		kvp_t* cc_p = map.insert(0, h.begin(), h.end());
 		assert(cc_p != nullptr);	
 		if(k==5){
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	std::array<id_t, 3> h_1a = {5, 17, 42};
+	std::array<id_t, 3> h_1a = {5, 18, 49};
 	std::array<id_t, 1> h_2c = {19};
 	std::array<id_t, 1> h_3c = {20};
 		
@@ -106,7 +108,7 @@ int main(int argc, char **argv)
 
 	std::cout << map;
 	
-	std::cout << static_cast<size_t>(cc1.prefix.type_id()) << "\n";
+	std::cout << static_cast<size_t>(cc1.key_prefix()) << "\n";
 	a1.push_back(99);
 	
 	auto& cc1_a = cc1.get<custom_a>();
@@ -145,7 +147,7 @@ int main(int argc, char **argv)
 	
 
 	for(uint32_t k=0; k<10; k++){
-		std::array<id_t, 3> h = {(k+4)%50, 17, 42};
+		std::array<id_t, 3> h = {(k+4)%50, 18, 49};
 		map.delete_(0, h.begin(), h.end());
 	}
 	std::cout << "after minor delete \n" << map << std::flush;
@@ -155,7 +157,7 @@ int main(int argc, char **argv)
 	std::cout << "after cleanup\n" << map;
 
 	for(uint32_t k=10; k<50; k++){
-		std::array<id_t, 3> h = {(k+4)%50, 17, 42};
+		std::array<id_t, 3> h = {(k+4)%50, 18, 49};
 		map.delete_(0, h.begin(), h.end());
 	}
 

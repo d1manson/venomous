@@ -1,21 +1,27 @@
 /*
-	key_value_pair class
+	KeyValuePair class
 
-	stores: [prefix] [key] [value]
-	The total size is asserted to fit within a cache line (hard-coded at 64 bytes).
+	stores:  [header] [key] [padding] [value]
+	        | fixed  |     fixed total       |
 
-	prefix is of fixed size, and key is an array of
+	It is cache-line aligned, hard-coded at 64bytes, this means its length is also
+	a multiple of cache line in length.  The padding is calculated so as to align
+	the value to its required alignment (which must be compatible with the KVP 
+	overal alignment, i.e. if KVP is 64B-cache-line aligned, value can be
+	1,2,4,8,16,32, or 64 aligned, but nothing larger.) 
+
+	header is of fixed size, and key is an array of
 	key_element_t, with length given by value::accompanying_key_n.
 
-	The prefix has a type_id() method which is considered
-	to be part of the key, the other prefix data is bitflags that
+	The header has a type_id() method which is aliased to key_prefix(). This
+	is considered to be part of the key, the other header data is bitflags that
 	record state of the value and thread-wise locks.
 
 	The class is templated on the list of value types (and the 
-	prefix implementation).
+	header implementation).
 
-	You can move/copy construct key_value_pairs, but generally
-	you will default construct, which puts the prefix into a "null"
+	You can move/copy construct KeyValuePairs, but generally
+	you will default construct, which puts the header into a "null"
 	state.  From there you can use placement_new_key(...) and then
 	placement_new_value<Q>(...) to properly construct in two steps.
 
@@ -29,7 +35,7 @@
 	When you want to access the value, you need to know what it is
 	at compile-time, you access it with get<Q>().
 
-	Copying/moving/destructing key_value_pairs is achieved with custom built 
+	Copying/moving/destructing KeyValuePairs is achieved with custom built 
 	vtables - value types must all be copy (and ideally move) constructible. 
 	There is no run-time way of accessing an unknown-type value...
 	because what use would that be?
@@ -41,9 +47,11 @@
 	meaning you can accidentally interpret the value as the wrong type,
 	or copy/move/destruct inappropriately.
 	
-	The prefix is responsible for holding the state of the key_value_pair:
+	The header is responsible for holding the state of the KeyValuePair, and it is
+	exposed as the public base class:
 		is_valid_type/is_tombstone/is_null - only one of these is ever true
 		type_id - index into value type list, only allowed when is_valid_type
+				this is aliased to key_prefix in the KVP.
 		is_constructed - when is_valid_type, this says whether the value has
 					    been constructed (i.e. is it safe to destruct/move/copy)
 		safe_to_read - checks whether a lock bit is set for current thread
@@ -51,7 +59,7 @@
 		main_thread_only_ref - checks whether no threads (apart from main) 
 						are currently safe to read, i.e. is main safe to
 						destruct/move/copy etc.?
-	The prefix is probably a 64bit atomic thing, as most of its state is
+	The header is probably a 64bit atomic thing, as most of its state is
 	used in an atomic-neccessary way (including aquire/release semantics)
 	but the total amount of state should fit in 64 bits really.
 	
@@ -66,8 +74,8 @@
 
 */
 
-#ifndef _KEY_VALUE_PAIR_H_
-#define _KEY_VALUE_PAIR_H_
+#ifndef _KeyValuePair_H_
+#define _KeyValuePair_H_
 
 #include <array>
 #include <utility>
@@ -98,14 +106,27 @@ void copy_value(KVP& dest, KVP const& other){
 	new (&destq) Q(otherq); // placement new, i.e. copy construction into uninitialized union
 }
 
-template<typename prefix_t, typename key_element_t, typename Q, size_t max>
-bool constexpr is_small_enough(){
-	return sizeof(prefix_t) + sizeof(Q) + sizeof(std::array<key_element_t, Q::accompanying_key_n>) <= max;
+
+template<typename Q, typename KVP>
+constexpr size_t offset_for_value(){
+	static_assert(sizeof(typename KVP::header_t_) % alignof(typename KVP::key_element_t_) == 0,
+			      "key_element_t alignment requires padding after header_t"); // can relax this if we are careful below
+
+	return	utils::round_length_to_alignment(
+				sizeof(typename KVP::key_element_t_) * Q::accompanying_key_n,
+				alignof(Q),
+				sizeof(typename KVP::header_t_),
+				KVP::minimum_alignment);
+}
+
+template<typename Q, typename KVP>
+constexpr size_t length_for_key_and_value(){
+	return offset_for_value<Q, KVP>() + sizeof(Q);
 }
 
 } //key_value_pair_impl
 
-struct KeyPrefix{
+struct alignas(8) KeyValueHeader{
 	using type_id_t = uint8_t;
 	static const type_id_t null = -1;
 	static const type_id_t tombstone = -2;
@@ -121,11 +142,12 @@ struct KeyPrefix{
 		_is_constructed = value;
 		// TODO: probably need an atomic_release here
 	}
-	void set_to_tombstone() {
+	void destruct_to_tombstone() {
 		_is_constructed = 0;
 		_type_id = tombstone;
 	}
-	void set_to_null(){
+	void tombstone_to_null(){
+		assert(is_tombstone());
 		_type_id = null;
 	}
 	void set_to_type_id(type_id_t idx){
@@ -153,100 +175,100 @@ struct KeyPrefix{
 	}
 };
 
-// prefix_t basically has to be KeyPrefix class above, or similar
-template<typename prefix_t, typename key_element_t, typename ...Qs>
-class key_value_pair{
-	static const size_t cache_line_len_bytes = 64;
+const size_t CACHE_LINE_LEN = 64;
 
-	static_assert(std::is_pod<key_element_t>::value, "array should be POD, though could possibly relax this.");
+// header_t basically has to be KeyValueHeader class above, or similar
+template<typename header_t, typename key_element_t, typename ...Qs>
+class 
+alignas(CACHE_LINE_LEN /*see minimum_alignment below*/) 
+KeyValuePair : public header_t {
+	public:
+	static const size_t minimum_alignment = CACHE_LINE_LEN;
 
-	static_assert(utils::all_of<key_value_pair_impl::is_small_enough<
-								prefix_t, key_element_t, Qs, cache_line_len_bytes>()...>::value, 
-								"one or more types do not fit in a cache line");
-
-public:
-	using self_t = key_value_pair<prefix_t, key_element_t, Qs...>; //convenience
-	using prefix_t_ = prefix_t;
+	static_assert(std::is_pod<key_element_t>::value, 
+				  "key_element_t should be POD."); // could maybe relax this
+	using self_t = KeyValuePair<header_t, key_element_t, Qs...>; //convenience
+	using header_t_ = header_t;
+	using key_prefix_t = typename header_t::type_id_t;
 	using key_element_t_ = key_element_t; //note that this is the type within the array, not the array itself
 	using dtor_t = void(*)(self_t&);
 	using mvctor_t = void(*)(self_t&, self_t&&);
 	using cpctor_t = void(*)(self_t&, self_t const&);
-
 	
-	static const size_t max_arr_len = (cache_line_len_bytes - sizeof(prefix_t))/sizeof(key_element_t);
 	const static std::array<dtor_t, sizeof...(Qs)> dtor_vtable; //can't compile when this is constexpr, not sure whether there's a difference.
 	const static std::array<mvctor_t, sizeof...(Qs)> mvctor_vtable; 
 	const static std::array<cpctor_t, sizeof...(Qs)> cpctor_vtable; 
-	const static std::array<size_t, sizeof...(Qs)> accompanying_key_n_table;
+	const static std::array<size_t, sizeof...(Qs)> key_length_table; // note this doesn't dictate offset for value due to alignment issues
+	
+	const static size_t max_len_key_and_value = utils::max_element<key_value_pair_impl::
+										length_for_key_and_value<Qs, self_t>()...>();
+	std::array<uint8_t, max_len_key_and_value> as_u8_array; 
 
-
-	prefix_t prefix; 
-	std::array<uint8_t, cache_line_len_bytes - sizeof(prefix_t)> as_u8_array;
-
-	key_value_pair() : prefix() {
-		assert(prefix.is_null() && !prefix.is_constructed());
+	KeyValuePair() {
+		assert(header_t::is_null() && !header_t::is_constructed());
 	}
 
-	// construct from a copy of a key_value_pair
-	key_value_pair(self_t const& other) {
-		prefix = other.prefix;
+	// construct from a copy of a KeyValuePair
+	KeyValuePair(self_t const& other) 
+			: header_t(other) {
 		std::copy(other.as_u8_array.begin(), other.as_u8_array.end(), as_u8_array.begin());
-		if(prefix.is_valid_type() && prefix.is_constructed())
-			cpctor_vtable[prefix.type_id()](*this, other);
+		if(header_t::is_valid_type() && header_t::is_constructed())
+			cpctor_vtable[header_t::type_id()](*this, other);
 	}
 
-	// construct by moving from (i.e. ripping the guts out of) another key_value_pair
-	key_value_pair(self_t&& other) {
-		prefix = other.prefix;
+	// construct by moving from (i.e. ripping the guts out of) another KeyValuePair
+	KeyValuePair(self_t&& other)
+			: header_t(other) {
 		std::copy(other.as_u8_array.begin(), other.as_u8_array.end(), as_u8_array.begin());
-		if(prefix.is_valid_type() && prefix.is_constructed())
-			mvctor_vtable[prefix.type_id()](*this, std::move(other));
+		if(header_t::is_valid_type() && header_t::is_constructed())
+			mvctor_vtable[header_t::type_id()](*this, std::move(other));
 	}
 
-	~key_value_pair(){
-		if(prefix.is_valid_type() && prefix.is_constructed())
-			dtor_vtable[prefix.type_id()](*this);
+	~KeyValuePair(){
+		if(header_t::is_valid_type() && header_t::is_constructed())
+			dtor_vtable[header_t::type_id()](*this);
 	}
 
-	// move-assign another key_value_pair to this one
-	// we only allow this if this key_value_pair is in a tombstone/null state
+	// move-assign another KeyValuePair to this one
+	// we only allow this if this KeyValuePair is in a tombstone/null state
 	// otherwise this is identical to move-constructor.
 	self_t& operator=(self_t&& other){
-		assert(!prefix.is_valid_type());
 		// TODO: assert(is_on_main_thread)
-		prefix = other.prefix;
+		assert(!header_t::is_valid_type());
+		header_t::operator=(other);
+
 		std::copy(other.as_u8_array.begin(), other.as_u8_array.end(), as_u8_array.begin());
-		if(prefix.is_valid_type() && prefix.is_constructed())
-			mvctor_vtable[prefix.type_id()](*this, std::move(other));	
+		if(header_t::is_valid_type() && header_t::is_constructed())
+			mvctor_vtable[header_t::type_id()](*this, std::move(other));	
 		return *this;
 	}
 
 	void destruct_to_tombstone(){
 		// TODO: assert(is_on_main_thread);
-		assert(prefix.main_thread_only_ref());
+		assert(header_t::main_thread_only_ref());
 
-		if(prefix.is_valid_type() && prefix.is_constructed())
-			dtor_vtable[prefix.type_id()](*this);
-		prefix.set_to_tombstone();
+		if(header_t::is_valid_type() && header_t::is_constructed())
+			dtor_vtable[header_t::type_id()](*this);
+		header_t::destruct_to_tombstone();
 	}
 
 	void tombstone_to_null(){
 		// TODO: assert(is_on_main_thread)
-		assert(prefix.main_thread_only_ref());
-		assert(prefix.is_tombstone());
-		prefix.set_to_null();
+		assert(header_t::main_thread_only_ref());
+		assert(header_t::is_tombstone());
+		header_t::tombstone_to_null();
 	}
 
-	void placement_new_key(typename prefix_t::type_id_t type_id_in, key_element_t const* begin,
+	void placement_new_key(typename header_t::type_id_t type_id_in, key_element_t const* begin,
 						   key_element_t const* end){
 		/* this lets you assing key/prefix without constructing the value, 
-		this should only be called if the key_value_pair is in null/tombstone state.*/
-		assert(!prefix.is_valid_type()); // otherwise we should destruct first
-		assert(end - begin == accompanying_key_n_table[type_id_in]);		
+		this should only be called if the KeyValuePair is in null/tombstone state.*/
+		assert(!header_t::is_valid_type()); // otherwise we should destruct first
+		assert(end - begin == key_length_table[type_id_in]);		
 
-		prefix.set_to_type_id(type_id_in);
+		header_t::set_to_type_id(type_id_in);
 		std::copy(begin, end, begin_key());
-		assert(!prefix.is_constructed()); // we haven't constructed Q yet, so don't claim we have
+		assert(!header_t::is_constructed()); // we haven't constructed Q yet, so don't claim we have
 	}
 
 	template<typename Q, typename ...Args>
@@ -257,27 +279,24 @@ public:
 		// with vtables, but before you call this prefix.is_constructed() is false,
 		// so no copy/move/dtor is invoked.
 		assert(is_type<Q>());
-		assert(!prefix.is_constructed());
+		assert(!header_t::is_constructed());
 
-		prefix.set_constructed(true); // this comes first to pass assertion in get<Q>
+		header_t::set_constructed(true); // this comes first to pass assertion in get<Q>
 		new (& (get<Q>())) Q(std::forward<Args...>(args)... );
 	}
 
-	template<typename Q>
-	bool is_type() const{
-		return prefix.type_id() == utils::index_of_type<Q, Qs...>();
-	}
+
 	template<typename Q>
 	Q& get(){
-		assert(is_type<Q>() && prefix.is_constructed());
-		size_t offset = sizeof(std::array<key_element_t, Q::accompanying_key_n>);
+		assert(is_type<Q>() && header_t::is_constructed());
+		size_t offset = key_value_pair_impl::offset_for_value<Q, self_t>();
 		return *reinterpret_cast<Q*>(&as_u8_array[offset]);
 	}
 
 	template<typename Q>
 	Q const& cget() const {
-		assert(is_type<Q>() && prefix.is_constructed());
-		size_t offset = sizeof(std::array<key_element_t, Q::accompanying_key_n>);
+		assert(is_type<Q>() && header_t::is_constructed());
+		size_t offset = key_value_pair_impl::offset_for_value<Q, self_t>();
 		return *reinterpret_cast<Q const*>(&as_u8_array[offset]);
 	}
 
@@ -294,41 +313,52 @@ public:
 	}
 
 	key_element_t* end_key(){
-		return reinterpret_cast<key_element_t*>(&as_u8_array[accompanying_key_n_table[prefix.type_id()]*sizeof(key_element_t)]);
+		return reinterpret_cast<key_element_t*>(&as_u8_array[
+							key_length_table[header_t::type_id()]*sizeof(key_element_t)]);
 	}
 	key_element_t* begin_key(){
 		return reinterpret_cast<key_element_t*>(&as_u8_array[0]);
 	}
 	key_element_t const* cend_key() const {
-		return reinterpret_cast<key_element_t const*>(&as_u8_array[accompanying_key_n_table[prefix.type_id()]*sizeof(key_element_t)]);
+		return reinterpret_cast<key_element_t const*>(&as_u8_array[
+							key_length_table[header_t::type_id()]*sizeof(key_element_t)]);
 	}
 	key_element_t const* cbegin_key() const {
 		return reinterpret_cast<key_element_t const*>(&as_u8_array[0]);
 	}
 
+	key_prefix_t key_prefix() const{
+		// this is an alias to type_id
+		return header_t::type_id();
+	}
+private:
+	template<typename Q>
+	bool is_type() const{
+		return header_t::type_id() == utils::index_of_type<Q, Qs...>();
+	}
 };
 
 // construct dtor_vtable
-template<typename prefix_t, typename key_element_t, typename ...Qs>
-const std::array<typename key_value_pair<prefix_t, key_element_t, Qs...>::dtor_t, sizeof...(Qs)> 
-key_value_pair<prefix_t, key_element_t, Qs...>::dtor_vtable = {
-&key_value_pair_impl::destroy_value<Qs, key_value_pair<prefix_t, key_element_t, Qs...>> ...};
+template<typename header_t, typename key_element_t, typename ...Qs>
+const std::array<typename KeyValuePair<header_t, key_element_t, Qs...>::dtor_t, sizeof...(Qs)> 
+KeyValuePair<header_t, key_element_t, Qs...>::dtor_vtable = {
+&key_value_pair_impl::destroy_value<Qs, KeyValuePair<header_t, key_element_t, Qs...>> ...};
 
 
 // construct cpctor_vtable
-template<typename prefix_t, typename key_element_t, typename ...Qs>
-const std::array<typename key_value_pair<prefix_t, key_element_t, Qs...>::cpctor_t, sizeof...(Qs)> 
-key_value_pair<prefix_t, key_element_t, Qs...>::cpctor_vtable = {
-&key_value_pair_impl::copy_value<Qs, key_value_pair<prefix_t, key_element_t, Qs...>> ...};
+template<typename header_t, typename key_element_t, typename ...Qs>
+const std::array<typename KeyValuePair<header_t, key_element_t, Qs...>::cpctor_t, sizeof...(Qs)> 
+KeyValuePair<header_t, key_element_t, Qs...>::cpctor_vtable = {
+&key_value_pair_impl::copy_value<Qs, KeyValuePair<header_t, key_element_t, Qs...>> ...};
 
 // construct mvctor_vtable
-template<typename prefix_t, typename key_element_t, typename ...Qs>
-const std::array<typename key_value_pair<prefix_t, key_element_t, Qs...>::mvctor_t, sizeof...(Qs)> 
-key_value_pair<prefix_t, key_element_t, Qs...>::mvctor_vtable = {
-&key_value_pair_impl::move_value<Qs, key_value_pair<prefix_t, key_element_t, Qs...>> ...};
+template<typename header_t, typename key_element_t, typename ...Qs>
+const std::array<typename KeyValuePair<header_t, key_element_t, Qs...>::mvctor_t, sizeof...(Qs)> 
+KeyValuePair<header_t, key_element_t, Qs...>::mvctor_vtable = {
+&key_value_pair_impl::move_value<Qs, KeyValuePair<header_t, key_element_t, Qs...>> ...};
 
-template<typename prefix_t, typename key_element_t, typename ...Qs>
+template<typename header_t, typename key_element_t, typename ...Qs>
 const std::array<size_t, sizeof...(Qs)>
-key_value_pair<prefix_t, key_element_t, Qs...>::accompanying_key_n_table = {Qs::accompanying_key_n...};
+KeyValuePair<header_t, key_element_t, Qs...>::key_length_table = {Qs::accompanying_key_n...};
 
-#endif // _KEY_VALUE_PAIR_H_
+#endif // _KeyValuePair_H_

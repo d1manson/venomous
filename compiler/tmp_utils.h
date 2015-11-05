@@ -72,12 +72,34 @@ struct conditional_value<true>{
 };
 
 
-
-
 //========================
 
 bool constexpr is_pow_2(int N){
 	return (N && (N & (N - 1)) == 0);
+}
+
+// ======================
+
+
+constexpr size_t round_length_to_alignment(const size_t original_len, const size_t alignment,
+										const size_t offset=0, const size_t base_alignment=4){
+	/* the arguments are interpreted as coming from something equivalent to this:
+
+		struct alignas(base_alignment) {
+			char x[offset];
+			char y[original_len];
+			something z; // alignof(something) == alignment
+		}
+
+	the returned value gives the length for y such that no hidden padding bytes
+	are created between y and z.  If the base_alignment is not divisible by
+	alignment then a compile time error is raised.	*/
+
+	assert(alignment > 0); // alignment must be positive int
+	assert(base_alignment % alignment == 0); // base_alignment must be at least as stricter as alignment
+
+    size_t remainder = (original_len + offset) % alignment;
+    return original_len  + (remainder > 0 ? alignment - remainder : 0);
 }
 
 // ======================
@@ -88,10 +110,26 @@ constexpr size_t index_of_type() {
     return std::is_same<T, U>::value ? 0 : 1 + index_of_type<T, Types...>();
 }
 
+// ======================
+
 // http://stackoverflow.com/a/28253503/2399799
 template<bool...> struct bool_pack;
 template<bool...values> struct all_of 
     : std::is_same<bool_pack<values..., true>, bool_pack<true, values...>>{};
+
+
+// ======================
+
+template<size_t ...X>
+constexpr size_t max_element(){
+	const std::array<size_t, sizeof...(X)> vals{X...};
+	size_t ret = 0;
+	for(size_t i=0; i<sizeof...(X); i++)
+		if(vals[i] > ret)
+			ret = vals[i];
+	return ret;
+}
+
 
 }
 

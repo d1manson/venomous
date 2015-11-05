@@ -24,6 +24,17 @@
 	Only the main thread may obtain locks, and only worker threads can relase (their
 	respective) locks.
 
+	The attempt_clear_tombstones method runs over the whole array, trying to move
+	valid keys into an "upstream" tombstone.  It can only move keys that are not
+	locked off main thread.  This method is O-bounded, but it's a bit tricky to 
+	say exactly what that bound is..basically for each moveable key, the bound is
+	the O-bound is the original probe count, and we just have to do that M times, where
+	M is the number of moveable keys within the array.  We don't guarantee to achieve
+	any kind of optimality after this process, but it's generally pretty useful.
+	Note that regular deleting is not compeltely lazy - the key decrements the coutners
+	at each of the probe points its chain passed through, and sets them to null if they
+	were tombstones that no longer had any probe chains passing through.
+
 */
 
 #include <memory>
@@ -75,9 +86,8 @@ class unordered_map{
 
 public:
 	using self_t = unordered_map<KVP, capacity>;  //convenience
-	using prefix_t = typename KVP::prefix_t_;
 	using key_element_t = typename KVP::key_element_t_;
-	using prefix_type_id_t = typename prefix_t::type_id_t;
+	using key_prefix_t = typename KVP::key_prefix_t;
 	static const auto capacity_ = capacity;
 	static const size_t invalid_index = -1;
 
@@ -102,22 +112,22 @@ private:
 		// inverse of probe_i_from
 		return modulo_capacity(probe_idx - i*i);
 	}
-	static auto get_hashed_idx(prefix_type_id_t prefix_type_id,
+	static auto get_hashed_idx(key_prefix_t key_prefix,
 						     key_element_t const* begin, key_element_t const* end) {
 		// returns the index into store.
 		// key_element_t must be contiguous
 		return modulo_capacity(HASH_NAMESPACE::hash<key_element_t>(
-								begin, end-begin, prefix_type_id));
+								begin, end-begin, key_prefix));
 	}
 
 public:
 
-	KVP* insert(prefix_type_id_t prefix_type_id,
+	KVP* insert(key_prefix_t key_prefix,
 		          key_element_t const* begin, key_element_t const* end){
 		// TODO: assert(is_on_main_thread);
-		assert(find(prefix_type_id, begin, end, main_thread_id) == nullptr);
+		assert(find(key_prefix, begin, end, main_thread_id) == nullptr);
 
-		auto base_idx = get_hashed_idx(prefix_type_id, begin, end);
+		auto base_idx = get_hashed_idx(key_prefix, begin, end);
 
 		// do 1 or more probing steps, to find the resting place for this kvp
 		for(size_t i=0; i<max_probing; i++){
@@ -126,12 +136,12 @@ public:
 			if(extra_storage_info[idx].is_null() || extra_storage_info[idx].is_tombstone()){
 				// probe i was successfull
 				// note that if it was a tombstone, then its probes_passing_through may be >0.
-				assert(!store[idx].prefix.is_valid_type());
+				assert(!store[idx].is_valid_type());
 
 				extra_storage_info[idx].set_to_probes_used(i);
 				valid_count++;
 				KVP& kvp = store[idx];
-				kvp.placement_new_key(prefix_type_id, begin, end);
+				kvp.placement_new_key(key_prefix, begin, end);
 				return &kvp;
 			}else{
 				// probe i was unsuccessful, do more probing
@@ -146,26 +156,27 @@ public:
 
 
 	template<typename return_type=KVP*>
-	return_type find(prefix_type_id_t prefix_type_id, key_element_t const* begin,
+	return_type find(key_prefix_t key_prefix, key_element_t const* begin,
 					 key_element_t const* end, size_t thread_id){
-		/* Can return and KVP* /nullptr or  storage idx (i.e. size_t)/ExtraStorageInfo::null_kvp
+		/* Can return a KVP* or  storage idx (i.e. size_t). If find is unsucccesful it 
+			returns nullptr or invalid_idx.
 		  Note that only main thread should have any business asking for size_t version, but
 		  it's actually safe to use this in principle on other threads. 		 */
 
 		const bool return_as_size_t = std::is_same<size_t, return_type>::value;
 
-		auto base_idx = get_hashed_idx(prefix_type_id, begin, end);
+		const auto base_idx = get_hashed_idx(key_prefix, begin, end);
 
 		for(size_t i=0; i<max_probing; i++){
 			size_t idx = probe_i_from(base_idx, i);
 			KVP& kvp = store[idx];
-			if(kvp.prefix.is_null())
+			if(kvp.is_null())
 				return utils::conditional_value<return_as_size_t>()(invalid_index, nullptr);
 
-			if(!kvp.prefix.safe_to_read(thread_id))
+			if(!kvp.safe_to_read(thread_id))
 				continue; // this may be a match, but it's not safe to check
 
-			if(kvp.prefix.type_id() != prefix_type_id)
+			if(kvp.key_prefix() != key_prefix)
 				continue; // this is clearly not a match
 
 			if(std::equal(begin, end, kvp.cbegin_key()))
@@ -179,11 +190,11 @@ public:
 
 	}
 
-	void delete_(prefix_type_id_t prefix_type_id, key_element_t const* begin,
+	void delete_(key_prefix_t key_prefix, key_element_t const* begin,
 				 key_element_t const* end){
 		//TODO: assert(is_on_main_thread);
 
-		size_t tombstone_idx = find<size_t>(prefix_type_id, begin, end, main_thread_id);
+		size_t tombstone_idx = find<size_t>(key_prefix, begin, end, main_thread_id);
 		if(tombstone_idx == invalid_index)
 			return;
 
@@ -199,7 +210,7 @@ public:
 	}
 
 private:
-	void decrement_upstream_probes_of(size_t end_idx, size_t start_probe_i){
+	void decrement_upstream_probes_of(size_t end_idx, size_t start_probe_i=0){
 		/* finds the base_idx for end_idx, using extra_storage.probes_used.
 		   It then decrements all probe steps from start_probe_i to end_idx, excluding 
 		   end_idx itself.
@@ -218,14 +229,10 @@ private:
 		} // for i
 	}
 
-	void decrement_upstream_probes_of(size_t end_idx){
-		decrement_upstream_probes_of(end_idx, 0);
-	}
-
 	void tombstone_to_null(size_t idx){
 		assert(extra_storage_info[idx].probes_passing_through == 0
 				 && extra_storage_info[idx].is_tombstone()
-				 && store[idx].prefix.is_tombstone());
+				 && store[idx].is_tombstone());
 		store[idx].tombstone_to_null();
 		extra_storage_info[idx].set_to_null();
 		tombstone_count--;
@@ -257,7 +264,7 @@ public:
 					tombstone_to_null(idx);
 				}
 			}else if(extra_storage_info[idx].probes_used() != 0 
-				  && store[idx].prefix.main_thread_only_ref()){
+				  && store[idx].main_thread_only_ref()){
 				// we've found an actual kvp (not null or tombstone), which is not
 				// at probe 0, and it is moveable. Lets try moving it.
 				size_t base_idx = base_from_probe_i(idx, extra_storage_info[idx].probes_used());
@@ -309,11 +316,11 @@ public:
 
 		size_t head_size = 64;
 		for(size_t i=0; i<map.capacity_ && i<head_size; i++){
-			if(map.store[i].prefix.is_null())
+			if(map.store[i].is_null())
 				os << "-";
-			else if(map.store[i].prefix.is_tombstone())
+			else if(map.store[i].is_tombstone())
 				os << "t";
-			else if(get_hashed_idx(map.store[i].prefix.type_id(),
+			else if(get_hashed_idx(map.store[i].key_prefix(),
 					map.store[i].cbegin_key(), map.store[i].cend_key()) == i)
 				os << "#";
 			else 
