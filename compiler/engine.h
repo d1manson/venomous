@@ -37,13 +37,33 @@ public:
 	}
 };
 
-template<typename E, E* engine>
+template<typename E, E* engine_p, typename Q>
+class CallbackRef{
+	using self_t = CallbackRef<E, engine_p, Q>;
+	static const auto q_prefix = E::template prefix_for<Q>();
+};
+
+
+
+template<typename E, E* engine_p>
 class Dispatcher{
 public:
 	template<typename Q, typename ...Args>
 	auto make_input(Args&& ...args){
-		return E::template make_input<Q, engine>(std::forward<Args...>(args)...);
+		return E::template make_input<Q, engine_p>(std::forward<Args...>(args)...);
 	}
+
+	template<typename Q, typename ...Args>
+	auto make_callback(void (*func_p)( KeyRef<E, engine_p, Q>),
+						Args&& ...args){
+		return E::template make_callback<Q, engine_p, Args...>(
+								func_p, std::forward<Args...>(args)...);	
+	}
+
+	// A convenience template
+	template<typename Q>
+	struct callback_arg{ using type = KeyRef<E, engine_p, Q>; };
+
 };
 
 
@@ -79,6 +99,27 @@ private:
 		assert(p != nullptr);
 		p->template placement_new_value<Q>(std::forward<Args...>(args)...);
 		return KeyRef<self_t, engine_p, Q>(key);
+	}
+
+	template<typename Q, self_t* engine_p, typename ...Args>
+	static auto make_callback(void (*func_p)(KeyRef<self_t, engine_p, Q>),
+							  Args& ...args){
+		/* Takes a pointer to a callback function, which should accept a
+		   single argument of type KeyRef<..., Q>. The Args here give the
+		   full befores from which to construct Q, ultimately they will be 
+		   allowed to be fixed, variables, or "pointers".  */
+
+		// TODO: store func_p somewhere, count refs for callback and actually do something.
+
+		// --- create dummy value in store and dummily-return it to callback --- //
+		std::array<key_element_t, Q::accompanying_key_n> dummy_key;
+		auto p = engine_p->store.insert(prefix_for<Q>(), dummy_key.begin(), dummy_key.end());
+		assert(p != nullptr);
+		Q::exec(*p);
+		KeyRef<self_t, engine_p, Q> dummy_ref(dummy_key);
+		func_p(dummy_ref);
+
+		return CallbackRef<self_t, engine_p, Q>();
 	}
 
 	template<int delta>

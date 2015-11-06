@@ -47,7 +47,7 @@ using std::vector;
 
 struct input_a{
 	static const auto accompanying_key_n = 1;
-	
+
 	const std::string value;
 	template<typename ...Args>
 	input_a(Args&& ...args) : value(std::forward<Args...>(args...)){};
@@ -63,6 +63,16 @@ struct custom_b : public vector<float>{
 
 struct custom_c : public vector<double>{
 	static const auto accompanying_key_n = 1;
+
+	template<typename KVP>
+	static void exec(KVP& kvp){
+		kvp.template placement_new_value<custom_c>();
+		custom_c& ret = kvp.template get<custom_c>();
+		ret.push_back(42);
+		ret.push_back(24);
+		// TODO: kvp.finalise();
+	}
+
 };
 
 
@@ -76,14 +86,19 @@ struct custom_c : public vector<double>{
 
 using engine_t = Engine<64, id_t, input_a, custom_a, custom_b, custom_c>;
 engine_t engine;
-Dispatcher<engine_t, &engine> dispatcher;
+using dispatcher_t = Dispatcher<engine_t, &engine>;
+dispatcher_t dispatcher;
+
+void got_c(typename dispatcher_t::callback_arg<custom_c>::type v){
+	std::cout << "got: " << v.cget() << std::endl;
+}
+
 
 int main(int argc, char **argv){
 	auto r1 = dispatcher.make_input<input_a>("hello world");
-	auto r2 = dispatcher.make_input<input_a>("hi mum!");
-	auto r1b = std::move(r1);
+	auto c1 = dispatcher.make_callback<custom_c>(got_c);
 
 	std::cout << engine << std::endl;	
-	std::cout << "r1: " << r1b.cget().value << ", r2: " << r2.cget().value << std::endl;  
+	std::cout << "r1: " << r1.cget().value << std::endl;  
 	return 0;
 }
