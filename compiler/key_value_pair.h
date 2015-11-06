@@ -48,7 +48,10 @@
 	or copy/move/destruct inappropriately.
 	
 	The header is responsible for holding the state of the KeyValuePair, and it is
-	exposed as the public base class:
+	exposed as the public base class. Public inheritance is used here as a mixin-like
+	paradigm: it separates out one part of the logic from the rest; no one should ever
+	actually use the raw header type. But it does provide the following methods when
+	acting as a base class:
 		is_valid_type/is_tombstone/is_null - only one of these is ever true
 		type_id - index into value type list, only allowed when is_valid_type
 				this is aliased to key_prefix in the KVP.
@@ -330,6 +333,11 @@ KeyValuePair : public header_t {
 	key_prefix_t key_prefix() const{
 		// this is an alias to type_id
 		return header_t::type_id();
+	}
+
+	template<typename Q>
+	constexpr static auto prefix_for(){ //convenience
+		return utils::index_of_type<Q, Qs...>();
 	}
 private:
 	template<typename Q>

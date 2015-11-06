@@ -37,6 +37,9 @@
 
 */
 
+#ifndef _UNORDERED_MAP_H_
+#define _UNORDERED_MAP_H_
+
 #include <memory>
 #include <array>
 #include <cstdint>
@@ -88,6 +91,7 @@ public:
 	using self_t = unordered_map<KVP, capacity>;  //convenience
 	using key_element_t = typename KVP::key_element_t_;
 	using key_prefix_t = typename KVP::key_prefix_t;
+
 	static const auto capacity_ = capacity;
 	static const size_t invalid_index = -1;
 
@@ -99,7 +103,7 @@ private:
 								   // i.e. if 1, then just read at hashed location with no quadartic probing.
 	size_t tombstone_count = 0;
 	size_t valid_count = 0;
-	const size_t main_thread_id = 0;
+	static const size_t main_thread_id = 0;
 
 	static auto modulo_capacity(size_t x) {
 		return (capacity-1) & x;
@@ -125,7 +129,7 @@ public:
 	KVP* insert(key_prefix_t key_prefix,
 		          key_element_t const* begin, key_element_t const* end){
 		// TODO: assert(is_on_main_thread);
-		assert(find(key_prefix, begin, end, main_thread_id) == nullptr);
+		assert(find(key_prefix, begin, end) == nullptr);
 
 		auto base_idx = get_hashed_idx(key_prefix, begin, end);
 
@@ -157,7 +161,7 @@ public:
 
 	template<typename return_type=KVP*>
 	return_type find(key_prefix_t key_prefix, key_element_t const* begin,
-					 key_element_t const* end, size_t thread_id){
+					 key_element_t const* end, size_t thread_id=main_thread_id){
 		/* Can return a KVP* or  storage idx (i.e. size_t). If find is unsucccesful it 
 			returns nullptr or invalid_idx.
 		  Note that only main thread should have any business asking for size_t version, but
@@ -355,3 +359,5 @@ public:
 };
 
 
+
+#endif // _UNORDERED_MAP_H_
