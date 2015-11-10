@@ -102,24 +102,38 @@ int main(int argc, char **argv){
 	
 	
 	VariableWidthContiguousStore<double, 2, 4, 8, 16> cs;
+	std::cout << cs << std::flush;
 
-	size_t len_1;
-	std::cout << "len_1: ";
-	std::cin >> len_1;
-
-	auto cs1 = cs.insert(dummy.begin(), dummy.begin()+len_1);
+	auto cs1 = cs.insert(dummy.begin(), dummy.begin()+1);
 	auto cs2 = cs.insert(dummy.begin(), dummy.begin()+2);
-	//auto cs3 = cs.insert(dummy.begin(), dummy.begin()+4);
+	auto cs3 = cs.insert(dummy.begin(), dummy.begin()+4);
 
+	std::cout << "cs1: " << cs1 << ",   cs2: " << cs2 << ",   cs3: " << cs3;
 	std::cout << "\n==========\n";
 
 	std::cout << cs << std::flush;
-	cs.delete_(std::move(cs2)); // we don't actually want the user to call delete, it should be RAII on the ref
-
+	cs.delete_(std::move(cs1)); // we don't actually want the user to call delete, it should be RAII on the ref
 	std::cout << "\n==========\n";
 	std::cout << cs << std::flush;	
 	
+	auto cs4 = cs.insert(dummy.begin()+3, dummy.begin()+5);
+	auto cs5 = cs.insert(dummy.begin()+2, dummy.begin()+6);
+	std::cout << "cs4: " << cs4 << ",   cs5: " << cs5 ;
+	std::cout << "\n==========\n";
+	std::cout << cs << std::flush;	
 
+	cs.delete_(std::move(cs2)); // we don't actually want the user to call delete, it should be RAII on the ref
+	std::cout << "\n==========\n";
+	std::cout << cs << std::flush;	
+
+	cs.delete_(std::move(cs3)); // we don't actually want the user to call delete, it should be RAII on the ref
+	std::cout << "\n==========\n";
+	std::cout << cs << std::flush;	
+		
+	cs.delete_(std::move(cs5)); // we don't actually want the user to call delete, it should be RAII on the ref
+	std::cout << "\n==========\n";
+	std::cout << cs << std::flush;	
+	
 	/*
 	ContiguousStore<std::array<double,8>> cs;
 	cs.insert(dummy);
