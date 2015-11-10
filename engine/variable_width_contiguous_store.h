@@ -1,6 +1,8 @@
 
+#ifndef _VARIABLE_WIDTH_CONTIGUOUS_STOR_H_
+#define _VARIABLE_WIDTH_CONTIGUOUS_STOR_H_
 
-template<typename element_t>
+template<typename element_t, element_t padding_el>
 class ContiguousStore{
 /* 
 	This is a container for storing multiple std::array<element_t, len>'s 
@@ -48,7 +50,7 @@ private:
 
 		data.insert(data.end(), begin, end);
 		size_t pad = n_elements - std::distance(begin, end); 
-		data.resize(data.size() + pad);
+		std::fill_n(std::back_inserter(data), pad, padding_el);
 	}
 
 	void data_pop_back_into(size_t idx){
@@ -65,6 +67,7 @@ private:
 
 
 public:
+
 	ref_t insert(element_t const* begin, element_t const* end){
 		ref_t ref;
 		if(free_ref != 0){
@@ -121,6 +124,10 @@ public:
 		ref_to_data_mapping.push_back(0);
 	}
 
+	element_t& operator[](size_t idx){
+		return data[idx*n_elements];
+	}
+
 	auto begin(){
 		return data.begin();
 	}
@@ -145,8 +152,13 @@ public:
 		o << "ContiguousStore<len=" << cs.n_elements << ">[ ";
 		if(cs.size() > 0){
 			o << cs.data[0];
-			for(size_t i=1; i<cs.data.size(); i++)
-				o <<  (i % cs.n_elements == 0 ? " | " : ", ") << cs.data[i];   
+			for(size_t i=1; i<cs.data.size(); i++){
+				o <<  (i % cs.n_elements == 0 ? " | " : ", ");
+				if(cs.data[i] == padding_el)
+					o << "-";
+				else
+					o << cs.data[i];   
+			}
 		}
 		o << " ]";
 		return o;
@@ -156,28 +168,34 @@ public:
 
 
 
-template<typename key_element_t, size_t ...bucket_key_lens>
+template<typename key_element_t, key_element_t padding_el, size_t ...bucket_key_lens>
 class VariableWidthContiguousStore{
+public:
 	using ref_t = uint32_t;
 
 	class BucketRef{
 		// Publically this is only moveable/destructable not construcable/copyable.
+		using parent_t = VariableWidthContiguousStore<key_element_t, padding_el, bucket_key_lens...>;
+		parent_t* parent;
 		ref_t ref_within_bucket;
 		size_t len;
-		BucketRef(size_t len_in, ref_t ref_in) {
+		BucketRef(parent_t* p, size_t len_in, ref_t ref_in) {
+			parent = p;
 			len = len_in;
 			ref_within_bucket = ref_in;
 		}
 	public:
 		BucketRef(BucketRef&& other){
+			parent = other.parent;
 			len = other.len;
 			ref_within_bucket = other.ref_within_bucket;
 			other.len = 0;
 		}
 		~BucketRef(){
-			// TODO: call delete_ on parent store.
+			if (len>0)
+				parent->delete_(len, ref_within_bucket);
 		}
-		friend class VariableWidthContiguousStore<key_element_t, bucket_key_lens...>; // apparently outer class is not a friend by default
+		friend class VariableWidthContiguousStore<key_element_t, padding_el, bucket_key_lens...>; // apparently outer class is not a friend by default
 	
 		friend std::ostream& operator<<(std::ostream& os, BucketRef const& r){
 			os << "BucketRef[len=" << r.len << ", ref_within_bucket=" << r.ref_within_bucket <<  "]";
@@ -185,23 +203,32 @@ class VariableWidthContiguousStore{
 		}
 	};
 
-	std::array<ContiguousStore<key_element_t>, sizeof...(bucket_key_lens)> bucket_pyramid{bucket_key_lens...};
+private:
+	std::array<ContiguousStore<key_element_t, padding_el>, sizeof...(bucket_key_lens)> bucket_pyramid{bucket_key_lens...};
 
-	public:
-	
+	auto delete_(size_t len, ref_t ref_within_bucket){
+		assert(len > 0);
+		for(auto& b : bucket_pyramid)if(len <= b.n_elements){
+			b.delete_(ref_within_bucket);
+			return;
+		}
+	}
+
+public:
+
+	template<typename Foo>
+	void for_each(Foo foo){
+		for(auto& b : bucket_pyramid){
+			for(size_t i=0;i<b.size();i++)
+				foo(&b[i], &b[i+1]);
+		}
+	}
+
 	auto insert(key_element_t const* begin, key_element_t const* end){
 		size_t len = std::distance(begin, end);
 		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
-			return BucketRef(len, b.insert(begin, end));
+			return BucketRef(this, len, b.insert(begin, end));
 		abort();
-	}
-
-	auto delete_(BucketRef ref){
-		assert(ref.len > 0);
-		for(auto& b : bucket_pyramid)if(ref.len <= b.n_elements){
-			b.delete_(ref.ref_within_bucket);
-			return;
-		}
 	}
 
 	friend std::ostream& operator<<(std::ostream& o, const VariableWidthContiguousStore& vwcs){
@@ -215,4 +242,4 @@ class VariableWidthContiguousStore{
 
 
 
-
+#endif // _VARIABLE_WIDTH_CONTIGUOUS_STOR_H_
