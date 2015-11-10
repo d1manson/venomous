@@ -102,7 +102,7 @@ int main(int argc, char **argv){
 	
 	
 	VariableWidthContiguousStore<double, 2, 4, 8, 16> cs;
-
+	std::cout << cs << std::flush;
 
 	auto cs1 = cs.insert(dummy.begin(), dummy.begin()+1);
 	auto cs2 = cs.insert(dummy.begin(), dummy.begin()+2);
