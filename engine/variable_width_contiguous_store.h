@@ -16,12 +16,12 @@ namespace utils{
 */
 
 
-template<template<typename> class Bucket, typename element_t, size_t length_i, size_t ...larger_lengths>
+template<template<typename, size_t> class Bucket, typename element_t, size_t length_i, size_t ...larger_lengths>
 struct BucketPyramid{
 	static const size_t length_i_ = length_i;
 
 	// TODO: static_assert(length_i < larger_lengths[0], "lengths should be strictly increasing")
-	Bucket<std::array<element_t, length_i> > bucket_i;
+	Bucket<element_t, length_i> bucket_i;
 	BucketPyramid<Bucket, element_t, larger_lengths...> other_buckets;
 
 	template<typename Foo>
@@ -54,11 +54,11 @@ struct BucketPyramid{
 
 };
 
-template<template<typename> class Bucket, typename element_t, size_t largest_length>
+template<template<typename, size_t> class Bucket, typename element_t, size_t largest_length>
 struct BucketPyramid<Bucket, element_t, largest_length>{
 	static const size_t largest_length_ = largest_length;
 
-	Bucket<std::array<element_t, largest_length> > bucket_i;
+	Bucket<element_t, largest_length> bucket_i;
 
 	template<typename Foo>
 	auto exec(element_t const* begin, element_t const* end, Foo foo){
@@ -85,45 +85,46 @@ struct BucketPyramid<Bucket, element_t, largest_length>{
 
 }
 
-template<typename value_t>
+
+template<typename element_t>
 class ContiguousStore{
-	/*
-		This is a container storing an array of value_t's contiguously in memory,
-		the contiguity is maintined even when you do dynamic insertions and deletes.
-		This requries moving/copying at most one value_t on deletion.
+/* See ContiguousStoreArray, which uses this as a base.
 
-		It acts as a store in the sense that when you insert a value_t into it,
-		you are given a key, that can be used for accessing/deleting
-		the stored value in future.  Accessing/deleting requires a dereferencing step
-		and doesn't have any special contiguity/cache utilization properties, whereas
-		iterating is fast because it's contiguous and doesn't involve dereferencing.
-		
-		The iterating order is undefined.
+    The code is structred like this for the sake of bloat-reduction.
+   A more extreme version would have been to use just the sizeof()
+   and alignof() as the base, but in our useage case that's not
+   really any better than what we have here. */
 
-		The key's are actually indices into ref_to_data_mapping, which in turn
-		maintains up-to-date indices for the actual value_t's in the main array.
-		data_to_ref_mapping maintains the inverse.
-
-		ref_to_data_mapping operates an (index-based) free-list with
-		the head of the list recorded in the variable free_ref.  if free_ref=0,
-		then the free list is empty (this means we can never actually utilize index 0 in
-		ref_to_data_mapping).
-
-		This is not in any way thread-safe.
-	*/
-public:		
-	using value_t_ = value_t;
+public:
 	using ref_t = uint32_t;
 
 private:
-	std::vector<value_t> data;
+
+	const size_t n_elements;
+	std::vector<element_t> data; // this is a 2D array with, n_elements on the "inner" dimension/loop
 	std::vector<ref_t> ref_to_data_mapping;
-	std::vector<ref_t> data_to_ref_mapping;
-	
+	std::vector<ref_t> data_to_ref_mapping; // this grows/shrinks in synchrony with data, so could in principle combine malloc/dealloc, but who cares?!
 	ref_t free_ref = 0;
 
-public:
-	ref_t insert(value_t val){
+	void data_push_back(element_t const* begin){
+		std::copy(begin, begin + n_elements, std::back_inserter(data)); // TODO: this seems best despite repeated size test/malloc'ing
+	}
+
+	void data_pop_back_into(size_t idx){
+		std::copy(std::make_move_iterator(data.end() - n_elements), 
+				  std::make_move_iterator(data.end()), 
+									data.begin() + idx*n_elements); 
+		data_pop_back();
+	}
+
+	void data_pop_back(){
+		for(size_t i=0;i<n_elements;i++)
+			data.pop_back();
+	}
+
+
+protected:
+	ref_t insert(element_t const* val){
 		ref_t ref;
 		if(free_ref != 0){
 			// pop the ref off the free list...
@@ -136,9 +137,9 @@ public:
 		}
 
 		// store the val, and record its location at ref
-		data.push_back(val);
+		data_push_back(val);
 		data_to_ref_mapping.push_back(ref);
-		ref_to_data_mapping[ref] = data.size() -1;
+		ref_to_data_mapping[ref] = size() -1;
 		return ref;
 	}
 
@@ -148,18 +149,17 @@ public:
 		auto idx = ref_to_data_mapping[ref];
 
 		// shrink the data array by 1
-		if(idx < data.size() -1){
+		if(idx < size()){
 			// in the general case we need to swap the last element into the hole
 			// and update the index for the ref of that last element to point to
 			// its new location.
-			data[idx] = data.back(); // This should be compiled as a move-assign
-			data.pop_back(); 
+			data_pop_back_into(idx); 
 			data_to_ref_mapping[idx] = data_to_ref_mapping.back();
 			data_to_ref_mapping.pop_back();
 			ref_to_data_mapping[data_to_ref_mapping[idx]] = idx;
 		}else{
 			// otherwise we cleanly shrink the data array
-			data.pop_back();
+			data_pop_back();
 			data_to_ref_mapping.pop_back();
 		}
 
@@ -175,7 +175,8 @@ public:
 
 	}
 
-	ContiguousStore(){
+	ContiguousStore(size_t n_elements_in) 
+				: n_elements(n_elements_in){
 		ref_to_data_mapping.push_back(0);
 	}
 
@@ -195,20 +196,82 @@ public:
 		return data.cend();
 	}
 
+public:
 	size_t size() const{
-		return data.size();
+		return data_to_ref_mapping.size();
 	}
 
-
 	friend std::ostream& operator<<(std::ostream& o, const ContiguousStore& cs){
-		o << "ContiguousStore[";
+		o << "ContiguousStore<len=" << cs.n_elements << ">[ ";
 		if(cs.size() > 0){
-			o << *cs.cbegin();
-			for(auto v=cs.cbegin() +1; v != cs.cend(); v++)
-				o <<  ", " << *v;   
+			o << cs.data[0];
+			for(size_t i=1; i<cs.data.size(); i++)
+				o <<  (i % cs.n_elements == 0 ? " | " : ", ") << cs.data[i];   
 		}
-		o << ']';
+		o << " ]";
 		return o;
+	}
+
+};
+
+template<typename element_t, size_t len>
+class ContiguousStoreArray : public ContiguousStore<element_t> {
+	/*
+		This is a container for storing multiple std::array<element_t, len>'s 
+		contiguously in memory,  the contiguity is maintined even when you do 
+		dynamic insertions and deletes.  This requries moving/copying at most 
+		one of the std::arrays on deletion.
+
+		It acts as a store in the sense that when you insert an array into it,
+		you are given a key, that can be used for accessing/deleting
+		the stored array in future.  Accessing/deleting requires a dereferencing step
+		and doesn't have any special contiguity/cache utilization properties, whereas
+		iterating is fast because it's contiguous and doesn't involve dereferencing.
+		
+		The iterating order is undefined.
+
+		The key's are actually indices into ref_to_data_mapping, which in turn
+		maintains up-to-date indices for the actual value_t's in the main array.
+		data_to_ref_mapping maintains the inverse.
+
+		ref_to_data_mapping operates an (index-based) free-list with
+		the head of the list recorded in the variable free_ref.  if free_ref=0,
+		then the free list is empty (this means we can never actually utilize index 0 in
+		ref_to_data_mapping).
+
+		This is not in any way thread-safe.
+
+		Note it uses ContiguousStore<element_t> as a base class, so as to reduce 
+		code-bloat and (possibly) improve additional inline/etc. oppurtunities.
+	*/
+public:		
+	using arr_t = std::array<element_t, len>;
+	using base_t = ContiguousStore<element_t>;
+	ContiguousStoreArray() : base_t(len) {
+	}
+
+	auto insert(arr_t const& val){
+		return base_t::insert(val.cbegin());
+	}
+
+	void delete_(typename base_t::ref_t ref){
+		base_t::delete_(ref);
+	}
+
+	arr_t* begin(){
+		return reinterpret_cast<arr_t *>(&*base_t::begin());
+	}
+
+	arr_t* end(){
+		return reinterpret_cast<arr_t *>(&*base_t::end());
+	}
+
+	arr_t const* cbegin() const {
+		return reinterpret_cast<arr_t const*>(&*base_t::cbegin());
+	}
+
+	arr_t const* cend() const {
+		return reinterpret_cast<arr_t const*>(&*base_t::cend());
 	}
 
 };
@@ -236,21 +299,24 @@ class VariableWidthContiguousStore{
 			// TODO: call delete_ on parent store.
 		}
 		friend class VariableWidthContiguousStore<key_element_t, bucket_key_lens...>; // apparently outer class is not a friend by default
+	
+		friend std::ostream& operator<<(std::ostream& os, BucketRef const& r){
+			os << "BucketRef[len=" << r.len << ", ref_within_bucket=" << r.ref_within_bucket <<  "]";
+			return os;
+		}
 	};
 
-	utils::BucketPyramid<ContiguousStore, key_element_t, bucket_key_lens...> bucket_pyramid;
+	utils::BucketPyramid<ContiguousStoreArray, key_element_t, bucket_key_lens...> bucket_pyramid;
 
 	public:
 	
 	auto insert(key_element_t const* begin, key_element_t const* end){
-
 		auto ref = bucket_pyramid.exec(begin, end, [=](auto& bucket, auto& key_padded, size_t len){
 			ref_t ref = bucket.insert(key_padded);
 			return BucketRef(len, ref);
 		});
 
 		return ref;
-
 	}
 
 	auto delete_(BucketRef ref){
