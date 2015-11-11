@@ -89,7 +89,10 @@ engine_t engine;
 using dispatcher_t = Dispatcher<engine_t, &engine>;
 dispatcher_t dispatcher;
 
-void got_c(typename dispatcher_t::callback_arg<custom_c>::type v){
+
+class NoState{};
+
+void got_c(typename dispatcher_t::callback_arg<custom_c>::type v, NoState ns){
 	std::cout << "got: " << v.cget() << std::endl;
 	std::cout << engine << std::endl;	
 }
@@ -99,7 +102,9 @@ int main(int argc, char **argv){
 	
 	if(true){
 		auto r1 = dispatcher.make_input<input_a>("hello world");
-		auto c1 = dispatcher.make_callback<custom_c>(got_c, 13UL, 89UL, 10UL);
+		auto c1a = dispatcher.make_callback<custom_c, NoState, got_c>(
+											NoState(), 13UL, 89UL, 10UL);
+
 
 		std::cout << engine << std::endl;	
 

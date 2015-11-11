@@ -3,58 +3,9 @@
 #include "unordered_map.h"
 #include "variable_width_contiguous_store.h"
 
-/* Note that engine_p is a global, this means we
-	   (a) don't need to store a poitner to it, and..
-   	   (b) don't need to worry about the engine itself going out of scope. */
-template<typename E, E* engine_p, typename Q>
-class KeyRef{
-	using key_element_t = typename E::key_element_t;
-	using self_t = KeyRef<E, engine_p, Q>;
-	using key_t = std::array<key_element_t, Q::accompanying_key_n>;
-	key_t key;
-	static const auto q_prefix = E::template prefix_for<Q>();
-public:
-	KeyRef(key_t key_in) :
-			key(key_in){
-		engine_p->template user_ref_counter_delta<+1>(q_prefix, key.cbegin(), key.cend());
-	}
-	KeyRef(key_element_t const* begin, key_element_t const* end) {
-		std::copy(begin, end, key.begin());
-		engine_p->template user_ref_counter_delta<+1>(q_prefix, key.cbegin(), key.cend());
-	}
-	// move constructor
-	KeyRef(self_t&& other) :
-			key(other.key) {
-		other.key[0] = E::invalid_id; // avoid increment/decrement 
-	}
-	// copy constructor
-	KeyRef(self_t const& other) :
-			key(other.key) {
-		engine_p->template user_ref_counter_delta<+1>(q_prefix, key.cbegin(), key.cend());
-	}
-	~KeyRef(){
-		if(key[0] != E::invalid_id)
-			engine_p->template user_ref_counter_delta<-1>(q_prefix, key.cbegin(), key.cend());
-	}
-	Q const& cget(){
-		return engine_p->template cget_value<Q>(key);
-	}
-};
-
-template<typename E, E* engine_p, typename Q>
-class CallbackRef {
-	using self_t = CallbackRef<E, engine_p, Q>;
-	static const auto q_prefix = E::template prefix_for<Q>();
-	using ref_t = typename E::callback_ref_t; 
-	ref_t ref;
-public:
-	CallbackRef(ref_t&& ref_in) 
-				: ref(std::move(ref_in)) {};
-	CallbackRef(self_t&& other) 
-				: ref(std::move(other.ref)) {};
-	~CallbackRef(){};
-};
-
+/* engien_refs.h is really a part of this file, we just split it up to 
+   keep individual files a bit easier to navigate for the reader. */
+#include "engine_refs.h" 
 
 
 template<typename E, E* engine_p>
@@ -65,11 +16,9 @@ public:
 		return E::template make_input<Q, engine_p>(std::forward<Args...>(args)...);
 	}
 
-	template<typename Q, typename ...Args>
-	auto make_callback(void (*func_p)( KeyRef<E, engine_p, Q>),
-						Args ...args){
-		return E::template make_callback<Q, engine_p, Args...>(
-								func_p, args...);
+	template<typename Q, typename State, void (*func_p)( KeyRef<E, engine_p, Q>, State), typename ...Args>
+	auto make_callback(State state, Args ...args){
+		return E::template make_callback<Q, engine_p, State, func_p, Args...>(state, args...);
 	}
 
 	// A convenience template
@@ -98,6 +47,8 @@ public:
 	template<typename E, E* engine> friend class Dispatcher;
 	template<typename E, E* engine_p, typename Q> friend class KeyRef;
 
+
+
 private:
 	/*
 		There are a whole bunch of different containers storing stuff.
@@ -124,8 +75,7 @@ private:
 	VariableWidthContiguousStore<id_t, invalid_id, 2, 4, 8, 16> callbacks;
 public:
 	using callback_ref_t = typename decltype(callbacks)::BucketRef;
-	using callback_func_t = std::function<void(key_element_t const*, key_element_t const*)>;
-
+	
 	template<typename Q, self_t* engine_p, typename ...Args>
 	static auto make_input(Args&& ...args){
 		auto prefix = prefix_for<Q>();
@@ -137,30 +87,30 @@ public:
 		return KeyRef<self_t, engine_p, Q>(key);
 	}
 
-	template<typename Q, self_t* engine_p, typename ...Args>
-	static auto make_callback(void (*func_p)(KeyRef<self_t, engine_p, Q>),
-							  Args ...args){
-		/* Takes a pointer to a callback function, which should accept a
-		   single argument of type KeyRef<..., Q>. The Args here give the
-		   full befores from which to construct Q, ultimately they will be 
-		   allowed to be fixed, variables, or "pointers".  */
+private:
 
+	static void callback_now_at(callback_ref_t const& ref, CallbackRefBaseA<self_t>* callback_ref_p){
+		// TODO: need to implemenet this
+		// callbacks.set_extra(ref, callback_ref_p)
+	}
+
+	template<typename Q, self_t* engine_p, typename State, void (*func_p)(KeyRef<self_t, engine_p, Q>, State), typename ...Args>
+	static auto make_callback(State state, Args ...args){
 		static_assert(sizeof...(Args) == Q::accompanying_key_n -1, 
 					  "full-befores list is not the correct length");
 
 		// TODO: accept refs rather than raw id_t's, and check they match the proper type for Q
 
-		// hide type info inside wrapper (for use when we actually call it)
-		self_t::callback_func_t wrapped_func_p = [func_p](auto begin, auto end){
-			func_p(KeyRef<self_t, engine_p, Q>(begin, end));
-		};
-
 		// add callback's full-befores to callbacks store...
 		std::array<id_t, sizeof...(Args)> full_befores{args...};
 		auto ref = engine_p->callbacks.insert(full_befores.cbegin(), full_befores.cend() /*,
-												wrapped_func_p, prefix_for<Q>() */);
+												, prefix_for<Q>() */);
 
-		return CallbackRef<self_t, engine_p, Q>(std::move(ref)); 
+
+		/* callbackRef will register a pointer to itself in engine_p->callbacks, and if it
+			subsequently moves it's location will be updated. It is a subclass of CallbackRefBaseA
+			and we can use dynamic dispatch to exec the callback on it properly.		*/
+		return CallbackRef<self_t, engine_p, Q, State, func_p>(std::move(ref), state); 
 	}
 
 	template<int delta>
@@ -222,6 +172,9 @@ public:
 
 	}
 
+
+	template<typename E, E* engine_p, typename Q, typename State, void (*func_p)( KeyRef<E, engine_p, Q>, State)>
+	friend class CallbackRef;
 
 	friend std::ostream& operator<<(std::ostream& os, self_t const& engine){
 		os << "###### Engine #########\n\nWith store:\n============\n" 
