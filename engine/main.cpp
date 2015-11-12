@@ -1,4 +1,8 @@
 
+
+#define NDEBUG
+
+
 #include <iostream>
 #include <string>
 #include <memory>
@@ -14,6 +18,8 @@
 
 
 using id_t = uint32_t;
+
+using namespace std::literals::string_literals;
 
 
 template<typename T>
@@ -76,7 +82,7 @@ struct custom_c : public vector<double>{
 };
 
 
-//#define NDEBUG
+
 #include <chrono>
 #include <random>
 #include <atomic>
@@ -97,22 +103,20 @@ void got_c(typename dispatcher_t::callback_arg<custom_c>::type v, NoState ns){
 	std::cout << engine << std::endl;	
 }
 
-
 int main(int argc, char **argv){
-	
 	if(true){
-		auto r1 = dispatcher.make_input<input_a>("hello world");
+		auto r1 = dispatcher.make_input<input_a>("hello world"s);
 		auto c1a = dispatcher.make_callback<custom_c, NoState, got_c>(
 											NoState(), 13UL, 89UL, 10UL);
-		std::cout << engine << std::endl;	
+		//std::cout << engine << std::endl;	
 
 
-		std::cout << "r1: " << r1.cget().value << std::endl;  
+		//std::cout << "r1: " << r1.cget().value << std::endl;  
 
 		engine.run();
 	}
 
-	std::cout << engine << std::endl;	
+	//std::cout << engine << std::endl;	
 		
 	return 0;
 }

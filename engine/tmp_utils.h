@@ -13,7 +13,7 @@ std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr){
 	    std::copy(arr.cbegin(), arr.cend()-1, std::ostream_iterator<T>(o, ", "));
 	    o << arr.back();	
 	}
-	o << ']';
+	o << "]";
 	return o;
 }
 
@@ -25,7 +25,7 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec){
 	    std::copy(vec.cbegin(), vec.cend()-1, std::ostream_iterator<T>(o, ", "));
 	    o << vec.back();	
 	}
-	o << ']';
+	o << "]";
 	return o;
 }
 
@@ -76,6 +76,12 @@ struct conditional_value<true>{
 
 bool constexpr is_pow_2(int N){
 	return (N && (N & (N - 1)) == 0);
+}
+
+template<typename T, size_t... Idx>
+constexpr std::array<T, sizeof...(Idx)>
+array_pow2s(std::index_sequence<Idx...>){
+	return { (2<<Idx)...};
 }
 
 // ======================

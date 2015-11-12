@@ -72,10 +72,11 @@ private:
 	*/
 	store_t store;
 	std::array<std::atomic<size_t>, store_capacity> user_ref_count; 
-	VariableWidthContiguousStore<id_t, invalid_id, callback_p_t, 2, 4, 8, 16> callbacks;
+	VariableWidthContiguousStore<id_t, invalid_id, callback_p_t, 4> callbacks;
 public:
 	using callback_ref_t = typename decltype(callbacks)::BucketRef;
-	
+	static const size_t max_len_callbacks = decltype(callbacks)::max_len;
+
 	template<typename Q, self_t* engine_p, typename ...Args>
 	static auto make_input(Args&& ...args){
 		auto prefix = prefix_for<Q>();
@@ -151,18 +152,20 @@ public:
 		// engine thread loop, but for now the user has to repeatedly
 		// call it manually.
 		std::cout << "------ RUN -----------------------------"  << std::endl;
-
+		int padding = -1;
 		callbacks.for_each(
-		[](id_t* begin, id_t* end){
-			std::vector<id_t> v(begin, end);
+		[=](id_t const* begin, id_t const* end){
+			std::array<int, max_len_callbacks> v;
+			std::fill(std::copy(begin, end, v.begin()), v.end(), padding);
 			std::cout << "found callback registered for full-befores: " << v << std::endl;
 			return true;
 		},
 		[](callback_p_t cb_p, auto begin, auto end){
+
 			/*		
 			// --- create dummy value in store and dummily-return it to callback --- //
 			std::array<key_element_t, Q::accompanying_key_n> dummy_key;
-			auto p = engine_p->store.insert(prefix_for<Q>(), dummy_key.begin(), dummy_key.end());
+			auto p = store.insert(prefix_for<Q>(), dmmyu_key.begin(), dummy_key.end());
 			assert(p != nullptr);
 			Q::exec(*p);
 			KeyRef<self_t, engine_p, Q> dummy_ref(dummy_key);

@@ -246,10 +246,11 @@ class ContiguousStoreWithExtra
 };
 
 
-template<typename key_element_t, key_element_t padding_el, typename Extra, size_t ...bucket_key_lens>
+template<typename key_element_t, key_element_t padding_el, typename Extra, size_t max_len_log_2>
 class VariableWidthContiguousStore{
 public:
 	static const bool has_extra = !std::is_void<Extra>::value;
+	static const size_t max_len = (2 << max_len_log_2);
 	using store_t = typename std::conditional<has_extra,
 									ContiguousStoreWithExtra<key_element_t, padding_el, Extra>,
 									ContiguousStore<key_element_t, padding_el> >::type;
@@ -258,7 +259,7 @@ public:
 									
 	class BucketRef{
 		// Publically this is only moveable/destructable not construcable/copyable.
-		using parent_t = VariableWidthContiguousStore<key_element_t, padding_el, Extra, bucket_key_lens...>;
+		using parent_t = VariableWidthContiguousStore<key_element_t, padding_el, Extra, max_len_log_2>;
 		parent_t* parent;
 		ref_t ref_within_bucket;
 		size_t len;
@@ -278,7 +279,7 @@ public:
 			if (len>0)
 				parent->delete_(len, ref_within_bucket);
 		}
-		friend class VariableWidthContiguousStore<key_element_t, padding_el, Extra, bucket_key_lens...>; // apparently outer class is not a friend by default
+		friend class VariableWidthContiguousStore<key_element_t, padding_el, Extra, max_len_log_2>; // apparently outer class is not a friend by default
 	
 		friend std::ostream& operator<<(std::ostream& os, BucketRef const& r){
 			os << "BucketRef[len=" << r.len << ", ref_within_bucket=" << r.ref_within_bucket <<  "]";
@@ -287,14 +288,30 @@ public:
 	};
 
 private:
-	std::array<store_t, sizeof...(bucket_key_lens)> bucket_pyramid{bucket_key_lens...};
+	std::array<store_t,max_len_log_2> bucket_pyramid = 
+				utils::array_pow2s<store_t>(std::make_index_sequence<max_len_log_2>());
 
 	auto delete_(size_t len, ref_t ref_within_bucket){
-		assert(len > 0);
-		for(auto& b : bucket_pyramid)if(len <= b.n_elements){
-			b.delete_(ref_within_bucket);
-			return;
-		}
+		auto&b = bucket_pyramid[bucket_idx_from_len(len)];
+		b.delete_(ref_within_bucket);
+	}
+
+	size_t bucket_idx_from_len(uint32_t v){
+		/*	1,2 : 0  	(len<=2)
+			3,4 : 1  	(2<len<=4)
+			5,6,7,8 : 2 (4<len<=8)
+			9-16 : 3	(8<len<=16)
+
+		https://gcc.gnu.org/onlinedocs/gcc-4.8.1/gcc/Other-Builtins.html
+
+	 	Built-in Function: int __builtin_clz (unsigned int x)
+		Returns the number of leading 0-bits in x, starting at the most 
+		significant bit position. If x is 0, the result is undefined.
+
+		Works at least on clang and gcc, eqiuvalents may exist in other compilers. */
+		assert(v != 0);
+		v -=1;
+	    return v == 0 ? 0 : 31 - __builtin_clz(v);
 	}
 
 public:
@@ -315,6 +332,7 @@ public:
 		   is now treated as a predicate: when true, the second lambda is called,
 		   passing the extra instance as the first argument: the 2nd and 3rd arguments
 		   are the same as the two arguments passed to the predicate.		*/
+
 		for(auto& b : bucket_pyramid){
 			for(idx_iter_chunk_t i=0; i<b.size(); i++){
 				if(pred(&b[i], &b[i+1]))
@@ -327,17 +345,16 @@ public:
 	typename std::enable_if<!has_extra, Return>::type  /* return type= BucketRef, if !hasextra */
 	insert(key_element_t const* begin, key_element_t const* end){
 		size_t len = std::distance(begin, end);
-		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
-			return BucketRef(this, len, b.insert(begin, end));
-		abort();
+		auto&b = bucket_pyramid[bucket_idx_from_len(len)];
+		return BucketRef(this, len, b.insert(begin, end));
 	}
 
 	template<typename Return=BucketRef, typename Extra_=Extra> 
 	typename std::enable_if<has_extra, Return>::type  /* return type= BucketRef, if hasextra */
 	insert(key_element_t const* begin, key_element_t const* end, Extra_ ex){
 		size_t len = std::distance(begin, end);
-		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
-			return BucketRef(this, len, b.insert(begin, end, ex));
+		auto&b = bucket_pyramid[bucket_idx_from_len(len)];
+		return BucketRef(this, len, b.insert(begin, end, ex));
 		abort();
 	}
 
@@ -345,8 +362,8 @@ public:
 	typename std::enable_if<has_extra, Return>::type  /* return type= void, if hasextra */
 	set_extra(BucketRef const& ref, Extra_ ex){
 		size_t len = ref.len;
-		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
-			return b.update_extra_with_ref(ref.ref_within_bucket, ex);
+		auto&b = bucket_pyramid[bucket_idx_from_len(len)];
+		return b.update_extra_with_ref(ref.ref_within_bucket, ex);
 	}
 
 	friend std::ostream& operator<<(std::ostream& o, const VariableWidthContiguousStore& vwcs){
