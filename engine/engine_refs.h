@@ -75,7 +75,7 @@ protected:
 	CallbackRefBaseB(ref_t&& ref_in)
 				: ref(std::move(ref_in)) {};
 	CallbackRefBaseB(self_t&& other) = default;
-	virtual ~CallbackRefBaseB(){};
+	~CallbackRefBaseB() override {};
 };
 
 
@@ -101,11 +101,11 @@ public:
 				  state(std::move(other.state)) {
 					engine_p->callback_now_at(base_t::get_ref(), this);
 				};
-	virtual ~CallbackRef(){
+	~CallbackRef() override{
 		engine_p->callback_now_at(base_t::get_ref(), nullptr);
 	};
-	virtual void exec(typename E::key_element_t const* begin,
-				 typename E::key_element_t const* end){
+	void exec(typename E::key_element_t const* begin,
+				 typename E::key_element_t const* end) override{
 		func_p({begin, end}, state); //provide type info and state to user, yay!
 	}
 };

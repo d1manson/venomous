@@ -104,9 +104,8 @@ int main(int argc, char **argv){
 		auto r1 = dispatcher.make_input<input_a>("hello world");
 		auto c1a = dispatcher.make_callback<custom_c, NoState, got_c>(
 											NoState(), 13UL, 89UL, 10UL);
-
-
 		std::cout << engine << std::endl;	
+
 
 		std::cout << "r1: " << r1.cget().value << std::endl;  
 

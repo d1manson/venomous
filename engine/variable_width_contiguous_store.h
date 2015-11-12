@@ -36,13 +36,25 @@ class ContiguousStore{
 
 
 public:
-	using ref_t = uint32_t;
+	/* TODO: I would like to use opaque-typedefs to separate the 
+		three kinds of indexing here: 
+			idx_ref_t 		 - indexing by ref
+			idx_iter_chunk_t - indexing by iteration order, when we iterate over
+							   std::array<element_t, n_elements> chunks
+			idx_iter_el_t 	 - indexing by iteratrion order, when we iterate over
+			  				   individual element_t's.			
+	 Currently the user has to be careful not to confuse the three.*/
+	using idx_ref_t = uint32_t;
+	using idx_iter_chunk_t = uint32_t;
+	using idx_iter_el_t = uint32_t;
+	using ref_t = idx_ref_t;
+	
 	const size_t n_elements;
 
 private:
 	std::vector<element_t> data; // this is a 2D array with, n_elements on the "inner" dimension/loop
-	std::vector<ref_t> ref_to_data_mapping;
-	std::vector<ref_t> data_to_ref_mapping; // this grows/shrinks in synchrony with data, so could in principle combine malloc/dealloc, but who cares?!
+	std::vector<idx_iter_chunk_t> ref_to_data_mapping;
+	std::vector<idx_ref_t> data_to_ref_mapping; // this grows/shrinks in synchrony with data, so could in principle combine malloc/dealloc, but who cares?!
 	ref_t free_ref = 0;
 
 	void data_push_back(element_t const* begin, element_t const* end){
@@ -53,7 +65,7 @@ private:
 		std::fill_n(std::back_inserter(data), pad, padding_el);
 	}
 
-	void data_pop_back_into(size_t idx){
+	void data_pop_back_into(idx_iter_chunk_t idx){
 		std::copy(std::make_move_iterator(data.end() - n_elements), 
 				  std::make_move_iterator(data.end()), 
 									data.begin() + idx*n_elements); 
@@ -61,7 +73,7 @@ private:
 	}
 
 	void data_pop_back(){
-		for(size_t i=0;i<n_elements;i++)
+		for(idx_iter_el_t i=0;i<n_elements;i++)
 			data.pop_back();
 	}
 
@@ -124,35 +136,30 @@ public:
 		ref_to_data_mapping.push_back(0);
 	}
 
-	element_t& operator[](size_t idx){
+	element_t& operator[](idx_iter_chunk_t idx){
 		return data[idx*n_elements];
 	}
 
-	auto begin(){
-		return data.begin();
+	auto index_to_ref(idx_iter_chunk_t idx) const{
+		return data_to_ref_mapping[idx];
 	}
 
-	auto end(){
-		return data.end();
-	}
-
-	auto cbegin() const {
-		return data.cbegin();
-	}
-
-	auto cend() const {
-		return data.cend();
-	}
-
-	size_t size() const{
+	idx_iter_chunk_t size() const{
 		return data_to_ref_mapping.size();
 	}
+
+	// TODO: these iterators are confusing: delete them
+	auto begin(){return data.begin();}
+	auto end(){return data.end();}
+	auto cbegin() const {return data.cbegin();}
+	auto cend() const { return data.cend();}
+
 
 	friend std::ostream& operator<<(std::ostream& o, const ContiguousStore& cs){
 		o << "ContiguousStore<len=" << cs.n_elements << ">[ ";
 		if(cs.size() > 0){
 			o << cs.data[0];
-			for(size_t i=1; i<cs.data.size(); i++){
+			for(idx_iter_el_t i=1; i<cs.data.size(); i++){
 				o <<  (i % cs.n_elements == 0 ? " | " : ", ");
 				if(cs.data[i] == padding_el)
 					o << "-";
@@ -167,15 +174,91 @@ public:
 };
 
 
+template<typename element_t, element_t padding_el, typename Extra>
+class ContiguousStoreWithExtra 
+	: public ContiguousStore<element_t, padding_el>{
+		/* This should be "has-a" rather than "is-a", but I wasn't sure how to do
+		   that without manually piping through every single method call/data member
+		   access..The intention is to hide some of the methods of the base. 
+		   Note that the implelmentation of this is VERY TIGHTLY COUPLED to
+		   the base class, you could think of them as template specializations
+		   of a common signature.
+			
+		   This version adds the ability to store an Extra class instance
+		   with each item.  The instance value can be read/updated using
+		   get_extra and update_extra respectively.
 
-template<typename key_element_t, key_element_t padding_el, size_t ...bucket_key_lens>
+		   The insert method now adds an extra paramenter, an Extra
+		   instance.
+
+		   The Extra instances are stored in a vector at the index of the reference,
+		   so they are not fast to iterate over.
+
+		   This is really just a convenice - this class doesn't need special access
+		   to the standard ContiguousStore, but in future we might decide to 
+		   restructer stuff a bit as it seems a bit wasteful having pairs of vectors
+		   coupled in terms of growing/shrinking access etc...you could coalessce 
+		   malloc's/deletes etc.
+		*/
+
+	public:
+
+	using base_t = ContiguousStore<element_t, padding_el>;
+	using ref_t = typename base_t::ref_t;
+	using idx_iter_chunk_t = typename base_t::idx_iter_chunk_t;
+
+	template<typename ...Args>
+	ContiguousStoreWithExtra(Args&& ...args)
+		: base_t(std::forward<Args...>(args...)){
+			ref_to_extra.push_back({});
+		}
+
+	std::vector<Extra> ref_to_extra;
+
+	auto insert(element_t const* begin, element_t const* end, Extra ex){
+		auto idx = base_t::insert(begin, end);
+		if(idx < ref_to_extra.size()){
+			new (&ref_to_extra[idx]) Extra(ex); // placement new
+		}else{
+			assert(ref_to_extra.size() == idx); //we should be staying in-sync
+			ref_to_extra.push_back(ex);
+		}
+		return idx;
+	}
+
+	auto delete_(ref_t idx){
+		base_t::delete_(idx);
+		if(idx == ref_to_extra.size()-1)
+			ref_to_extra.pop_back();
+		else
+			ref_to_extra[idx].~Extra();  // "placement delete"
+			
+	}
+
+	auto get_extra_with_index(idx_iter_chunk_t idx) const {
+		return ref_to_extra[base_t::index_to_ref(idx)];
+	}
+
+	void update_extra_with_ref(ref_t idx, Extra ex){
+		ref_to_extra[idx] = ex;
+	}
+
+};
+
+
+template<typename key_element_t, key_element_t padding_el, typename Extra, size_t ...bucket_key_lens>
 class VariableWidthContiguousStore{
 public:
-	using ref_t = uint32_t;
-
+	static const bool has_extra = !std::is_void<Extra>::value;
+	using store_t = typename std::conditional<has_extra,
+									ContiguousStoreWithExtra<key_element_t, padding_el, Extra>,
+									ContiguousStore<key_element_t, padding_el> >::type;
+	using idx_iter_chunk_t = typename store_t::idx_iter_chunk_t;
+	using ref_t = typename store_t::ref_t;
+									
 	class BucketRef{
 		// Publically this is only moveable/destructable not construcable/copyable.
-		using parent_t = VariableWidthContiguousStore<key_element_t, padding_el, bucket_key_lens...>;
+		using parent_t = VariableWidthContiguousStore<key_element_t, padding_el, Extra, bucket_key_lens...>;
 		parent_t* parent;
 		ref_t ref_within_bucket;
 		size_t len;
@@ -195,7 +278,7 @@ public:
 			if (len>0)
 				parent->delete_(len, ref_within_bucket);
 		}
-		friend class VariableWidthContiguousStore<key_element_t, padding_el, bucket_key_lens...>; // apparently outer class is not a friend by default
+		friend class VariableWidthContiguousStore<key_element_t, padding_el, Extra, bucket_key_lens...>; // apparently outer class is not a friend by default
 	
 		friend std::ostream& operator<<(std::ostream& os, BucketRef const& r){
 			os << "BucketRef[len=" << r.len << ", ref_within_bucket=" << r.ref_within_bucket <<  "]";
@@ -204,7 +287,7 @@ public:
 	};
 
 private:
-	std::array<ContiguousStore<key_element_t, padding_el>, sizeof...(bucket_key_lens)> bucket_pyramid{bucket_key_lens...};
+	std::array<store_t, sizeof...(bucket_key_lens)> bucket_pyramid{bucket_key_lens...};
 
 	auto delete_(size_t len, ref_t ref_within_bucket){
 		assert(len > 0);
@@ -219,16 +302,51 @@ public:
 	template<typename Foo>
 	void for_each(Foo foo){
 		for(auto& b : bucket_pyramid){
-			for(size_t i=0;i<b.size();i++)
+			for(idx_iter_chunk_t i=0;i<b.size();i++)
 				foo(&b[i], &b[i+1]);
-		}
+		} // for-buckets
 	}
 
-	auto insert(key_element_t const* begin, key_element_t const* end){
+	template<typename Predicate, typename FooExtra, typename Return=void, typename Extra_=Extra> 
+	typename std::enable_if<has_extra, Return>::type  /* return type= void, if hasextra */
+	for_each(Predicate pred, FooExtra foo_extra){
+		/* This extends the simple for_each when there is Extra data stored.
+		   The function now takes two lambdas: the first is the same as before, but
+		   is now treated as a predicate: when true, the second lambda is called,
+		   passing the extra instance as the first argument: the 2nd and 3rd arguments
+		   are the same as the two arguments passed to the predicate.		*/
+		for(auto& b : bucket_pyramid){
+			for(idx_iter_chunk_t i=0; i<b.size(); i++){
+				if(pred(&b[i], &b[i+1]))
+					foo_extra(b.get_extra_with_index(i), &b[i], &b[i+1]);
+			} // for-chunks
+		} // for-buckets
+	}
+
+	template<typename Return=BucketRef> 
+	typename std::enable_if<!has_extra, Return>::type  /* return type= BucketRef, if !hasextra */
+	insert(key_element_t const* begin, key_element_t const* end){
 		size_t len = std::distance(begin, end);
 		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
 			return BucketRef(this, len, b.insert(begin, end));
 		abort();
+	}
+
+	template<typename Return=BucketRef, typename Extra_=Extra> 
+	typename std::enable_if<has_extra, Return>::type  /* return type= BucketRef, if hasextra */
+	insert(key_element_t const* begin, key_element_t const* end, Extra_ ex){
+		size_t len = std::distance(begin, end);
+		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
+			return BucketRef(this, len, b.insert(begin, end, ex));
+		abort();
+	}
+
+	template<typename Return=void, typename Extra_=Extra> 
+	typename std::enable_if<has_extra, Return>::type  /* return type= void, if hasextra */
+	set_extra(BucketRef const& ref, Extra_ ex){
+		size_t len = ref.len;
+		for(auto& b : bucket_pyramid)if(len <= b.n_elements)
+			return b.update_extra_with_ref(ref.ref_within_bucket, ex);
 	}
 
 	friend std::ostream& operator<<(std::ostream& o, const VariableWidthContiguousStore& vwcs){

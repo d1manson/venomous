@@ -47,7 +47,7 @@ public:
 	template<typename E, E* engine> friend class Dispatcher;
 	template<typename E, E* engine_p, typename Q> friend class KeyRef;
 
-
+	using callback_p_t = CallbackRefBaseA<self_t>*;
 
 private:
 	/*
@@ -72,7 +72,7 @@ private:
 	*/
 	store_t store;
 	std::array<std::atomic<size_t>, store_capacity> user_ref_count; 
-	VariableWidthContiguousStore<id_t, invalid_id, 2, 4, 8, 16> callbacks;
+	VariableWidthContiguousStore<id_t, invalid_id, callback_p_t, 2, 4, 8, 16> callbacks;
 public:
 	using callback_ref_t = typename decltype(callbacks)::BucketRef;
 	
@@ -89,9 +89,8 @@ public:
 
 private:
 
-	static void callback_now_at(callback_ref_t const& ref, CallbackRefBaseA<self_t>* callback_ref_p){
-		// TODO: need to implemenet this
-		// callbacks.set_extra(ref, callback_ref_p)
+	void callback_now_at(callback_ref_t const& ref, callback_p_t cb_p){
+		callbacks.set_extra(ref, cb_p);
 	}
 
 	template<typename Q, self_t* engine_p, typename State, void (*func_p)(KeyRef<self_t, engine_p, Q>, State), typename ...Args>
@@ -103,7 +102,7 @@ private:
 
 		// add callback's full-befores to callbacks store...
 		std::array<id_t, sizeof...(Args)> full_befores{args...};
-		auto ref = engine_p->callbacks.insert(full_befores.cbegin(), full_befores.cend() /*,
+		auto ref = engine_p->callbacks.insert(full_befores.cbegin(), full_befores.cend(), nullptr /*,
 												, prefix_for<Q>() */);
 
 
@@ -153,10 +152,13 @@ public:
 		// call it manually.
 		std::cout << "------ RUN -----------------------------"  << std::endl;
 
-		callbacks.for_each([](id_t* begin, id_t* end){
+		callbacks.for_each(
+		[](id_t* begin, id_t* end){
 			std::vector<id_t> v(begin, end);
 			std::cout << "found callback registered for full-befores: " << v << std::endl;
-
+			return true;
+		},
+		[](callback_p_t cb_p, auto begin, auto end){
 			/*		
 			// --- create dummy value in store and dummily-return it to callback --- //
 			std::array<key_element_t, Q::accompanying_key_n> dummy_key;
@@ -166,6 +168,7 @@ public:
 			KeyRef<self_t, engine_p, Q> dummy_ref(dummy_key);
 			func_p(dummy_ref);
 			*/
+			std::cout << "I'd love to call the callback pointed to: " << cb_p << "\n";
 		});
 
 		std::cout << "----------------------------------------"  << std::endl;
