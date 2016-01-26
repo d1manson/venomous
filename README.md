@@ -1,7 +1,7 @@
  ![venomous logo](/img/logo.png)    
 data analytics and simulation engine
 
-**This project is still in very early development.**
+**This project is still in very early development.  However, following the release of [TensorFlow](https://github.com/tensorflow/tensorflow) it is now unlikely that further work will be done.**
 
 So far the only tool that even vaguely works is the Venomous Explorer - [click here](http://d1manson.github.io/venomous/explorer/) to open the sample document.
 
